@@ -6,7 +6,7 @@ import type { IOperationContext } from "../contexts/icontext.js";
 import { MFA, useLoginMfa } from "../models/mfa.model.js";
 import { useBehaviorParameters } from "../application/modelconfiguration.js";
 import { OperationContext } from "../contexts/operationcontext.js";
-import { getRawTextPaths, sanitizeInput } from "../contexts/sanitize.js";
+import { getSanitizeModes, sanitizeInput, type SanitizeModes } from "../contexts/sanitize.js";
 import { UuidModel, type Model, type ModelClass } from "@webda/models";
 import { runAsSystem, runWithContext, useContext } from "../contexts/execution.js";
 
@@ -68,22 +68,22 @@ export function sanitizeModelInput<T = any>(model: ModelClass<any>, input: T, co
 }
 
 /**
- * Dotted paths of the texts a model keeps as the client sent them: the attributes its Input schema marks
- * `x-webda-sanitize: none` (`@sanitize none` on the property, see {@link getRawTextPaths})
+ * Sanitization modes of the texts of a model: the attributes its Input schema marks `x-webda-sanitize`
+ * (`@sanitize none`, `html` or `markdown` on the property, see {@link getSanitizeModes})
  * @param model - the model class
- * @returns the paths, `*` standing for any array index or record key
+ * @returns the modes per dotted path, `*` standing for any array index or record key
  */
-export function getModelRawTextPaths(model: any): string[] {
+export function getModelSanitizeModes(model: any): SanitizeModes {
   try {
-    return getRawTextPaths(useModelMetadata(model)?.Schemas?.Input);
+    return getSanitizeModes(useModelMetadata(model)?.Schemas?.Input);
   } catch {
-    return [];
+    return {};
   }
 }
 
 /**
- * HTML-sanitize the texts of client input bound to a model, the way an operation on this model does: every string,
- * except the attributes the model tags `@sanitize none`
+ * Sanitize the texts of client input bound to a model, the way an operation on this model does: every string is
+ * HTML-sanitized, except the attributes the model gives another mode (`@sanitize none`, `html` or `markdown`)
  *
  * For an entry point that receives model data outside the input of a model operation (a sync push, a batch
  * import...), so a model stores the same text on every transport. It only deals with the texts: follow it with
@@ -93,7 +93,7 @@ export function getModelRawTextPaths(model: any): string[] {
  * @returns the input, its texts sanitized
  */
 export async function sanitizeModelText<T = any>(model: ModelClass<any>, input: T): Promise<T> {
-  return sanitizeInput(input, { rawText: getModelRawTextPaths(model) });
+  return sanitizeInput(input, { modes: getModelSanitizeModes(model) });
 }
 
 /**
@@ -431,9 +431,9 @@ export class DomainService<
    * number, boolean or null) is refused.
    *
    * This is the body `callOperation` validated against the operation input schema and handed to the authorizers:
-   * HTML-sanitized, except for the attributes the model tags `@sanitize none`. Do not override this method to read
-   * the raw body (`context.getInput({ raw: true })`): the model would then receive values that were never
-   * validated. Tag the attributes instead.
+   * HTML-sanitized, except for the attributes the model tags `@sanitize none`, `html` or `markdown`. Do not override
+   * this method to read the raw body (`context.getInput({ raw: true })`): the model would then receive values that
+   * were never validated. Tag the attributes instead.
    * @param context - the operation context
    * @returns the request body
    * @throws BadRequest when the body is not an object

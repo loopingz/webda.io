@@ -674,6 +674,43 @@ class PushTest extends SyncTest {
   }
 
   @test
+  async pushFollowsTheSanitizationModes() {
+    // Note.summary is `@sanitize markdown`, Note.content `@sanitize html`
+    const uuid = "44444444-4444-4444-8444-444444444444";
+    const [created] = await this.push([
+      {
+        mutationId: "s1",
+        ref: { model: "Test/Note", key: uuid },
+        baseRev: 0,
+        op: "create",
+        patch: {
+          title: "t",
+          summary: "R&D `<b>` <script>x</script> [l](javascript:x)",
+          content: '<p onclick="x">R&D <b>b</b><script>x</script></p>'
+        }
+      }
+    ]);
+    assert.strictEqual(created.status, "ok", JSON.stringify(created));
+    const stored: any = await Note.ref(uuid).get();
+    assert.strictEqual(stored.summary, "R&D `<b>` &lt;script>x&lt;/script> [l](#)");
+    assert.strictEqual(stored.content, "<p>R&amp;D <b>b</b></p>");
+    const dto = stored.toDTO();
+    const [patched] = await this.push([
+      {
+        mutationId: "s2",
+        ref: { model: "Test/Note", key: uuid },
+        baseRev: 1,
+        op: "patch",
+        patch: diff(dto, { ...dto, summary: "a < b\n\n<div>x</div>", content: "<i>i</i><style>x</style>" })
+      }
+    ]);
+    assert.strictEqual(patched.status, "ok", JSON.stringify(patched));
+    const updated: any = await Note.ref(uuid).get();
+    assert.strictEqual(updated.summary, "a < b\n\n&lt;div>x&lt;/div>");
+    assert.strictEqual(updated.content, "<i>i</i>");
+  }
+
+  @test
   async patchReplacingTheWholeObject() {
     // A delta can replace the object by a value that is not one: there is no attribute to sanitize then
     const sync: any = this.sync;

@@ -7,7 +7,7 @@ import {
   type DryRunResult
 } from "./icore.js";
 import { OperationContext } from "../contexts/operationcontext.js";
-import { DEFAULT_SANITIZE_OPTIONS, getRawTextPaths } from "../contexts/sanitize.js";
+import { DEFAULT_SANITIZE_OPTIONS, getSanitizeModes, type SanitizeModes } from "../contexts/sanitize.js";
 import { WebContext } from "../contexts/webcontext.js";
 import * as WebdaError from "../errors/errors.js";
 import { validateSchema, ValidationError } from "../schemas/hooks.js";
@@ -639,47 +639,51 @@ function getBodyParameter(context: OperationContext, operation?: OperationDefini
 }
 
 /**
- * Body paths of the texts an operation opts out of the HTML sanitization
+ * Sanitization modes of the texts of an operation body
  *
- * They come from the operation input schema (`x-webda-sanitize: none`, see {@link getRawTextPaths}), so a model
+ * They come from the operation input schema (`x-webda-sanitize`, see {@link getSanitizeModes}), so a model
  * operation follows the `@sanitize` tags of its model.
  * @param context - the execution context
  * @param operationId - the operation identifier
- * @returns the paths, relative to the request body
+ * @returns the modes, per path relative to the request body
  */
-function getOperationRawTextPaths(context: OperationContext, operationId: string): string[] {
+function getOperationSanitizeModes(context: OperationContext, operationId: string): SanitizeModes {
   const operation = useInstanceStorage().operations[operationId];
   if (!operation?.input || operation.input === "void") {
-    return [];
+    return {};
   }
-  // The `?` variant only drops `required`: the base schema is a stable object, its paths are cached
+  // The `?` variant only drops `required`: the base schema is a stable object, its modes are cached
   const schema = operation.input.endsWith("?") ? operation.input.slice(0, -1) : operation.input;
-  const paths = getRawTextPaths(useApplication().getSchema(schema));
+  const modes = getSanitizeModes(useApplication().getSchema(schema));
   const bodyParameter = getBodyParameter(context, operation);
   if (!bodyParameter) {
-    return paths;
+    return modes;
   }
   // The body is the value of one input property: only the paths below it apply, relative to it
   const prefix = `${bodyParameter}.`;
-  return paths.filter(path => path.startsWith(prefix)).map(path => path.slice(prefix.length));
+  return Object.fromEntries(
+    Object.entries(modes)
+      .filter(([path]) => path.startsWith(prefix))
+      .map(([path, mode]) => [path.slice(prefix.length), mode])
+  );
 }
 
 /**
  * Read the request body the way an operation receives it: HTML-sanitized, except for the texts its input schema
- * opts out (`@sanitize none`)
+ * gives another mode (`@sanitize none`, `html` or `markdown`)
  *
  * The body is parsed once per context: the object returned here is the one {@link callOperation} validates, hands
  * to the authorizers and passes to the operation, and the one `context.getInput()` returns from then on. Code that
  * needs to change the body before calling the operation (a transport injecting a value) must read it with this
- * function: a body read with `context.getInput()` beforehand is read again when the operation keeps some texts.
+ * function: a body read with `context.getInput()` beforehand is read again when the operation declares modes.
  * @param context - the execution context
  * @param operationId - the operation identifier
  * @returns the body, undefined when there is none
  */
 export async function readOperationBody(context: OperationContext, operationId: string): Promise<any> {
-  const rawText = getOperationRawTextPaths(context, operationId);
-  // Without opt-out the context is called as before, so a context that overrides getInput keeps working
-  return rawText.length > 0 ? context.getInput({ ...DEFAULT_SANITIZE_OPTIONS, rawText }) : context.getInput();
+  const modes = getOperationSanitizeModes(context, operationId);
+  // Without a mode the context is called as before, so a context that overrides getInput keeps working
+  return Object.keys(modes).length > 0 ? context.getInput({ ...DEFAULT_SANITIZE_OPTIONS, modes }) : context.getInput();
 }
 
 /**

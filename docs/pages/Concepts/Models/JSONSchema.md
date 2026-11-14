@@ -2,8 +2,8 @@ To ignore a field from your class you can use JSDocs Tags
 
 `@SchemaIgnore`
 
-To keep a text attribute as the client sent it, instead of HTML-sanitizing it, tag it
+To choose how the text of an attribute sent by a client is sanitized, tag it
 
-`@sanitize none`
+`@sanitize <mode>`
 
-It adds `"x-webda-sanitize": "none"` to the property. See [Plain text attributes](../../Modules/models/Defining-Models.md#plain-text-attributes--sanitize-none).
+with `text` (the default: tags removed, entities escaped), `none` (kept as sent), `html` (rich text, allowlist of formatting tags) or `markdown` (Markdown source, without raw HTML nor unsafe link schemes). It adds `"x-webda-sanitize": "<mode>"` to the property. See [Text sanitization](../../Modules/models/Defining-Models.md#text-sanitization--sanitize).

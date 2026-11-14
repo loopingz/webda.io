@@ -9,14 +9,20 @@ import { WebContext } from "../contexts/webcontext.js";
 import { HttpContext, HttpMethodType } from "../contexts/httpcontext.js";
 import { runWithContext } from "../contexts/execution.js";
 import { SimpleOperationContext } from "../contexts/simplecontext.js";
-import { getRawTextPaths, sanitizeInput, SANITIZE_KEYWORD } from "../contexts/sanitize.js";
+import { getSanitizeModes, sanitizeInput, sanitizeMarkdown, SANITIZE_KEYWORD } from "../contexts/sanitize.js";
 import { callOperation, readOperationBody, registerOperation } from "../core/operations.js";
 import { useApplication } from "../application/hooks.js";
 import { useDynamicService } from "../core/hooks.js";
 import type { Application } from "../application/application.js";
 import type { IOperationContext } from "../contexts/icontext.js";
 import * as WebdaError from "../errors/errors.js";
-import { DomainService, getModelRawTextPaths, sanitizeModelInput, sanitizeModelText } from "./domainservice.service.js";
+import {
+  DomainService,
+  getModelSanitizeModes,
+  sanitizeModelInput,
+  sanitizeModelText
+} from "./domainservice.service.js";
+import { parse, postprocess, preprocess } from "micromark";
 
 /**
  * The texts of the table of #1068: plain user text that the HTML sanitization corrupts
@@ -76,9 +82,14 @@ const TEAM_SCHEMA: any = {
     uuid: { type: "string" },
     displayName: { type: "string", pattern: DISPLAY_NAME_PATTERN, ...NONE },
     description: { type: "string" },
-    // `text` names the default, an unknown profile is sanitized like it
+    // `text` names the default, an unknown mode is sanitized like it
     summary: { type: "string", [SANITIZE_KEYWORD]: "text" },
+    legacy: { type: "string", [SANITIZE_KEYWORD]: "wiki" },
     notes: { type: "string", [SANITIZE_KEYWORD]: "markdown" },
+    content: { type: "string", [SANITIZE_KEYWORD]: "html" },
+    // The mode of an array applies to its items, unless an item names its own
+    pages: { type: "array", items: { type: "string" }, [SANITIZE_KEYWORD]: "markdown" },
+    plain: { type: "array", items: { type: "string", [SANITIZE_KEYWORD]: "text" }, ...NONE },
     labels: { type: "array", items: { type: "string" }, ...NONE },
     aliases: { type: "object", additionalProperties: { type: "string" }, ...NONE },
     nickname: { anyOf: [{ type: "string" }, { type: "null" }], ...NONE },
@@ -307,7 +318,7 @@ class DomainServiceSanitizeTest extends WebdaApplicationTest {
   }
 
   @test
-  async validRawTextIsAccepted() {
+  async validTextAsSentIsAccepted() {
     // #1068, reproduction 2: sanitized to "R&amp;D " (trailing space), this failed a "no surrounding space" pattern
     const res = await this.request("PATCH", "/s/teams/team-a", { displayName: "R&D <team>" });
     assert.strictEqual(res.status, 200, JSON.stringify(res.body));
@@ -353,7 +364,7 @@ class DomainServiceSanitizeTest extends WebdaApplicationTest {
         { name: "Tom <3 Jerry", role: "<b>lead</b>" }
       ],
       summary: "R&D",
-      notes: "R&D"
+      legacy: "R&D"
     });
     assert.strictEqual(res.status, 200, JSON.stringify(res.body));
     const stored: any = await Team.ref(res.body.uuid).get();
@@ -365,23 +376,26 @@ class DomainServiceSanitizeTest extends WebdaApplicationTest {
       { name: "R&D", role: "R&amp;D" },
       { name: "Tom <3 Jerry", role: "lead" }
     ]);
-    // `text` is the default by name, an unknown profile falls back to it
+    // `text` is the default by name, an unknown mode falls back to it
     assert.strictEqual(stored.summary, "R&amp;D");
-    assert.strictEqual(stored.notes, "R&amp;D");
+    assert.strictEqual(stored.legacy, "R&amp;D");
   }
 
   @test
   async safetyRails() {
     // The keyword does nothing on a free-form object or a number
-    assert.deepStrictEqual(getModelRawTextPaths(Team).sort(), [
-      "aliases.*",
-      "displayName",
-      "labels.*",
-      "members.*.name",
-      "nickname",
-      "owner",
-      "profile.bio"
-    ]);
+    assert.deepStrictEqual(getModelSanitizeModes(Team), {
+      displayName: "none",
+      notes: "markdown",
+      content: "html",
+      "pages.*": "markdown",
+      "labels.*": "none",
+      "aliases.*": "none",
+      nickname: "none",
+      "profile.bio": "none",
+      "members.*.name": "none",
+      owner: "none"
+    });
     const res = await this.request("POST", "/s/teams", {
       displayName: "R&D",
       meta: { html: "<script>alert(1)</script>R&D", deep: { text: "<b>x</b>" } },
@@ -455,18 +469,18 @@ class DomainServiceSanitizeTest extends WebdaApplicationTest {
     // Sanitizing twice changes nothing: an input already sanitized by the transport can go through it
     assert.deepStrictEqual(await sanitizeModelText(Team as any, { ...text }), text);
     // A class that is not a registered model keeps nothing
-    assert.deepStrictEqual(getModelRawTextPaths(class Unknown {}), []);
+    assert.deepStrictEqual(getModelSanitizeModes(class Unknown {}), {});
     assert.deepStrictEqual(await sanitizeModelText(class Unknown {} as any, { displayName: "R&D" }), {
       displayName: "R&amp;D"
     });
   }
 
   @test
-  async rawTextPaths() {
-    assert.deepStrictEqual(getRawTextPaths(undefined), []);
-    assert.deepStrictEqual(getRawTextPaths("string"), []);
+  async sanitizeModes() {
+    assert.deepStrictEqual(getSanitizeModes(undefined), {});
+    assert.deepStrictEqual(getSanitizeModes("string"), {});
     // The root of an input is not an attribute
-    assert.deepStrictEqual(getRawTextPaths({ type: "string", ...NONE }), []);
+    assert.deepStrictEqual(getSanitizeModes({ type: "string", ...NONE }), {});
     const node: any = {
       type: "object",
       properties: {
@@ -497,21 +511,40 @@ class DomainServiceSanitizeTest extends WebdaApplicationTest {
       }
     };
     const schema = { $ref: "#/definitions/Node", definitions: { Node: node } };
-    assert.deepStrictEqual(getRawTextPaths(node, schema).sort(), [
-      "either.text",
-      "grid.*.*",
-      "index.*.*",
-      "label",
-      "loose",
-      "mixed",
-      "pair.*"
-    ]);
-    assert.deepStrictEqual(await sanitizeInput({ mixed: { html: "<b>x</b>" } }, { rawText: ["mixed"] }), {
+    assert.deepStrictEqual(getSanitizeModes(node, schema), {
+      label: "none",
+      "pair.*": "none",
+      "grid.*.*": "none",
+      "index.*.*": "none",
+      mixed: "none",
+      loose: "none",
+      "either.text": "none"
+    });
+    assert.deepStrictEqual(await sanitizeInput({ mixed: { html: "<b>x</b>" } }, { modes: { mixed: "none" } }), {
       mixed: { html: "x" }
     });
     // Walked once per schema object
     const fresh = { type: "object", properties: { text: { type: "string", ...NONE } } };
-    assert.strictEqual(getRawTextPaths(fresh), getRawTextPaths(fresh));
+    assert.strictEqual(getSanitizeModes(fresh), getSanitizeModes(fresh));
+    // Every mode is listed with its path; `text` and unknown modes are the default, so they are not
+    assert.deepStrictEqual(
+      getSanitizeModes({
+        type: "object",
+        properties: {
+          a: { type: "string", [SANITIZE_KEYWORD]: "markdown" },
+          b: { type: "string", [SANITIZE_KEYWORD]: "html" },
+          c: { type: "string", [SANITIZE_KEYWORD]: "text" },
+          d: { type: "string", [SANITIZE_KEYWORD]: "wiki" },
+          // The first branch of a union naming a mode for a path wins
+          e: {
+            anyOf: [{ type: "string", [SANITIZE_KEYWORD]: "html" }, { type: "object" }, { type: "string", ...NONE }]
+          },
+          // A union of texts is one text: its mode is the one of the property, not of a branch
+          f: { anyOf: [{ type: "string", ...NONE }, { type: "null" }] }
+        }
+      }),
+      { a: "markdown", b: "html", e: "html" }
+    );
     // An endless nesting stops
     const deep: any = { type: "array", ...NONE };
     let cursor = deep;
@@ -520,7 +553,147 @@ class DomainServiceSanitizeTest extends WebdaApplicationTest {
       cursor = cursor.items;
     }
     cursor.items = { type: "string" };
-    assert.deepStrictEqual(getRawTextPaths({ type: "object", properties: { deep } }), []);
+    assert.deepStrictEqual(getSanitizeModes({ type: "object", properties: { deep } }), {});
+  }
+
+  /**
+   * The micromark tokens of a Markdown source that a renderer would turn into active content
+   * @param value - the Markdown source
+   * @returns the raw HTML tokens and the destinations with a scheme, as text
+   */
+  activeContent(value: string): string[] {
+    const found: string[] = [];
+    for (const [kind, token] of postprocess(
+      parse()
+        .document()
+        .write(preprocess()(value, undefined, true))
+    )) {
+      const text = value.slice(token.start.offset, token.end.offset);
+      if (kind !== "enter") continue;
+      if (token.type === "htmlFlow" || token.type === "htmlText") found.push(text);
+      if (
+        /^(resource|definition)DestinationString$|^autolinkProtocol$/.test(token.type) &&
+        !/^(https?|mailto):/.test(text)
+      )
+        if (/^[^/?#]*:/.test(text)) found.push(text);
+    }
+    return found;
+  }
+
+  @test
+  async markdownNeutralizesRawHtmlAndUnsafeLinks() {
+    const cases: [string, string][] = [
+      // Raw HTML, inline and block: escaped, not removed
+      ["a <script>alert(1)</script> b", "a &lt;script>alert(1)&lt;/script> b"],
+      ["<script>\n\nalert(1)\n</script>\n\ntext", "&lt;script>\n\nalert(1)\n&lt;/script>\n\ntext"],
+      ["<!-- unclosed\n\ntext <b>", "&lt;!-- unclosed\n\ntext &lt;b>"],
+      ["<scr<b>ipt>alert(1)</scr</b>ipt>", "<scr&lt;b>ipt>alert(1)</scr&lt;/b>ipt>"],
+      ["> <div>x</div>", "> &lt;div>x&lt;/div>"],
+      ["- <b>x</b>\n- y", "- &lt;b>x&lt;/b>\n- y"],
+      ["Array<string> is a type", "Array&lt;string> is a type"],
+      // A fence opened in a blockquote ends with it: the next line is not code
+      ["> ```\n<script>alert(1)</script>\n", "> ```\n&lt;script>alert(1)&lt;/script>\n"],
+      // Unsafe destinations of links, images and definitions, and unsafe autolinks
+      ["[x](javascript:alert(1))", "[x](#)"],
+      ["[x](<javascript:alert(1)>)", "[x](<#>)"],
+      ["[x](JaVaScRiPt&colon;alert(1))", "[x](#)"],
+      ["[x](&#32;javascript:alert(1))", "[x](#)"],
+      ["[x](java&Tab;script:alert(1))", "[x](#)"],
+      ['[x](vbscript:msgbox(1) "t")', '[x](# "t")'],
+      ["![x](data:text/html,x)", "![x](#)"],
+      ["[x]: javascript:alert(1)\n\n[x]", "[x]: #\n\n[x]"],
+      ["[x]: <javascript:alert(1)> 'title'\n\n[x]", "[x]: <#> 'title'\n\n[x]"],
+      ["see <javascript:alert(1)>", "see &lt;javascript:alert(1)>"],
+      // What escaping an HTML block reveals is handled by the next pass
+      ["<div>\n[x](javascript:alert(1))\n</div>", "&lt;div>\n[x](#)\n&lt;/div>"],
+      // Offsets index the text as sent: tabs, CRLF, byte order mark, NUL and astral characters
+      ["a\t<b>x</b>\r\n\r\n- i\t<u>\r\n", "a\t&lt;b>x&lt;/b>\r\n\r\n- i\t&lt;u>\r\n"],
+      ["﻿<b>bom</b>", "﻿&lt;b>bom&lt;/b>"],
+      ["﻿﻿x <b>", "﻿﻿x &lt;b>"],
+      ["a\u0000<b>nul</b>", "a\u0000&lt;b>nul&lt;/b>"],
+      ["\u{1F600} <i>x</i> \u{1F600} [x](javascript:x)", "\u{1F600} &lt;i>x&lt;/i> \u{1F600} [x](#)"]
+    ];
+    for (const [source, expected] of cases) {
+      const sanitized = await sanitizeMarkdown(source);
+      assert.strictEqual(sanitized, expected, JSON.stringify(source));
+      assert.deepStrictEqual(this.activeContent(sanitized.replace(/^﻿/, "")), [], JSON.stringify(source));
+      // A stored text is sent back by the next update: sanitizing it again changes nothing
+      assert.strictEqual(await sanitizeMarkdown(sanitized), sanitized, JSON.stringify(source));
+    }
+  }
+
+  @test
+  async markdownKeepsTheSourceAsWritten() {
+    for (const source of [
+      // Code is not HTML
+      "`<b>` and ``<script>``",
+      "```html\n<b>bold</b>\n<script>alert(1)</script>\n```\n",
+      "~~~\n<b>\n~~~",
+      "text\n\n    <b>indented</b>\n",
+      "- item\n\n  ```\n  <b>\n  ```\n",
+      // Plain text
+      "a < b and b > a",
+      "> a quote & more",
+      "Tom & Jerry, R&D, a && b, A-->B, Tom <3 Jerry",
+      "# Title\n\n* **bold** _em_ ~~strike~~\n\n| a | b |\n| - | - |\n",
+      "\\<b> is escaped",
+      // Safe autolinks and destinations
+      "<https://x.io> <http://x.io/?a=1&b=2> <me@x.io> <mailto:me@x.io>",
+      "[x](/rel?a=b:c) [x](#a) [x](?q=a:b) [x](mailto:a@b.c) [x](tel:+33123) [x]() [x](https://x.io/a:b)",
+      '[x](HTTPS://x.io) ![i](img/a.png "title")',
+      "[x]: https://x.io 'title'\n\n[x] [y][x]",
+      ""
+    ]) {
+      assert.strictEqual(await sanitizeMarkdown(source), source, JSON.stringify(source));
+    }
+  }
+
+  @test
+  async modesThroughAModelOperation() {
+    const notes = "# R&D\n\n> a < b && `<b>`\n\n<script>alert(1)</script>\n\n[x](javascript:alert(1)) <https://x.io>";
+    const html =
+      '<p onclick="x">a <a href="javascript:x" target="_blank">l</a> <img src="x"> <script>x</script> R&D <b>b</b></p>';
+    const created = await this.request("POST", "/s/teams", {
+      notes,
+      content: html,
+      description: html,
+      pages: ["<b>one</b>", "`<b>`"],
+      plain: ["<b>R&D</b>"]
+    });
+    assert.strictEqual(created.status, 200, JSON.stringify(created.body));
+    const stored: any = await Team.ref(created.body.uuid).get();
+    // markdown: the source as written, without raw HTML nor unsafe destination
+    assert.strictEqual(
+      stored.notes,
+      "# R&D\n\n> a < b && `<b>`\n\n&lt;script>alert(1)&lt;/script>\n\n[x](#) <https://x.io>"
+    );
+    assert.deepStrictEqual(stored.pages, ["&lt;b>one&lt;/b>", "`<b>`"]);
+    // html: the default allowlist of sanitize-html
+    assert.strictEqual(stored.content, '<p>a <a target="_blank">l</a>   R&amp;D <b>b</b></p>');
+    // text, the default, and by name on the items of an array tagged otherwise
+    assert.strictEqual(stored.description, "a l   R&amp;D b");
+    assert.deepStrictEqual(stored.plain, ["R&amp;D"]);
+    // The stored text sent back (PATCH) is stored unchanged
+    const again = await this.request("PATCH", `/s/teams/${created.body.uuid}`, {
+      notes: stored.notes,
+      content: stored.content
+    });
+    assert.strictEqual(again.status, 200, JSON.stringify(again.body));
+    const updated: any = await Team.ref(created.body.uuid).get();
+    assert.deepStrictEqual([updated.notes, updated.content], [stored.notes, stored.content]);
+    // Outside the operations
+    assert.deepStrictEqual(
+      await sanitizeModelText(Team as any, { notes: "<b>x</b> & `<i>`", content: "<i>x</i><style>" }),
+      {
+        notes: "&lt;b>x&lt;/b> & `<i>`",
+        content: "<i>x</i>"
+      }
+    );
+    // A value that is not a text is sanitized as text, whatever the mode
+    assert.deepStrictEqual(await sanitizeModelText(Team as any, { notes: { md: "<b>x</b>" }, content: ["<b>y</b>"] }), {
+      notes: { md: "x" },
+      content: ["y"]
+    });
   }
 
   @test
@@ -530,26 +703,33 @@ class DomainServiceSanitizeTest extends WebdaApplicationTest {
     const plain = await ctx.getInput();
     assert.deepStrictEqual(plain, { title: "R&amp;D", body: "R&amp;D", meta: { title: "R&amp;D" }, list: ["R&amp;D"] });
     assert.strictEqual(await ctx.getInput(), plain, "cached");
-    assert.strictEqual(await ctx.getInput({ rawText: [] }), plain, "no text kept: the same sanitization");
-    // Other texts to keep: the body is read again
-    const kept = await ctx.getInput({ allowedTags: [], allowedAttributes: {}, rawText: ["title", "list.*"] });
+    assert.strictEqual(await ctx.getInput({ modes: {} }), plain, "no mode: the same sanitization");
+    // Other modes: the body is read again
+    const options = { allowedTags: [], allowedAttributes: {} };
+    const kept = await ctx.getInput({ ...options, modes: { title: "none", "list.*": "none" } });
     assert.notStrictEqual(kept, plain);
     assert.deepStrictEqual(kept, { title: "R&D", body: "R&amp;D", meta: { title: "R&amp;D" }, list: ["R&D"] });
-    assert.strictEqual(await ctx.getInput({ rawText: ["list.*", "title"] }), kept, "same paths: cached");
+    assert.strictEqual(await ctx.getInput({ modes: { "list.*": "none", title: "none" } }), kept, "same modes: cached");
     assert.strictEqual(await ctx.getInput(), kept, "a plain read returns the body already read");
+    // The same paths with another mode are another body
+    const other = await ctx.getInput({ ...options, modes: { title: "markdown", "list.*": "none" } });
+    assert.notStrictEqual(other, kept);
+    assert.deepStrictEqual(other, kept);
+    // An unknown mode is the default sanitization
+    assert.deepStrictEqual(await ctx.getInput({ ...options, modes: { title: "wiki" } }), plain);
     // `raw` keeps its meaning: the whole value of a key, read again every time
     const legacy = await ctx.getInput({ allowedTags: [], allowedAttributes: {}, raw: ["meta"] });
     assert.deepStrictEqual(legacy, { title: "R&amp;D", body: "R&amp;D", meta: { title: "R&D" }, list: ["R&amp;D"] });
-    assert.notStrictEqual(await ctx.getInput({ rawText: [] }), legacy);
+    assert.notStrictEqual(await ctx.getInput({ modes: {} }), legacy);
     assert.deepStrictEqual(await ctx.getInput({ raw: true }), body);
     // A cleared input stays cleared
     ctx.clearInput();
-    assert.deepStrictEqual(await ctx.getInput({ rawText: ["title"] }), {});
+    assert.deepStrictEqual(await ctx.getInput({ modes: { title: "none" } }), {});
     ctx.reinit();
-    assert.deepStrictEqual(await ctx.getInput({ rawText: ["title"] }), { ...plain, title: "R&D" });
+    assert.deepStrictEqual(await ctx.getInput({ ...options, modes: { title: "none" } }), { ...plain, title: "R&D" });
     // Prototype pollution vectors are dropped, kept texts or not
     const polluted = await sanitizeInput(JSON.parse('{"a":{"__proto__":{"x":1},"constructor":"c","b":"<b>t</b>"}}'), {
-      rawText: ["a.constructor"]
+      modes: { "a.constructor": "none" }
     });
     assert.deepStrictEqual(Object.keys(polluted.a), ["b"]);
     assert.strictEqual(await sanitizeInput("<b>text</b>"), "text");

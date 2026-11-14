@@ -38,9 +38,9 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
    */
   protected _sanitized: any;
   /**
-   * The `rawText` paths the cached body was sanitized with, null when the input was cleared
+   * The sanitization modes (path and mode) the cached body was sanitized with, null when the input was cleared
    */
-  protected _rawText: string | null | undefined;
+  protected _modes: string | null | undefined;
 
   /**
    * Output
@@ -162,8 +162,8 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
    */
   clearInput() {
     this._sanitized = {};
-    // A cleared input stays cleared, whatever the texts the next reader asks to keep
-    this._rawText = null;
+    // A cleared input stays cleared, whatever the modes the next reader asks for
+    this._modes = null;
   }
 
   /**
@@ -172,10 +172,10 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
    * Every string is HTML-sanitized, except:
    * - with `raw: true`, nothing is (the parsed body is returned as received, and not cached);
    * - with `raw: [paths]`, the values of these keys, whatever they hold;
-   * - with `rawText: [paths]`, the strings at these paths (`*` for any array index or object key): what an operation
-   *   input schema opts out with `x-webda-sanitize: none`.
+   * - with `modes: { path: mode }`, the strings at these paths (`*` for any array index or object key), sanitized
+   *   with their mode (`none`, `html`, `markdown`): what an operation input schema declares with `x-webda-sanitize`.
    *
-   * The body is read again when `raw` is given, or when `rawText` differs from the one of the cached body: a change
+   * The body is read again when `raw` is given, or when `modes` differs from the one of the cached body: a change
    * made to a body read before is lost, so read it once with the options you need.
    * @param sanitizedOptions - the sanitized options
    * @returns the result
@@ -183,9 +183,10 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
   async getInput(
     sanitizedOptions: SanitizeInputOptions & { defaultValue?: any } = DEFAULT_SANITIZE_OPTIONS
   ): Promise<Input> {
-    const rawText = [...(sanitizedOptions.rawText ?? [])].sort().join("\n");
-    const sameRawText = sanitizedOptions.rawText === undefined || this._rawText === null || this._rawText === rawText;
-    if (this._sanitized && !sanitizedOptions.raw && sameRawText) {
+    // The mode is part of the key: the same path sanitized another way is another body
+    const modes = JSON.stringify(Object.entries(sanitizedOptions.modes ?? {}).sort());
+    const sameModes = sanitizedOptions.modes === undefined || this._modes === null || this._modes === modes;
+    if (this._sanitized && !sanitizedOptions.raw && sameModes) {
       return this._sanitized;
     }
     let data: string | undefined;
@@ -196,7 +197,7 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
       if (sanitizedOptions.raw === true) {
         return JSON.parse(data || sanitizedOptions.defaultValue);
       }
-      this._rawText = Array.isArray(sanitizedOptions.raw) ? undefined : rawText;
+      this._modes = Array.isArray(sanitizedOptions.raw) ? undefined : modes;
       if (!data || data.length === 0) {
         this._sanitized = sanitizedOptions.defaultValue;
         return this._sanitized;
@@ -273,7 +274,7 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
    */
   public reinit() {
     this._sanitized = undefined;
-    this._rawText = undefined;
+    this._modes = undefined;
     if (!this._stream || this._stream instanceof WritableStreamBuffer) {
       this.createStream();
     }

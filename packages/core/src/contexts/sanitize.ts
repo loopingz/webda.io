@@ -7,20 +7,63 @@ import { resolveInputSchema } from "../rest/binding.js";
 let sanitizeHtml: typeof sanitize;
 
 /**
- * JSON Schema keyword naming how the HTML sanitization of client input treats a property
+ * The micromark functions the `markdown` mode needs, imported with the first Markdown text to sanitize
+ */
+let markdown: {
+  /**
+   * Parse a Markdown source into micromark events (`[kind, token, context]`), without compiling it to HTML
+   */
+  events: (value: string) => [string, { type: string; start: { offset: number }; end: { offset: number } }, unknown][];
+  /**
+   * Resolve the backslash escapes and the character references of a Markdown string
+   */
+  decodeString: (value: string) => string;
+};
+
+/**
+ * JSON Schema keyword naming how the sanitization of client input treats a text
  *
- * Set by the compiler from a `@sanitize` JSDoc tag. `none` keeps the text as the client sent it, any other value
- * (`text`, the default, or a profile this version does not know) is sanitized.
+ * Set by the compiler from a `@sanitize` JSDoc tag, one of the {@link SANITIZE_MODES}. Any other value (a mode this
+ * version does not know) is sanitized like `text`.
  */
 export const SANITIZE_KEYWORD = "x-webda-sanitize";
 
 /**
- * Value of {@link SANITIZE_KEYWORD} opting a text out of the HTML sanitization
+ * Mode of {@link SANITIZE_KEYWORD} keeping a text as the client sent it
  */
 export const SANITIZE_NONE = "none";
 
 /**
- * Options of the input sanitization: the sanitize-html options, plus what to leave as received
+ * Mode of {@link SANITIZE_KEYWORD} for rich text: the default allowlist of sanitize-html (formatting, links, lists
+ * and tables; no script, style or image)
+ */
+export const SANITIZE_HTML = "html";
+
+/**
+ * Mode of {@link SANITIZE_KEYWORD} for a Markdown source: kept as written, except raw HTML and unsafe link schemes
+ */
+export const SANITIZE_MARKDOWN = "markdown";
+
+/**
+ * Mode of {@link SANITIZE_KEYWORD} naming the default: every tag is removed, entities are escaped
+ */
+export const SANITIZE_TEXT = "text";
+
+/**
+ * The modes of {@link SANITIZE_KEYWORD} that change how a text is sanitized: `text`, and any unknown mode, is the
+ * default sanitization
+ */
+export const SANITIZE_MODES: readonly string[] = [SANITIZE_NONE, SANITIZE_HTML, SANITIZE_MARKDOWN];
+
+/**
+ * Sanitization mode per path: a dotted path, `*` standing for any array index or object key (`tags.*`,
+ * `items.*.label`), and one of the {@link SANITIZE_MODES}
+ */
+export type SanitizeModes = Record<string, string>;
+
+/**
+ * Options of the input sanitization: the sanitize-html options of the default (`text`) sanitization, plus what is
+ * sanitized another way
  */
 export type SanitizeInputOptions = sanitize.IOptions & {
   /**
@@ -28,10 +71,10 @@ export type SanitizeInputOptions = sanitize.IOptions & {
    */
   raw?: boolean | string[];
   /**
-   * Dotted paths whose **string** value is kept as received, `*` standing for any array index or object key
-   * (`tags.*`, `items.*.label`). A value that is not a string is sanitized like any other.
+   * The paths whose **string** value is sanitized with another mode (`none`, `html`, `markdown`). A value that is
+   * not a string is sanitized like any other.
    */
-  rawText?: string[];
+  modes?: SanitizeModes;
 };
 
 /**
@@ -40,32 +83,194 @@ export type SanitizeInputOptions = sanitize.IOptions & {
 export const DEFAULT_SANITIZE_OPTIONS: sanitize.IOptions = { allowedTags: [], allowedAttributes: {} };
 
 /**
- * Check whether a path is one of the raw text paths
- * @param patterns - the raw text paths, split in segments
- * @param segments - the path of a value
- * @returns true when a pattern has the same segments, `*` matching any
+ * URL schemes a Markdown link, image or autolink may use
  */
-function matchesRawText(patterns: string[][], segments: string[]): boolean {
-  return patterns.some(
+const SAFE_MARKDOWN_SCHEME = /^(https?|mailto|tel)$/i;
+
+/**
+ * Times a Markdown text is parsed and edited before giving up: an edit can reveal a construct (a link inside what
+ * was an HTML block), which the next pass handles
+ */
+const MAX_MARKDOWN_PASSES = 3;
+
+/**
+ * A sanitization mode and the path it applies to
+ */
+type ModePattern = {
+  /**
+   * The path, split in segments
+   */
+  segments: string[];
+  /**
+   * The mode
+   */
+  mode: string;
+};
+
+/**
+ * Check whether a Markdown destination uses a scheme a renderer must not link to
+ * @param destination - the destination, as written in the source
+ * @returns true when it has a scheme (a `:` before any `/`, `?` or `#`) other than http, https, mailto or tel
+ */
+function hasUnsafeScheme(destination: string): boolean {
+  const url = markdown.decodeString(destination);
+  const colon = url.indexOf(":");
+  if (colon < 0 || /[/?#]/.test(url.slice(0, colon))) {
+    return false;
+  }
+  return !SAFE_MARKDOWN_SCHEME.test(url.slice(0, colon));
+}
+
+/**
+ * The edits that neutralize the active content of a Markdown source: raw HTML and unsafe destinations
+ * @param value - the Markdown source, without byte order mark
+ * @returns the replacements, as `[start, end, text]`
+ */
+function markdownEdits(value: string): [number, number, string][] {
+  const edits: [number, number, string][] = [];
+  for (const [kind, token] of markdown.events(value)) {
+    if (kind !== "enter") {
+      continue;
+    }
+    const start = token.start.offset;
+    const end = token.end.offset;
+    if (token.type === "htmlFlow" || token.type === "htmlText") {
+      // Escaped, not removed: `Array<string>` written outside a code span stays readable
+      edits.push([start, end, value.slice(start, end).replace(/</g, "&lt;")]);
+    } else if (token.type === "autolinkProtocol" && hasUnsafeScheme(value.slice(start, end))) {
+      // The `<` opening the autolink
+      edits.push([start - 1, start, "&lt;"]);
+    } else if (
+      (token.type === "resourceDestinationString" || token.type === "definitionDestinationString") &&
+      hasUnsafeScheme(value.slice(start, end))
+    ) {
+      edits.push([start, end, "#"]);
+    }
+  }
+  return edits;
+}
+
+/**
+ * Sanitize a Markdown source, micromark and sanitize-html being loaded
+ * @param value - the Markdown source
+ * @returns the source, without raw HTML nor unsafe destination
+ */
+function sanitizeMarkdownText(value: string): string {
+  // micromark drops a leading byte order mark, and counts its offsets without it
+  const bom = value.charCodeAt(0) === 0xfeff ? value[0] : "";
+  let text = value.slice(bom.length);
+  // One parse more than the passes: the text is only returned once a parse finds nothing left to neutralize
+  for (let pass = 0; pass <= MAX_MARKDOWN_PASSES; pass++) {
+    const edits = markdownEdits(text);
+    if (edits.length === 0) {
+      return bom + text;
+    }
+    // From the end, so the offsets of the edits still to apply stay valid
+    for (const [start, end, replacement] of edits.sort((a, b) => b[0] - a[0])) {
+      text = text.slice(0, start) + replacement + text.slice(end);
+    }
+  }
+  // Still not clean: nothing of it is trusted
+  return sanitizeHtml(value, DEFAULT_SANITIZE_OPTIONS);
+}
+
+/**
+ * Import sanitize-html, and micromark when a Markdown text is to be sanitized
+ * @param withMarkdown - whether micromark is needed
+ */
+async function loadSanitizers(withMarkdown: boolean): Promise<void> {
+  sanitizeHtml ??= (await import("sanitize-html")).default;
+  if (withMarkdown && !markdown) {
+    const { parse, preprocess, postprocess } = await import("micromark");
+    const { decodeString } = await import("micromark-util-decode-string");
+    markdown = {
+      /**
+       * Parse a Markdown source into events: the parser only, nothing is compiled to HTML
+       * @param value - the Markdown source
+       * @returns the events
+       */
+      events: function events(value: string) {
+        return postprocess(
+          parse()
+            .document()
+            .write(preprocess()(value, undefined, true))
+        ) as any;
+      },
+      decodeString
+    };
+  }
+}
+
+/**
+ * Sanitize a Markdown source (CommonMark, as parsed by micromark)
+ *
+ * The source is kept as written (`&`, `>`, code spans and code blocks are untouched), except what a renderer would
+ * pass through as active content:
+ * - raw HTML, block or inline: every `<` of it is replaced by `&lt;`;
+ * - an autolink (`<scheme:...>`) with an unsafe scheme: its `<` is replaced by `&lt;`;
+ * - the destination of a link, an image or a reference definition with an unsafe scheme: replaced by `#`.
+ *
+ * A scheme is unsafe when it is not http, https, mailto or tel; relative URLs and anchors are kept. The result is
+ * parsed again until nothing is left to neutralize; a text that does not settle is sanitized like `text`.
+ *
+ * This is defense in depth: the renderer must still not enable raw HTML, or must sanitize its output. It does not
+ * cover MDX, nor syntax extensions that give other constructs a meaning.
+ * @param value - the Markdown source
+ * @returns the sanitized source
+ */
+export async function sanitizeMarkdown(value: string): Promise<string> {
+  await loadSanitizers(true);
+  return sanitizeMarkdownText(value);
+}
+
+/**
+ * The mode of a path
+ * @param patterns - the modes, their path split in segments
+ * @param segments - the path of a value
+ * @returns the mode of the first pattern with the same segments (`*` matching any), undefined for the default
+ */
+function getMode(patterns: ModePattern[], segments: string[]): string | undefined {
+  return patterns.find(
     pattern =>
-      pattern.length === segments.length &&
-      pattern.every(function sameSegment(part, i) {
+      pattern.segments.length === segments.length &&
+      pattern.segments.every(function sameSegment(part, i) {
         return part === "*" || part === segments[i];
       })
-  );
+  )?.mode;
+}
+
+/**
+ * Sanitize a text with a mode
+ * @param value - the text
+ * @param mode - its mode, undefined for the default
+ * @param options - the options of the default sanitization
+ * @returns the sanitized text
+ */
+function sanitizeString(value: string, mode: string | undefined, options: SanitizeInputOptions): string {
+  switch (mode) {
+    case SANITIZE_NONE:
+      return value;
+    case SANITIZE_HTML:
+      // The default allowlist of sanitize-html
+      return sanitizeHtml(value);
+    case SANITIZE_MARKDOWN:
+      return sanitizeMarkdownText(value);
+    default:
+      return sanitizeHtml(value, options);
+  }
 }
 
 /**
  * Sanitize every string of a parsed JSON value, in place
  * @param value - the value
  * @param options - the sanitization options
- * @param patterns - the raw text paths, split in segments
+ * @param patterns - the modes, their path split in segments
  * @param segments - the path of the value
  * @returns the sanitized value
  */
-function sanitizeValue(value: any, options: SanitizeInputOptions, patterns: string[][], segments: string[]): any {
+function sanitizeValue(value: any, options: SanitizeInputOptions, patterns: ModePattern[], segments: string[]): any {
   if (typeof value === "string") {
-    return sanitizeHtml(value, options);
+    return sanitizeString(value, getMode(patterns, segments), options);
   }
   if (value !== null && typeof value === "object") {
     for (const key of Object.keys(value)) {
@@ -77,9 +282,6 @@ function sanitizeValue(value: any, options: SanitizeInputOptions, patterns: stri
       if (Array.isArray(options.raw) && options.raw.includes(path.join("."))) {
         continue;
       }
-      if (typeof value[key] === "string" && matchesRawText(patterns, path)) {
-        continue;
-      }
       value[key] = sanitizeValue(value[key], options, patterns, path);
     }
   }
@@ -87,28 +289,31 @@ function sanitizeValue(value: any, options: SanitizeInputOptions, patterns: stri
 }
 
 /**
- * HTML-sanitize every string of a parsed JSON value, in place, with the given sanitize-html options as they are
+ * Sanitize every string of a parsed JSON value, in place, with the given sanitize-html options as they are
  *
  * `__proto__`, `constructor` and `prototype` keys are removed on the way.
  * @param value - the parsed JSON value
- * @param options - the sanitize-html options, and the paths to leave as received
+ * @param options - the sanitize-html options, and the paths sanitized another way
  * @returns the sanitized value
  */
 export async function sanitizeInputWith<T = any>(value: T, options: SanitizeInputOptions): Promise<T> {
-  sanitizeHtml ??= (await import("sanitize-html")).default;
-  const patterns = (options.rawText ?? []).map(function splitPath(path) {
-    return path.split(".");
-  });
+  const patterns = Object.entries(options.modes ?? {})
+    .filter(([, mode]) => SANITIZE_MODES.includes(mode))
+    .map(function splitPath([path, mode]) {
+      return { segments: path.split("."), mode };
+    });
+  await loadSanitizers(patterns.some(pattern => pattern.mode === SANITIZE_MARKDOWN));
+  // The root of an input is never a text with a mode: an empty path matches no pattern
   return sanitizeValue(value, options, patterns, []) as T;
 }
 
 /**
- * HTML-sanitize every string of a parsed JSON value, in place: every tag is removed and entities are escaped,
- * unless the options say otherwise
+ * Sanitize every string of a parsed JSON value, in place: every tag is removed and entities are escaped, unless
+ * the options say otherwise
  *
  * `__proto__`, `constructor` and `prototype` keys are removed on the way.
  * @param value - the parsed JSON value
- * @param options - sanitize-html options replacing the defaults, and the paths to leave as received
+ * @param options - sanitize-html options replacing the defaults, and the paths sanitized another way
  * @returns the sanitized value
  */
 export async function sanitizeInput<T = any>(value: T, options: SanitizeInputOptions = {}): Promise<T> {
@@ -138,78 +343,78 @@ function isTextSchema(schema: any, root: any): boolean {
 }
 
 /**
- * Deepest schema nesting followed while looking for raw text paths
+ * Deepest schema nesting followed while looking for sanitization modes
  */
 const MAX_SCHEMA_DEPTH = 32;
 
 /**
- * Raw text paths per schema object: a schema is walked once, not on every call
+ * Sanitization modes per schema object: a schema is walked once, not on every call
  */
-const rawTextPathsCache = new WeakMap<object, string[]>();
+const sanitizeModesCache = new WeakMap<object, SanitizeModes>();
 
 /**
- * Dotted paths of the texts an input schema opts out of the HTML sanitization (`x-webda-sanitize: none`)
+ * The sanitization modes an input schema declares (`x-webda-sanitize`), per dotted path
  *
  * The keyword only counts on a string, an array of strings or a record of strings: on any other schema it is
- * ignored, so an object or a free-form value is always sanitized. Nested properties, array items (`items.*.label`)
- * and record values are followed, as are local `$ref`s.
+ * ignored, so an object or a free-form value is always sanitized as text. Nested properties, array items
+ * (`items.*.label`) and record values are followed, as are local `$ref`s. `text` and unknown modes are the default:
+ * they are not listed.
  * @param schema - the input schema
  * @param root - the schema carrying the definitions
- * @returns the paths, `*` standing for any array index or record key
+ * @returns the modes per path, `*` standing for any array index or record key
  */
-export function getRawTextPaths(schema: any, root: any = schema): string[] {
+export function getSanitizeModes(schema: any, root: any = schema): SanitizeModes {
   if (!schema || typeof schema !== "object") {
-    return [];
+    return {};
   }
-  const cached = root === schema ? rawTextPathsCache.get(schema) : undefined;
+  const cached = root === schema ? sanitizeModesCache.get(schema) : undefined;
   if (cached) {
     return cached;
   }
-  const paths = new Set<string>();
+  const modes: SanitizeModes = {};
   const visiting = new Set<any>();
   /**
-   * Collect the raw text paths below a schema node
+   * Collect the modes below a schema node
    * @param node - the schema node
    * @param path - its path in the input
-   * @param none - whether an array or a record above it opted out
+   * @param inherited - the mode of the array or the record above it
    */
-  const visit = function visit(node: any, path: string[], none: boolean) {
+  const visit = function visit(node: any, path: string[], inherited?: string) {
     node = resolveInputSchema(node, root);
     if (!node || typeof node !== "object" || visiting.has(node) || path.length > MAX_SCHEMA_DEPTH) {
       return;
     }
-    none ||= node[SANITIZE_KEYWORD] === SANITIZE_NONE;
+    const mode: string | undefined = node[SANITIZE_KEYWORD] ?? inherited;
     if (isTextSchema(node, root)) {
-      // The root of an input is never a text: only a property, an item or a record value can be kept
-      if (none && path.length > 0) {
-        paths.add(path.join("."));
+      // The root of an input is never a text: only a property, an item or a record value has a mode
+      if (SANITIZE_MODES.includes(mode) && path.length > 0) {
+        modes[path.join(".")] ??= mode;
       }
       return;
     }
     visiting.add(node);
     for (const branch of [...(node.anyOf ?? []), ...(node.oneOf ?? []), ...(node.allOf ?? [])]) {
-      visit(branch, path, none);
+      visit(branch, path, mode);
     }
-    // An opt-out is inherited by the items of an array and the values of a record, never by the properties of an object
+    // A mode is inherited by the items of an array and the values of a record, never by the properties of an object
     for (const [name, property] of Object.entries(node.properties ?? {})) {
       // A dot or a star in a name cannot be told from a path separator or a wildcard: such a property stays
-      // sanitized, like a private (`__`) one, which is never taken from a client
+      // sanitized as text, like a private (`__`) one, which is never taken from a client
       if (!name.includes(".") && name !== "*" && !name.startsWith("__")) {
-        visit(property, [...path, name], false);
+        visit(property, [...path, name]);
       }
     }
     for (const items of Array.isArray(node.items) ? node.items : [node.items]) {
-      visit(items, [...path, "*"], none);
+      visit(items, [...path, "*"], mode);
     }
     if (node.additionalProperties && typeof node.additionalProperties === "object") {
-      visit(node.additionalProperties, [...path, "*"], none && !node.properties);
+      visit(node.additionalProperties, [...path, "*"], node.properties ? undefined : mode);
     }
     visiting.delete(node);
   };
-  visit(schema, [], false);
-  const result = [...paths];
+  visit(schema, []);
   if (root === schema) {
-    rawTextPathsCache.set(schema, result);
+    sanitizeModesCache.set(schema, modes);
   }
-  return result;
+  return modes;
 }

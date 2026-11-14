@@ -86,11 +86,15 @@ export function secretKeywordValue(text: string): true | string[] {
 }
 
 /**
- * JSON Schema keyword naming how the HTML sanitization of client input treats a property
+ * JSON Schema keyword naming how the sanitization of client input treats a text property
  *
- * Set by a `@sanitize` JSDoc tag on a property: `@sanitize none` keeps the text as the client sent it (a name, a
- * title, markdown or a diagram source that is never rendered as HTML), `@sanitize text` names the default (every
- * tag removed, entities escaped). Any other value is kept for a future named profile and sanitized like `text`.
+ * Set by a `@sanitize <mode>` JSDoc tag on a property:
+ * - `text`, the default: every tag is removed, entities are escaped;
+ * - `none`: the text is kept as the client sent it (a name, a title, a diagram source never rendered as HTML);
+ * - `html`: rich text, the default allowlist of sanitize-html (formatting, links, lists, tables);
+ * - `markdown`: a Markdown source, kept as written except raw HTML and unsafe link schemes.
+ *
+ * The mode is copied as written: the runtime sanitizes a mode it does not know like `text`.
  */
 export const SANITIZE_KEYWORD = "x-webda-sanitize";
 

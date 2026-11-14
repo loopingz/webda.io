@@ -197,7 +197,7 @@ There is no `"query"` or `"patch"` action: a query is filtered with `"get"` (see
 
 ### Client input
 
-Every string of the request body is HTML-sanitized first (tags removed, entities escaped), except the attributes the model tags `@sanitize none` (see [Plain text attributes](./Defining-Models.md#plain-text-attributes--sanitize-none)). The body is read once: the object validated against the operation input schema is the one handed to the authorizers and the one the model receives (`DomainService.getModelInput()`), so what is stored is what was validated. Do not override `getModelInput()` to read the raw body (`context.getInput({ raw: true })`): tag the attributes instead.
+Every string of the request body is HTML-sanitized first (tags removed, entities escaped), except the attributes the model gives another mode with `@sanitize none`, `html` or `markdown` (see [Text sanitization](./Defining-Models.md#text-sanitization--sanitize)). Over GraphQL every string is sanitized as text, whatever the tag. The body is read once: the object validated against the operation input schema is the one handed to the authorizers and the one the model receives (`DomainService.getModelInput()`), so what is stored is what was validated. Do not override `getModelInput()` to read the raw body (`context.getInput({ raw: true })`): tag the attributes instead.
 
 Then, before input reaches a model, the DomainService (and GraphQL) removes:
 

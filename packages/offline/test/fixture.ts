@@ -27,6 +27,14 @@ export class Note extends CoreModel implements Syncable {
    */
   body?: string;
   /**
+   * Markdown source
+   */
+  summary?: string;
+  /**
+   * Rich text
+   */
+  content?: string;
+  /**
    * Count
    */
   count?: number;
@@ -123,6 +131,8 @@ export const NOTE_SCHEMA = {
     status: { type: "string" },
     // Plain text, never rendered as HTML: kept as the client sent it (`@sanitize none`)
     body: { type: "string", "x-webda-sanitize": "none" },
+    summary: { type: "string", "x-webda-sanitize": "markdown" },
+    content: { type: "string", "x-webda-sanitize": "html" },
     count: { type: "number" },
     tags: { type: "array", items: { type: "string" } },
     due: { type: "string", format: "date-time" },

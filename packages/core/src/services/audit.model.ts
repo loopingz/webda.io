@@ -6,6 +6,7 @@ import type { JSONSchema7 } from "json-schema";
 import { escape, QueryValidator } from "@webda/ql";
 import * as WebdaError from "../errors/errors.js";
 import { assertFilterOnly, checkModelPermission } from "../models/permissions.js";
+import { QUERY_STATEMENT_RUN } from "../models/statements.js";
 import { useApplication, useModel } from "../application/hooks.js";
 import { useModelMetadata } from "../core/hooks.js";
 import { useContext } from "../contexts/execution.js";
@@ -236,11 +237,11 @@ export class AuditService extends Service<AuditServiceParameters> {
     this.unsubscribers.push(
       useCoreEvents("Webda.OperationFailure", async evt => {
         if (evt.dryRun) return;
-        await this.addAuditEntry(evt.operationId, evt.context.getCurrentUserId(), evt.error, evt.subject);
+        await this.addAuditEntry(evt.operationId, evt.context.getCurrentUserId(), evt.error, evt.subject, evt.context);
       }),
       useCoreEvents("Webda.OperationSuccess", async evt => {
         if (evt.dryRun) return;
-        await this.addAuditEntry(evt.operationId, evt.context.getCurrentUserId(), undefined, evt.subject);
+        await this.addAuditEntry(evt.operationId, evt.context.getCurrentUserId(), undefined, evt.subject, evt.context);
       })
     );
     if (this.parameters.exposeReadOperations) {
@@ -262,21 +263,23 @@ export class AuditService extends Service<AuditServiceParameters> {
    * based on include/exclude filters and level configuration.
    * @param operationId - the operation identifier
    * @param success - whether the operation succeeded
+   * @param write - the call wrote whatever its name says: a Query operation that ran a DELETE or UPDATE statement
    * @returns true if this operation should be audited
    */
-  shouldAudit(operationId: string, success: boolean): boolean {
+  shouldAudit(operationId: string, success: boolean, write: boolean = false): boolean {
     // Check include/exclude filter
     if (!this.parameters.isIncluded(operationId)) {
       return false;
     }
     // Check level filter
-    const level = this.parameters.level ?? "all";
+    // "all" by default (set when the parameters are loaded)
+    const level = this.parameters.level;
     if (level === "failure") {
       return !success;
     }
     if (level === "write") {
-      const suffix = operationId.split(".").pop() ?? "";
-      return !READ_SUFFIXES.includes(suffix) && !AUDIT_READ_OPERATIONS.includes(operationId);
+      const suffix = operationId.substring(operationId.lastIndexOf(".") + 1);
+      return write || (!READ_SUFFIXES.includes(suffix) && !AUDIT_READ_OPERATIONS.includes(operationId));
     }
     return true;
   }
@@ -287,10 +290,17 @@ export class AuditService extends Service<AuditServiceParameters> {
    * @param userId - the user identifier (may be undefined for anonymous)
    * @param err - the error if the operation failed
    * @param subject - the object the operation targeted, if any
+   * @param context - the context of the call, see {@link isWriteCall}
    */
-  async addAuditEntry(operationId: string, userId?: string, err?: Error, subject?: OperationSubject): Promise<void> {
+  async addAuditEntry(
+    operationId: string,
+    userId?: string,
+    err?: Error,
+    subject?: OperationSubject,
+    context?: OperationContext
+  ): Promise<void> {
     const success = err === undefined;
-    if (!this.shouldAudit(operationId, success)) {
+    if (!this.shouldAudit(operationId, success, this.isWriteCall(context))) {
       return;
     }
     const entry = new AuditEntry();
@@ -305,6 +315,15 @@ export class AuditService extends Service<AuditServiceParameters> {
     }
     this.entries.push(entry);
     await entry.save();
+  }
+
+  /**
+   * Whether a call wrote although its operation reads: a Query operation that ran a DELETE or UPDATE statement
+   * @param context - the context of the call, if known
+   * @returns true for such a call
+   */
+  protected isWriteCall(context?: OperationContext): boolean {
+    return context?.getExtension(QUERY_STATEMENT_RUN) !== undefined;
   }
 
   /**

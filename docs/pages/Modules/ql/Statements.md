@@ -73,17 +73,18 @@ names stay attributes: `count = 1 AND min = 2` is still a filter.
 
 ## Where statements are accepted
 
-| Entry point                                                         | Plain filter | `SELECT` field list       | `HYDRATE`                | `DELETE` / `UPDATE`      |
-| ------------------------------------------------------------------- | ------------ | ------------------------- | ------------------------ | ------------------------ |
-| Query operations (REST, MCP)                                        | yes          | **yes** (partial results) | **yes**                  | **400**                  |
-| Query operations (gRPC)                                             | yes          | **yes** (partial results) | **INVALID_ARGUMENT**     | **INVALID_ARGUMENT**     |
-| `Audit.Query`, offline sync filters                                 | yes          | **400**                   | **400**                  | **400**                  |
-| GraphQL query and `filter` arguments, subscriptions, links and maps | yes          | **BAD_USER_INPUT**        | **BAD_USER_INPUT**       | **BAD_USER_INPUT**       |
-| `Repository.query()` / `iterate()`, `Model.query()`                 | yes          | refused (`WebdaQLError`)  | refused (`WebdaQLError`) | refused (`WebdaQLError`) |
-| `Repository.deleteMany()`                                           | no           | no                        | no                       | `DELETE` only            |
-| `Repository.updateMany()`                                           | no           | no                        | no                       | `UPDATE` only            |
+| Entry point                                                         | Plain filter | `SELECT` field list       | `HYDRATE`                | `DELETE` / `UPDATE`                |
+| ------------------------------------------------------------------- | ------------ | ------------------------- | ------------------------ | ---------------------------------- |
+| Query operations (REST `PUT`)                                       | yes          | **yes** (partial results) | **yes**                  | **when the model enables them**    |
+| Query operations (REST `GET`, MCP)                                  | yes          | **yes** (partial results) | **yes**                  | **400**                            |
+| Query operations (gRPC)                                             | yes          | **yes** (partial results) | **INVALID_ARGUMENT**     | **when the model enables them**    |
+| `Audit.Query`, offline sync filters                                 | yes          | **400**                   | **400**                  | **400**                            |
+| GraphQL query and `filter` arguments, subscriptions, links and maps | yes          | **BAD_USER_INPUT**        | **BAD_USER_INPUT**       | **BAD_USER_INPUT**                 |
+| `Repository.query()` / `iterate()`, `Model.query()`                 | yes          | refused (`WebdaQLError`)  | refused (`WebdaQLError`) | refused (`WebdaQLError`)           |
+| `Repository.deleteMany()`                                           | no           | no                        | no                       | `DELETE` only, no permission check |
+| `Repository.updateMany()`                                           | no           | no                        | no                       | `UPDATE` only, no permission check |
 
-**Field lists project the results of the Query operations** (see [Field selection](#field-selection)), and **`HYDRATE` loads their relations** (see [Hydration](#hydration)); aggregations (`SELECT … GROUP BY`) are refused there with a 400 and run through `Model.aggregate()`. **DELETE and UPDATE are repository-level operations**: they never run through the Query operations exposed to clients. A `__` field in a field list or a SET target is refused like a `__` filter.
+**Field lists project the results of the Query operations** (see [Field selection](#field-selection)), and **`HYDRATE` loads their relations** (see [Hydration](#hydration)); aggregations (`SELECT … GROUP BY`) are refused there with a 400 and run through `Model.aggregate()`. **DELETE and UPDATE run in two places**: from code, in bulk and without any check, with the repository `deleteMany()` / `updateMany()` (see [Bulk operations on repositories](#bulk-operations-on-repositories)); and from clients, through the Query operations of the models that enable them, on the objects the caller may update or delete (see [Statements through the Query operations](#statements-through-the-query-operations)). A `__` field in a field list or a SET target is refused like a `__` filter.
 
 ## Field selection
 
@@ -278,6 +279,146 @@ The uppercase words `HYDRATE`, `INNER` and `LEFT` are keywords. **Breaking chang
 in uppercase like one of them (`LEFT = 1`) no longer parses. Lowercase names stay attributes: `left = 1 AND inner = 2`
 is still a filter.
 
+## Statements through the Query operations
+
+A client can send `UPDATE SET … WHERE …` or `DELETE WHERE …` to the Query operation of a model, in place of a query.
+The statement changes the matching objects **the caller may update or delete**, and returns how many:
+
+```
+UPDATE SET status = 'archived', meta.archivedBy = 'cleanup' WHERE status = 'done' LIMIT 500
+DELETE WHERE status = 'archived'
+```
+
+```json
+{
+  "results": [],
+  "statement": { "type": "UPDATE", "changed": 42, "skipped": 3, "more": false }
+}
+```
+
+A query answers exactly as before: `statement` is only there for a statement.
+
+| Field     | Meaning                                                                                                                  |
+| --------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `changed` | Objects updated or deleted                                                                                               |
+| `skipped` | Objects the caller may read, but not update or delete: left untouched                                                    |
+| `more`    | Matching objects remain (LIMIT, its cap, or the scan budget was reached): send the statement again                       |
+| `dryRun`  | `true` when the operation ran in [dry mode](../../Concepts/Operations.md#dry-mode): checked and counted, nothing written |
+
+Objects the caller may **not read** are left untouched and are **not counted**, in `skipped` or anywhere else: a
+statement never tells that a hidden object exists.
+
+### Enabling statements
+
+Statements are **off by default**: a model that does not enable them answers `400 DELETE statements are not accepted
+by queries`, as before. They are enabled per model, on the server, with the `queryStatements` parameter of the
+`DomainService`:
+
+```jsonc
+{
+  "services": {
+    "DomainService": {
+      "type": "Webda/DomainService",
+      "queryStatements": {
+        "MyApp/Task": "events", // written object by object: events and model methods run
+        "MyApp/LogLine": "bulk", // written in bulk: no per-object event
+        "*": "bulk", // every other exposed model
+        "MyApp/Invoice": false // taken out of "*"
+      }
+    }
+  }
+}
+```
+
+| Mode       | How the objects are written                                                                                                                                                                            |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `"bulk"`   | With the repository `updateMany()` / `deleteMany()`, restricted to the objects the caller may act on. **No per-object repository event**, and the model `patch()` / `delete()` methods are not called  |
+| `"events"` | Object by object through the model, exactly like the `Patch` and `Delete` operations: `object.patch()` / `object.delete()` run, and the repository events (`Patch`/`Patched`, `Delete`/`Deleted`) fire |
+| `false`    | Refused                                                                                                                                                                                                |
+
+The mode is a server setting: a client cannot choose to skip the events. Use `"events"` for a model something
+listens to (search indexers, `ModelMapper` duplicated attributes, GraphQL subscriptions, cluster replication, your own
+listeners) or that overrides `delete()` (soft delete) or `patch()`; `"bulk"` is faster and is for models nothing
+listens to. The permission checks are the same in both modes.
+
+### Permissions
+
+A statement gives a client nothing the `Patch` and `Delete` operations of the model do not already give, object by
+object:
+
+1. The caller must be allowed to call the Query operation, **and** the `Patch` operation (for an `UPDATE`) or the
+   `Delete` operation (for a `DELETE`) of the model: operation permission, MFA freshness, token scopes and
+   authorizers. Otherwise the statement is refused with a `403`, before any object is read. A model without these
+   operations (not exposed, or with an `update` / `delete` action of its own) runs no statement.
+2. The model's `getPermissionQuery(context)` is ANDed into the `WHERE`.
+3. Each matching object is checked with `canAct(context, "get")`. Refused, soft-deleted, or of a model without
+   `canAct`: the object is invisible (not changed, not counted).
+4. A readable object is checked with `canAct(context, "update")` or `canAct(context, "delete")`, then with the
+   authorizers of the `Patch` / `Delete` operation for this object (the key, and the patch of an `UPDATE`). Refused:
+   the object is left untouched and counted in `skipped`.
+
+**SET targets** go through the input sanitization of the `Patch` operation, for the model and each of its subclasses
+(a statement on a model reaches the rows of its subclasses). A refused target is a `400` that names it, before any
+object is read:
+
+| Statement                                                                                  | Message                                |
+| ------------------------------------------------------------------------------------------ | -------------------------------------- |
+| A primary key field                                                                        | `Cannot set "<path>"`                  |
+| A protected (`getProtectedAttributes(context)`), read-only, `_`-prefixed or behavior field | `Cannot set "<path>"`                  |
+| An `Object.prototype` member name (`constructor`, `toString`…) or `prototype` in the path  | `Cannot set "<path>"`                  |
+| A `__` segment, in a SET target or in the `WHERE`                                          | `Private fields cannot be queried`     |
+| A field set twice, or together with one of its children                                    | `"<path>" is set more than once`       |
+| A field that is not one of the model (when its metadata lists them)                        | `Unknown field "<path>"`               |
+| More than 64 assignments, or a path of more than 16 segments                               | a message giving the limit             |
+| A value the schema of the model refuses (`SET priority = 'high'` on a number)              | `UPDATE InvalidInput: /priority must…` |
+
+The values are validated against the schema of the model, like the input of the `Patch` operation (required fields
+are not asked for). A dotted target (`meta.archived`) rewrites its top-level field: the validated value is the
+current one with the target set, so it is checked object by object. Every object is read, checked and validated
+**before the first write**: a refused statement changes nothing. A statement that sets the `ModelParent` attribute
+(`SET project = 'p2'`) needs a parent the caller may read, like an update (`404` otherwise). `NOW()` is evaluated
+once: every object gets the same value.
+
+### Limits
+
+- `LIMIT n` bounds the objects **changed**. It is capped at 1000, like the `LIMIT` of a query, and is 1000 when not
+  given. `LIMIT 0` changes nothing.
+- Objects that are skipped or invisible are replaced by reading further, within the scan budget of a query page (ten
+  times `LIMIT` rows, between 100 and 10 000, and at most 100 store pages).
+- `more: true` tells that the store held more matching objects when the statement stopped. Send the same statement
+  again until `more` is `false`. For an `UPDATE`, make the `WHERE` exclude the objects already updated
+  (`UPDATE SET status = 'archived' WHERE status = 'done'`, or `… AND status != 'archived'`): a statement takes no
+  `OFFSET`, so the same objects would be updated again otherwise.
+- Like the continuation token of a query, `more` is not set when the budget was spent only on objects the caller may
+  not read: narrow the `WHERE`, or give the model a `getPermissionQuery`.
+- Writes are **not a transaction**. A write that fails stops the statement with its error, and the objects already
+  written stay written. In `"bulk"` mode the `WHERE` is kept on the write: an object changed by someone else since it
+  was checked, so that it no longer matches, is left as it is and not counted. In `"events"` mode an object deleted
+  meanwhile is left out of the count.
+- `HYDRATE`, a `SELECT` field list, `ORDER BY` and `OFFSET` do not combine with `DELETE` or `UPDATE` (syntax error,
+  `400`). `count` is ignored.
+
+### Per transport
+
+- **REST**: `PUT /tasks` with `{ "q": "DELETE WHERE status = 'archived'" }`. On a nested route
+  (`PUT /projects/p1/tasks`) the statement only reaches the children of that parent. With `"queryMethod": "GET"` the
+  Query route is a `GET`: a safe method never writes, so statements are refused there (`400`) whatever
+  `queryStatements` says. The OpenAPI result schema documents `statement`.
+- **gRPC**: the Query RPC runs statements. Its result message gains a `statement` message (`type`, `changed`,
+  `skipped`, `more`, `dryRun`), unset for a query: regenerate the clients from the new proto.
+- **MCP**: refused (`BAD_REQUEST`). A Query tool is announced read-only (`readOnlyHint`), so a client may call it
+  without asking the user: it must never write. Agents change objects with the `Patch` and `Delete` tools.
+- **GraphQL**: refused (`BAD_USER_INPUT`). A GraphQL query must not write; use the `update…` / `delete…` mutations.
+- **Offline sync, `Audit.Query`, `Repository.query()` / `Model.query()`**: refused, as before.
+- **`@webda/sdk`**: `api.Task.query()` is a cached read: do not send statements through it (their outcome is not
+  returned and the cache is not refreshed). Call the Query operation directly.
+- **Audit**: with `level: "write"`, the audit service records a Query call that ran a statement (allowed or refused
+  with a `403`), although it leaves queries out.
+- **Dry mode**: a Query operation is read-only, so it runs in dry mode; a statement then checks and counts
+  (`"dryRun": true`) and writes nothing.
+- **Completion**: `getCompletions(query, caret, { filterOnly: true, statements: true })` offers `DELETE`, `UPDATE`
+  and `SET` (see [Completion](./Completion.md)).
+
 ## Bulk operations on repositories
 
 ```typescript
@@ -293,7 +434,7 @@ const updated = await useRepository(Task).updateMany("UPDATE SET status = :s, me
 Both take the statement string (with parameters) or its parsed `Query`, and return the number of objects affected. A statement of the other type is refused.
 
 :::warning Bulk operations bypass the model layer
-`deleteMany` and `updateMany` write directly to the store: **no per-object repository event** (`Deleted`, `Patched`, `Updated`, `PartialUpdated`), no model hook, no behaviour and no validation run, and **no permission (`canAct`) is checked**. Everything that listens to those events misses bulk changes: search indexers (Elasticsearch), `ModelMapper` duplicated attributes, cluster `Store.*` replication, GraphQL subscriptions and any application listener. Repositories are trusted internal APIs: application code that lets a client trigger a bulk statement must check permissions itself.
+`deleteMany` and `updateMany` write directly to the store: **no per-object repository event** (`Deleted`, `Patched`, `Updated`, `PartialUpdated`), no model hook, no behaviour and no validation run, and **no permission (`canAct`) is checked**. Everything that listens to those events misses bulk changes: search indexers (Elasticsearch), `ModelMapper` duplicated attributes, cluster `Store.*` replication, GraphQL subscriptions and any application listener. Repositories are trusted internal APIs: application code that lets a client trigger a bulk statement must check permissions itself, or let the client use the [Query operations](#statements-through-the-query-operations), which do.
 :::
 
 Rules:

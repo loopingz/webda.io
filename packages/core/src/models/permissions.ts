@@ -472,12 +472,12 @@ export const MAX_SELECT_FIELDS = 64;
 export const MAX_SELECT_DEPTH = 16;
 
 /**
- * Refuse what the Query operations do not run: DELETE and UPDATE statements, and aggregations
+ * Refuse what a query does not run: DELETE and UPDATE statements, and aggregations
  *
- * Statements are parsed by WebdaQL and run by the repositories (`deleteMany`, `updateMany`), never through the
- * Query operations exposed to clients; aggregations go through `Model.aggregate()`. A plain filter and a
- * `SELECT f1, f2.g` field list are accepted: the field list projects the results
- * ({@link queryModelWithPermissions}).
+ * A query never writes: the Query operations run a statement apart, where the model and the transport allow it
+ * (`executeModelStatement`), and the repositories run them in bulk (`deleteMany`, `updateMany`); aggregations go
+ * through `Model.aggregate()`. A plain filter and a `SELECT f1, f2.g` field list are accepted: the field list
+ * projects the results ({@link queryModelWithPermissions}).
  * @param query - the parsed client query
  * @throws WebdaError.BadRequest for a DELETE or UPDATE statement, or an aggregation
  */
@@ -664,7 +664,9 @@ export const QUERY_TOTAL_SCHEMA = {
 export const QUERY_DESCRIPTION =
   "WebdaQL filter, or `SELECT f1, f2.g WHERE ...` to return only those fields plus the primary key. " +
   "`HYDRATE rel, rel.sub INNER` before ORDER BY replaces relation keys by the related objects the caller may read " +
-  "(`null` otherwise; INNER drops the result instead): REST and MCP only, limited in depth and in objects loaded";
+  "(`null` otherwise; INNER drops the result instead): REST and MCP only, limited in depth and in objects loaded. " +
+  "Where the model enables them, `UPDATE SET a = 1 WHERE ...` and `DELETE WHERE ...` change the matching objects " +
+  "the caller may update or delete and return their count in `statement`: REST (not over GET) and gRPC only";
 /**
  * Description of the `results` of a query, used by the query result schemas
  */

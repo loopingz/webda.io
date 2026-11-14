@@ -23,6 +23,7 @@ import type { Duplex } from "node:stream";
 import { WebSocketServer, type WebSocket } from "ws";
 import { hasSchema } from "../schemas/hooks.js";
 import { QUERY_DESCRIPTION, QUERY_RESULTS_DESCRIPTION, QUERY_TOTAL_SCHEMA } from "../models/permissions.js";
+import { QUERY_STATEMENT_SCHEMA, QUERY_STATEMENTS_ACCEPTED } from "../models/statements.js";
 import type { ModelClass } from "@webda/models";
 import type { ModelAction } from "../models/types.js";
 import type { ModelGraphBehaviorDefinition, ModelMetadata } from "@webda/compiler";
@@ -748,7 +749,8 @@ export class RESTOperationsTransport<
                       ...structuredClone(QUERY_TOTAL_SCHEMA),
                       description:
                         "Total of the query, when asked with count and allowed by the model: with relation gte, the total is at least value"
-                    }
+                    },
+                    statement: structuredClone(QUERY_STATEMENT_SCHEMA)
                   }
                 }
               }
@@ -772,6 +774,8 @@ export class RESTOperationsTransport<
         let count: unknown;
         const parentId = `pid.${depth - 1}`;
         if (context.getHttpContext().getMethod() === "PUT") {
+          // A PUT may write: DELETE and UPDATE statements can run. A GET is a safe method, it never does
+          context.setExtension(QUERY_STATEMENTS_ACCEPTED, true);
           const input = await context.getInput();
           if (input === undefined || input === null) {
             // getInput() yields undefined for an empty body (query everything) but also for a body that is not

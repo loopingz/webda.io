@@ -63,6 +63,11 @@ export interface CompletionOptions {
    * `HYDRATE`, `INNER` and `LEFT` are not offered with `filterOnly` alone
    */
   fieldList?: boolean;
+  /**
+   * With `filterOnly`, also offer the `DELETE [WHERE ...]` and `UPDATE SET a = v [WHERE ...]` statements: for the
+   * Query operations of the models that run them (see the `queryStatements` parameter of the DomainService)
+   */
+  statements?: boolean;
   /** Named parameters available (offered as `:name` where a value is expected) */
   parameters?: string[];
   /** Max candidates, default 50 */
@@ -188,12 +193,24 @@ const FILTER_ONLY_DROPPED = new Set<string>([
 ]);
 
 /**
- * Dropped with `filterOnly` and `fieldList`: a plain `SELECT` field list, its `WHERE` and the `HYDRATE` clause are
- * kept
+ * Kept with `filterOnly` and `fieldList`: a plain `SELECT` field list, its `WHERE` and the `HYDRATE` clause
  */
-const FIELD_LIST_DROPPED = new Set<string>(
-  [...FILTER_ONLY_DROPPED].filter(word => !["SELECT", "WHERE", "HYDRATE", "INNER", "LEFT"].includes(word))
-);
+const FIELD_LIST_KEPT = ["SELECT", "WHERE", "HYDRATE", "INNER", "LEFT"];
+
+/**
+ * Kept with `filterOnly` and `statements`: the DELETE and UPDATE statements and their `WHERE`
+ */
+const STATEMENTS_KEPT = ["DELETE", "UPDATE", "SET", "WHERE"];
+
+/**
+ * The words `filterOnly` drops from the candidates, less what `fieldList` and `statements` keep
+ * @param options - the completion options
+ * @returns the dropped words
+ */
+function droppedWords(options: CompletionOptions): Set<string> {
+  const kept = [...(options.fieldList ? FIELD_LIST_KEPT : []), ...(options.statements ? STATEMENTS_KEPT : [])];
+  return new Set([...FILTER_ONLY_DROPPED].filter(word => !kept.includes(word)));
+}
 
 /**
  * Tokens that end a HYDRATE clause
@@ -706,7 +723,7 @@ export function getCompletions(query: string, caret: number, options?: Completio
 
     // 4. Handle filterOnly option
     if (options?.filterOnly) {
-      const dropped = options.fieldList ? FIELD_LIST_DROPPED : FILTER_ONLY_DROPPED;
+      const dropped = droppedWords(options);
       // A whole label ("GROUP BY") or one of its words ("COUNT (")
       items = items.filter(it => !dropped.has(it.label) && !it.label.split(/\s+/).some(w => dropped.has(w)));
     }

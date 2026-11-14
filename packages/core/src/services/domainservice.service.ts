@@ -21,7 +21,18 @@ import {
   MAX_HYDRATE_DEPTH,
   QUERY_HYDRATE_REFUSED
 } from "../models/hydration.js";
-import { hasSchema, registerSchema } from "../schemas/hooks.js";
+import { hasSchema, registerSchema, validateSchema, type ValidationError } from "../schemas/hooks.js";
+import { primaryKeyFields } from "../models/modelfields.js";
+import {
+  executeModelStatement,
+  parseModelStatement,
+  QUERY_STATEMENT_RUN,
+  QUERY_STATEMENT_SCHEMA,
+  QUERY_STATEMENTS_ACCEPTED,
+  type StatementMode,
+  type StatementResult,
+  type StatementType
+} from "../models/statements.js";
 import { bindRestInput } from "../rest/binding.js";
 import {
   checkModelParent,
@@ -241,6 +252,22 @@ export class DomainServiceParameters extends ServiceParameters {
    */
   queryHydrateMaxObjects?: number;
   /**
+   * Models whose Query operation runs `UPDATE SET ... WHERE ...` and `DELETE WHERE ...` statements, by model
+   * identifier (`"*"` for every other exposed model), and how their rows are written:
+   *
+   * - `"bulk"`: with the repository `updateMany` / `deleteMany`, restricted to the rows the caller may act on. No
+   *   per-object repository event is emitted and the model `patch()` / `delete()` methods are not called;
+   * - `"events"`: object by object through the model, like the `Patch` and `Delete` operations: repository events
+   *   are emitted and the model methods run;
+   * - `false`: refused (to take a model out of `"*"`).
+   *
+   * A model that is not listed refuses statements (400), as before. Statements need the `Patch` (UPDATE) or `Delete`
+   * (DELETE) operation of the model to be allowed for the caller, and check `canAct` on every row.
+   *
+   * @default {}
+   */
+  queryStatements?: { [model: string]: StatementMode | false };
+  /**
    * Used to store the excluded models
    * @SchemaIgnore
    */
@@ -260,6 +287,7 @@ export class DomainServiceParameters extends ServiceParameters {
     this.models ??= ["*"];
     this.queryHydrateMaxDepth ??= DEFAULT_HYDRATE_MAX_DEPTH;
     this.queryHydrateMaxObjects ??= DEFAULT_HYDRATE_MAX_OBJECTS;
+    this.queryStatements ??= {};
     this.excludedModels = this.models.filter(i => i.startsWith("!")).map(i => i.substring(1));
     // Only contains excluded models so a wildcard is implied
     if (this.models.length === this.excludedModels.length) {
@@ -572,10 +600,10 @@ export class DomainService<
   }
 
   /**
-   * Check the hydration limits
+   * Check the hydration limits and the statement modes
    * @returns this
-   * @throws Error when `queryHydrateMaxDepth` is not an integer between 1 and 5, or `queryHydrateMaxObjects` is not a
-   * positive integer
+   * @throws Error when `queryHydrateMaxDepth` is not an integer between 1 and 5, `queryHydrateMaxObjects` is not a
+   * positive integer, or `queryStatements` holds anything but `"bulk"`, `"events"` or `false`
    */
   resolve(): this {
     const { queryHydrateMaxDepth: depth, queryHydrateMaxObjects: objects } = this.parameters;
@@ -584,6 +612,11 @@ export class DomainService<
     }
     if (!Number.isInteger(objects) || objects < 1) {
       throw new Error(`${this.getName()}: queryHydrateMaxObjects must be a positive integer`);
+    }
+    for (const [model, mode] of Object.entries(this.parameters.queryStatements)) {
+      if (mode !== "bulk" && mode !== "events" && mode !== false) {
+        throw new Error(`${this.getName()}: queryStatements["${model}"] must be "bulk", "events" or false`);
+      }
     }
     return super.resolve();
   }
@@ -615,6 +648,105 @@ export class DomainService<
   }
 
   /**
+   * The identifier of a model class, from its metadata
+   * @param model - the model class
+   * @returns the identifier, undefined for a class registered without metadata
+   */
+  protected modelIdentifier(model: ModelClass): string | undefined {
+    try {
+      return useModelMetadata(model).Identifier;
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
+   * Whether the caller could call the write operation a statement stands for: `Patch` for an UPDATE, `Delete` for a
+   * DELETE. The operation must be registered (the model is exposed, and has no `update` / `delete` action of its
+   * own), enabled and allowed for the caller (operation permission, MFA freshness, token scopes, authorizers)
+   * @param identifier - the model identifier
+   * @param type - the statement type
+   * @param context - the caller context
+   * @param input - the input of the operation for one object (its key, and the patch of an UPDATE); without it the
+   * authorizers are asked whether some input could be allowed
+   * @returns true when the operation can be called
+   */
+  protected async canWriteModel(
+    identifier: string,
+    type: StatementType,
+    context: OperationContext,
+    input?: Record<string, any>
+  ): Promise<boolean> {
+    const operation = `${identifier.split("/").pop()}.${type === "UPDATE" ? "Patch" : "Delete"}`;
+    return (await probeOperation(context, operation, input ? { input } : undefined)) === true;
+  }
+
+  /**
+   * Validate the patch of an UPDATE statement against the schema of the model, like the input of its `Patch`
+   * operation (required fields are not asked for)
+   * @param identifier - the model identifier
+   * @param patch - the top-level fields the statement writes on one object
+   * @throws WebdaError.BadRequest when the patch does not fit the schema
+   */
+  protected validateStatementPatch(identifier: string, patch: Record<string, any>): void {
+    if (!hasSchema(identifier)) {
+      return;
+    }
+    try {
+      validateSchema(identifier, patch, true);
+    } catch (err) {
+      // The schema is registered: the only error is a validation one
+      const errors = (err as ValidationError).errors;
+      const summary = errors.map(e => `${e.instancePath} ${e.message}`).join("; ");
+      throw new WebdaError.BadRequest(`UPDATE InvalidInput: ${summary}`, { errors });
+    }
+  }
+
+  /**
+   * Run a `DELETE` or `UPDATE` statement sent to a Query operation
+   *
+   * Refused (400, as before) unless `queryStatements` lists the model and the transport accepts a write
+   * ({@link QUERY_STATEMENTS_ACCEPTED}); refused (403) unless the caller could call the `Patch` / `Delete` operation
+   * of the model. Each row is then checked, and written as the mode of the model says: see
+   * {@link executeModelStatement}. In dry-run mode the rows are checked and counted, not written.
+   * @param model - the model class
+   * @param statement - the parsed statement
+   * @param context - the caller context
+   * @returns no result, and the outcome of the statement
+   */
+  protected async runStatement(
+    model: ModelClass,
+    statement: NonNullable<ReturnType<typeof parseModelStatement>>,
+    context: OperationContext
+  ): Promise<{ results: any[]; statement: StatementResult }> {
+    const type = statement.getQuery().type as StatementType;
+    const identifier = this.modelIdentifier(model);
+    const modes = this.parameters.queryStatements;
+    const mode =
+      identifier === undefined ? undefined : Object.hasOwn(modes, identifier) ? modes[identifier] : modes["*"];
+    if (!mode || context.getExtension(QUERY_STATEMENTS_ACCEPTED) !== true) {
+      throw new WebdaError.BadRequest(`${type} statements are not accepted by queries`);
+    }
+    // From here the call is a write, allowed or not: the audit of write operations records it
+    context.setExtension(QUERY_STATEMENT_RUN, type);
+    if (!(await this.canWriteModel(identifier, type, context))) {
+      throw new WebdaError.Forbidden(`${type} statements are not allowed`);
+    }
+    const keys = primaryKeyFields(model);
+    return executeModelStatement(model, statement, context, {
+      mode,
+      dryRun: context.getExtension("dryRun") === true,
+      sanitize: (clazz, input) => sanitizeModelInput(clazz, input, context),
+      validate: patch => this.validateStatementPatch(identifier, patch),
+      canWrite: (object, patch) =>
+        this.canWriteModel(identifier, type, context, {
+          ...Object.fromEntries(keys.map(key => [key, object[key]])),
+          ...patch
+        })
+    });
+  }
+
+  /**
    * Query models
    *
    * With a field list (`SELECT title, owner.name WHERE ...`) each result only holds the selected fields and the
@@ -622,7 +754,12 @@ export class DomainService<
    * objects the caller could `GET` ({@link canGetModel}, then their `canAct`), within `queryHydrateMaxDepth` and
    * `queryHydrateMaxObjects`; a transport can refuse it ({@link QUERY_HYDRATE_REFUSED}). See
    * {@link queryModelWithPermissions}.
-   * @param query - the query string: a WebdaQL filter, optionally with a SELECT field list and a HYDRATE clause
+   *
+   * An `UPDATE SET ... WHERE ...` or `DELETE WHERE ...` statement is run when `queryStatements` lists the model and
+   * the transport accepts a write ({@link runStatement}): the result then holds no object, and the outcome of the
+   * statement in `statement`.
+   * @param query - the query string: a WebdaQL filter, optionally with a SELECT field list and a HYDRATE clause, or
+   * a DELETE or UPDATE statement
    * @param count - also return the total of the query (`total`), when the model allows it
    * @returns the query results
    */
@@ -635,6 +772,10 @@ export class DomainService<
     const refused = context.getExtension<string>(QUERY_HYDRATE_REFUSED);
     return runWithContext(context, async () => {
       try {
+        const statement = parseModelStatement(query);
+        if (statement) {
+          return await this.runStatement(model, statement, context);
+        }
         return await queryModelWithPermissions(model, query, context, {
           count: count === true,
           hydrate: {
@@ -906,7 +1047,8 @@ export class DomainService<
             description: QUERY_RESULTS_DESCRIPTION,
             items: { $ref: `#/definitions/${modelKey}` }
           },
-          total: structuredClone(QUERY_TOTAL_SCHEMA)
+          total: structuredClone(QUERY_TOTAL_SCHEMA),
+          statement: structuredClone(QUERY_STATEMENT_SCHEMA)
         }
       };
       if (!hasSchema(queryResultSchemaName)) {

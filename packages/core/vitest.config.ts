@@ -83,6 +83,7 @@ export default defineConfig({
       "src/services/domainservice-behaviors.spec.ts",
       "src/services/domainservice-permissions.spec.ts",
       "src/services/domainservice-hydrate.spec.ts",
+      "src/services/domainservice-statements.spec.ts",
       "src/services/behavior-roundtrip.spec.ts",
       "src/services/binary-behavior.spec.ts",
       "src/services/binary-complete-http.spec.ts",

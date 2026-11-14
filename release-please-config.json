@@ -56,6 +56,5 @@
     "packages/versioning": {},
     "packages/workflow": {},
     "packages/workout": {}
-  },
-  "release-as": "4.0.0-rc.1"
+  }
 }

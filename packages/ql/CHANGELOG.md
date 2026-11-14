@@ -1,5 +1,23 @@
 # Changelog
 
+## [4.0.0-rc.1](https://github.com/loopingz/webda.io/compare/ql-v4.0.0-beta.11...ql-v4.0.0-rc.1) (2026-11-14)
+
+
+### Features
+
+* **core:** client queries are not HTML-sanitized, their literals are per attribute ([#1081](https://github.com/loopingz/webda.io/issues/1081)) ([83f6be0](https://github.com/loopingz/webda.io/commit/83f6be062cbf954c62e754a5b742181de7b273c0))
+* first release candidate of Webda 4.0, npm version badge in package READMEs ([#1083](https://github.com/loopingz/webda.io/issues/1083)) ([0cf8a55](https://github.com/loopingz/webda.io/commit/0cf8a554f58ca40ee65f2dd991aa370647aab49a))
+* **ql:** SELECT field lists at runtime (partial results) ([#1075](https://github.com/loopingz/webda.io/issues/1075)) ([fdbf962](https://github.com/loopingz/webda.io/commit/fdbf9620d72cff70725c24463f453bfe170bf473))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/utils bumped to 4.0.0-rc.1
+  * devDependencies
+    * @webda/test bumped to 4.0.0-rc.1
+
 ## [4.0.0-beta.11](https://github.com/loopingz/webda.io/compare/ql-v4.0.0-beta.10...ql-v4.0.0-beta.11) (2026-11-10)
 
 

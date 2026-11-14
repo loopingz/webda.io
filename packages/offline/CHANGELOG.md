@@ -1,5 +1,29 @@
 # Changelog
 
+## [4.0.0-rc.1](https://github.com/loopingz/webda.io/compare/offline-v4.0.0-beta.14...offline-v4.0.0-rc.1) (2026-11-14)
+
+
+### Features
+
+* **core:** client queries are not HTML-sanitized, their literals are per attribute ([#1081](https://github.com/loopingz/webda.io/issues/1081)) ([83f6be0](https://github.com/loopingz/webda.io/commit/83f6be062cbf954c62e754a5b742181de7b273c0))
+* **core:** per-attribute opt-out of input HTML sanitization ([#1076](https://github.com/loopingz/webda.io/issues/1076)) ([3f43c45](https://github.com/loopingz/webda.io/commit/3f43c45d074f1a690860fc46253c179c11e5de3b))
+* first release candidate of Webda 4.0, npm version badge in package READMEs ([#1083](https://github.com/loopingz/webda.io/issues/1083)) ([0cf8a55](https://github.com/loopingz/webda.io/commit/0cf8a554f58ca40ee65f2dd991aa370647aab49a))
+* **ql:** SELECT field lists at runtime (partial results) ([#1075](https://github.com/loopingz/webda.io/issues/1075)) ([fdbf962](https://github.com/loopingz/webda.io/commit/fdbf9620d72cff70725c24463f453bfe170bf473))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-rc.1
+    * @webda/models bumped to 4.0.0-rc.1
+    * @webda/ql bumped to 4.0.0-rc.1
+    * @webda/versioning bumped to 4.0.0-rc.1
+    * @webda/workout bumped to 4.0.0-rc.1
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-rc.1
+    * @webda/test bumped to 4.0.0-rc.1
+
 ## [4.0.0-beta.14](https://github.com/loopingz/webda.io/compare/offline-v4.0.0-beta.13...offline-v4.0.0-beta.14) (2026-11-10)
 
 

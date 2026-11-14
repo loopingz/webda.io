@@ -117,6 +117,31 @@
     * @webda/async bumped from ^3.7.1 to ^3.7.2
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-rc.1](https://github.com/loopingz/webda.io/compare/gcp-v4.0.0-beta.14...gcp-v4.0.0-rc.1) (2026-11-14)
+
+
+### Features
+
+* first release candidate of Webda 4.0, npm version badge in package READMEs ([#1083](https://github.com/loopingz/webda.io/issues/1083)) ([0cf8a55](https://github.com/loopingz/webda.io/commit/0cf8a554f58ca40ee65f2dd991aa370647aab49a))
+
+
+### Bug Fixes
+
+* sqlite on Node 22, stable gcp module file, deterministic downloadTo test ([#1070](https://github.com/loopingz/webda.io/issues/1070)) ([d992918](https://github.com/loopingz/webda.io/commit/d992918039c3f7006c8c522ea250d70027a10f99))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-rc.1
+    * @webda/ql bumped to 4.0.0-rc.1
+    * @webda/utils bumped to 4.0.0-rc.1
+  * devDependencies
+    * @webda/bench bumped to 4.0.0-rc.1
+    * @webda/compiler bumped to 4.0.0-rc.1
+    * @webda/test bumped to 4.0.0-rc.1
+
 ## [4.0.0-beta.14](https://github.com/loopingz/webda.io/compare/gcp-v4.0.0-beta.13...gcp-v4.0.0-beta.14) (2026-11-10)
 
 

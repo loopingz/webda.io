@@ -1,6 +1,6 @@
 {
   "name": "@webda/google-auth",
-  "version": "4.0.0-beta.14",
+  "version": "4.0.0-rc.1",
   "description": "Webda Google Authentication",
   "main": "lib/index.js",
   "scripts": {

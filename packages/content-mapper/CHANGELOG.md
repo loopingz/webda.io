@@ -1,5 +1,23 @@
 # Changelog
 
+## [4.0.0-rc.1](https://github.com/loopingz/webda.io/compare/content-mapper-v4.0.0-beta.11...content-mapper-v4.0.0-rc.1) (2026-11-14)
+
+
+### Features
+
+* **core:** per-attribute opt-out of input HTML sanitization ([#1076](https://github.com/loopingz/webda.io/issues/1076)) ([3f43c45](https://github.com/loopingz/webda.io/commit/3f43c45d074f1a690860fc46253c179c11e5de3b))
+* first release candidate of Webda 4.0, npm version badge in package READMEs ([#1083](https://github.com/loopingz/webda.io/issues/1083)) ([0cf8a55](https://github.com/loopingz/webda.io/commit/0cf8a554f58ca40ee65f2dd991aa370647aab49a))
+
+
+### Bug Fixes
+
+* sqlite on Node 22, stable gcp module file, deterministic downloadTo test ([#1070](https://github.com/loopingz/webda.io/issues/1070)) ([d992918](https://github.com/loopingz/webda.io/commit/d992918039c3f7006c8c522ea250d70027a10f99))
+
+
+### Performance Improvements
+
+* cache compiler queries and git information, stop the file configuration watcher ([#1066](https://github.com/loopingz/webda.io/issues/1066)) ([93d432f](https://github.com/loopingz/webda.io/commit/93d432fc1e040a701433d53db560b8b6ff7e4c4c))
+
 ## [4.0.0-beta.11](https://github.com/loopingz/webda.io/compare/content-mapper-v4.0.0-beta.10...content-mapper-v4.0.0-beta.11) (2026-11-04)
 
 

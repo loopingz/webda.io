@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.0.0-rc.1](https://github.com/loopingz/webda.io/compare/decorators-v4.0.0-beta.6...decorators-v4.0.0-rc.1) (2026-11-14)
+
+
+### Features
+
+* first release candidate of Webda 4.0, npm version badge in package READMEs ([#1083](https://github.com/loopingz/webda.io/issues/1083)) ([0cf8a55](https://github.com/loopingz/webda.io/commit/0cf8a554f58ca40ee65f2dd991aa370647aab49a))
+
 ## [4.0.0-beta.6](https://github.com/loopingz/webda.io/compare/decorators-v4.0.0-beta.5...decorators-v4.0.0-beta.6) (2026-11-04)
 
 

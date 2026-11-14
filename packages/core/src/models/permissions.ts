@@ -1,7 +1,8 @@
-import { ComparisonExpression, LogicalExpression, QueryValidator, type Expression } from "@webda/ql";
+import { ComparisonExpression, LogicalExpression, projectFields, QueryValidator, type Expression } from "@webda/ql";
 import { Model } from "@webda/models";
 import { useLog } from "@webda/workout";
 import { createHash } from "node:crypto";
+import { runWithContext } from "../contexts/execution.js";
 import type { IOperationContext } from "../contexts/icontext.js";
 import * as WebdaError from "../errors/errors.js";
 import { useModel } from "../application/hooks.js";
@@ -429,10 +430,11 @@ export function assertNoPrivateFields(query: QueryValidator): void {
 }
 
 /**
- * Refuse what the Query operations do not run: DELETE and UPDATE statements, and SELECT field lists
+ * Refuse anything but a filter query: DELETE and UPDATE statements, and SELECT field lists
  *
- * Statements are parsed by WebdaQL and run by the repositories (`deleteMany`, `updateMany`), never through the
- * Query operations exposed to clients (REST, gRPC, MCP, GraphQL): those take a filter query only.
+ * For the client paths that return or store whole objects: GraphQL (its selection sets choose the fields), the
+ * offline sync filters and `Audit.Query`. The Query operations (REST, gRPC, MCP) accept a field list, see
+ * {@link assertQueryStatement}.
  * @param query - the parsed client query
  * @throws WebdaError.BadRequest for a DELETE or UPDATE statement, or a SELECT field list
  */
@@ -443,6 +445,105 @@ export function assertFilterOnly(query: QueryValidator): void {
   }
   if (fields !== undefined) {
     throw new WebdaError.BadRequest("SELECT field lists are not accepted by queries");
+  }
+}
+
+/**
+ * Most field paths a client query can select
+ */
+export const MAX_SELECT_FIELDS = 64;
+/**
+ * Most segments of a selected field path (`a.b.c` has three)
+ */
+export const MAX_SELECT_DEPTH = 16;
+
+/**
+ * Refuse what the Query operations do not run: DELETE and UPDATE statements, and aggregations
+ *
+ * Statements are parsed by WebdaQL and run by the repositories (`deleteMany`, `updateMany`), never through the
+ * Query operations exposed to clients; aggregations go through `Model.aggregate()`. A plain filter and a
+ * `SELECT f1, f2.g` field list are accepted: the field list projects the results
+ * ({@link queryModelWithPermissions}).
+ * @param query - the parsed client query
+ * @throws WebdaError.BadRequest for a DELETE or UPDATE statement, or an aggregation
+ */
+export function assertQueryStatement(query: QueryValidator): void {
+  const { type, aggregation } = query.getQuery();
+  if (type === "DELETE" || type === "UPDATE") {
+    throw new WebdaError.BadRequest(`${type} statements are not accepted by queries`);
+  }
+  if (aggregation !== undefined) {
+    throw new WebdaError.BadRequest("Aggregations are not accepted by queries");
+  }
+}
+
+/**
+ * The primary key fields of a model, from its metadata
+ * @param model - the model class
+ * @returns the field names, `["uuid"]` by default
+ */
+function primaryKeyFields(model: any): string[] {
+  let fields: unknown;
+  try {
+    fields = useModelMetadata(model)?.PrimaryKey;
+  } catch {
+    // A class registered without metadata
+  }
+  return Array.isArray(fields) && fields.length ? fields.map(String) : ["uuid"];
+}
+
+/**
+ * The fields of the Output schema of a model class, from its own metadata: a class defined without metadata inherits
+ * the `Metadata` of its parent class, whose schema does not describe it
+ * @param model - the model class
+ * @returns the field names, undefined without Output schema metadata
+ */
+function outputFields(model: any): string[] | undefined {
+  const properties =
+    model && Object.hasOwn(model, "Metadata") ? model.Metadata?.Schemas?.Output?.properties : undefined;
+  return properties && typeof properties === "object" ? Object.keys(properties) : undefined;
+}
+
+/**
+ * Check the field list of a client query (`SELECT f1, f2.g`) against what a client can see of the model
+ *
+ * A selected path must start with a field of the Output schema of the model or of one of its subclasses (a query
+ * on a model returns the rows of its subclasses), or with a primary key field. The Stored and Input schemas are not
+ * used: they can name server-only fields. A model without Output schema metadata of its own is not checked: unknown
+ * paths are then absent from the results.
+ *
+ * The error names the refused path only, and is decided from the schema, never from the rows.
+ * @param model - the queried model class
+ * @param query - the parsed client query
+ * @throws WebdaError.BadRequest for more than {@link MAX_SELECT_FIELDS} paths, a path deeper than
+ * {@link MAX_SELECT_DEPTH}, a `constructor` or `prototype` segment, or a path that is not in the Output schema
+ */
+export function assertSelectFields(model: any, query: QueryValidator): void {
+  const fields = query.getQuery().fields;
+  if (fields === undefined) {
+    return;
+  }
+  if (fields.length > MAX_SELECT_FIELDS) {
+    throw new WebdaError.BadRequest(`A query cannot select more than ${MAX_SELECT_FIELDS} fields`);
+  }
+  let allowed: Set<string> | undefined;
+  if (outputFields(model)) {
+    allowed = new Set(primaryKeyFields(model));
+    for (const clazz of [model, ...subclassesOf(model)]) {
+      outputFields(clazz)?.forEach(name => allowed.add(name));
+    }
+  }
+  for (const field of fields) {
+    const segments = field.split(".");
+    if (segments.length > MAX_SELECT_DEPTH) {
+      throw new WebdaError.BadRequest(`A selected field cannot have more than ${MAX_SELECT_DEPTH} segments`);
+    }
+    if (
+      segments.some(segment => segment === "constructor" || segment === "prototype") ||
+      (allowed && !allowed.has(segments[0]))
+    ) {
+      throw new WebdaError.BadRequest(`Unknown field "${field}"`);
+    }
   }
 }
 
@@ -570,6 +671,17 @@ export const QUERY_TOTAL_SCHEMA = {
 };
 
 /**
+ * Description of the query input of the Query operations, used by their schemas (OpenAPI, MCP tools, gRPC, CLI)
+ */
+export const QUERY_DESCRIPTION =
+  "WebdaQL filter, or `SELECT f1, f2.g WHERE ...` to return only those fields plus the primary key";
+/**
+ * Description of the `results` of a query, used by the query result schemas
+ */
+export const QUERY_RESULTS_DESCRIPTION =
+  "Objects matching the query: items are partial when the query has a field list";
+
+/**
  * A client query checked and merged with the model's permission query
  */
 type ClientQuery = {
@@ -588,19 +700,32 @@ type ClientQuery = {
 };
 
 /**
+ * Check a client query: no private field, no DELETE, UPDATE or aggregation, and a field list the model allows
+ * @param model - the model class
+ * @param query - the client query
+ * @returns the parsed client query
+ * @throws WebdaError.BadRequest when refused
+ */
+function checkClientQuery(model: any, query: string): QueryValidator {
+  const client = new QueryValidator(query ?? "");
+  assertNoPrivateFields(client);
+  assertQueryStatement(client);
+  assertSelectFields(model, client);
+  return client;
+}
+
+/**
  * Check a client query and merge the model's permission query into it
  *
  * @param model - the model class
  * @param query - the client query
  * @param context - the caller context
  * @returns the checked queries, undefined when the model defines no permission check (no row can be read)
- * @throws WebdaError.BadRequest for a private field ({@link assertNoPrivateFields}) or a statement
- * ({@link assertFilterOnly})
+ * @throws WebdaError.BadRequest for a private field ({@link assertNoPrivateFields}), a statement
+ * ({@link assertQueryStatement}) or a field list the model does not allow ({@link assertSelectFields})
  */
 function prepareClientQuery(model: any, query: string, context: IOperationContext): ClientQuery | undefined {
-  const client = new QueryValidator(query ?? "");
-  assertNoPrivateFields(client);
-  assertFilterOnly(client);
+  const client = checkClientQuery(model, query);
   if (!hasModelPermissionCheck(model)) {
     return undefined;
   }
@@ -702,7 +827,7 @@ async function countClientQuery(model: any, prepared: ClientQuery | undefined): 
  * Count the objects a client query matches, as the caller
  *
  * The client query is checked like {@link queryModelWithPermissions} (400 for a private field or a statement) and
- * counted with the model's permission query ANDed into it, without ORDER BY, LIMIT or OFFSET, up to
+ * counted with the model's permission query ANDed into it, without field list, ORDER BY, LIMIT or OFFSET, up to
  * {@link MAX_QUERY_COUNT}. `queryModelWithPermissions` drops the rows refused by `canAct` after the store query, so a
  * store count would count rows the caller cannot read and reveal them: a total is only given when the model's static
  * `getPermissionQuery(context)` returns `{ partial: false }`, its statement that the filter alone decides. The
@@ -727,7 +852,8 @@ export async function countModelWithPermissions(
  * Query a model as the caller
  *
  * - the client query may not read private (`__`) fields (400), and its LIMIT is lowered to {@link MAX_QUERY_LIMIT};
- * - the client query is a filter: DELETE, UPDATE and SELECT field lists are refused (400, {@link assertFilterOnly});
+ * - the client query is a filter, optionally with a field list: DELETE, UPDATE and aggregations are refused (400,
+ *   {@link assertQueryStatement});
  * - a model defining neither `canAct` form refuses every row: the store is not asked;
  * - the model's static `getPermissionQuery(context)` is ANDed into the query;
  * - every result is checked with the static `canAct(context, "get", row)` and refused ones are dropped. Refused rows
@@ -739,14 +865,20 @@ export async function countModelWithPermissions(
  *   the model, the query and the caller, expires after {@link CONTINUATION_TOKEN_TTL_MS}, and is sent back as is in
  *   `OFFSET`; any other value is a 400;
  * - with `options.count`, the total ({@link countModelWithPermissions}) is counted concurrently with the page and
- *   returned as `total` when it can be given. Clients ask for it on the first page only.
+ *   returned as `total` when it can be given. Clients ask for it on the first page only;
+ * - with a field list (`SELECT a, b.c WHERE ...`, checked by {@link assertSelectFields}), each result is the public
+ *   form of the row (`toDTO()`, built as the caller) reduced to the selected paths plus the primary key
+ *   (`projectFields` of `@webda/ql`). The field list is applied last and never reaches the store: the rows are read
+ *   whole, so the permission query, `canAct` and `toDTO()` see every field, and the page, the token and the total are
+ *   those of the same query without field list. A token can be sent back with another field list.
  *
  * @param model - the model class
  * @param query - the client query
  * @param context - the caller context
  * @param options - `count` adds the total of the query
  * @param options.count - count the total of the query
- * @returns the query results the caller may read, and the total when asked and allowed
+ * @returns the query results the caller may read (partial plain objects with a field list), and the total when
+ * asked and allowed
  */
 export async function queryModelWithPermissions<T = any>(
   model: any,
@@ -814,8 +946,14 @@ export async function queryModelWithPermissions<T = any>(
     res = await model.query(page(Math.min(limit - results.length, budget - scanned), token));
   }
   const total = await counting;
+  const fields = client.getQuery().fields;
+  // The public form is built as the caller: a model can hide fields per caller in toDTO()
+  const project = (paths: string[]): T[] =>
+    runWithContext(context as any, () =>
+      results.map((row: any) => projectFields(typeof row?.toDTO === "function" ? row.toDTO() : row, paths) as T)
+    );
   return {
-    results,
+    results: fields === undefined ? results : project([...primaryKeyFields(model), ...fields]),
     continuationToken: token ? await sealContinuationToken(String(token), binding) : undefined,
     ...(total ? { total } : {})
   };

@@ -8,9 +8,10 @@ import { MemoryStore, OperationContext, Store, User } from "../index.js";
 import { CoreModel } from "../models/coremodel.model.js";
 import { WebdaApplicationTest } from "../test/application.js";
 import { StoreEvents, StoreNotFoundError, StoreParameters, UpdateConditionFailError } from "./store.js";
-import { UuidModel, useRepository } from "@webda/models";
+import { UuidModel, registerRepository, useRepository } from "@webda/models";
 import { checkAggregation, checkCount } from "../test/index.js";
 import { useCore } from "../core/hooks.js";
+import { queryModelWithPermissions } from "../models/permissions.js";
 import { useApplication, useParameters } from "../application/hooks.js";
 import { MemoryLogger, useWorkerOutput } from "@webda/workout";
 import { Counter, useMetric } from "../metrics/metrics.js";
@@ -869,6 +870,87 @@ class AggregationRow extends UuidModel {
 }
 AggregationRow.registerSerializer();
 (AggregationRow as any).Metadata = { Identifier: "WebdaTest/AggregationRow", PrimaryKey: ["uuid"], Subclasses: [] };
+
+/**
+ * Model open to everyone, for the field list of client queries
+ */
+class SelectRow extends UuidModel {
+  state: string;
+  order: number;
+  team: { id: number; name: string };
+
+  /**
+   * @param data - initial data
+   */
+  constructor(data?: any) {
+    super(data);
+    Object.assign(this, data);
+  }
+
+  static canAct(): boolean {
+    return true;
+  }
+}
+SelectRow.registerSerializer();
+(SelectRow as any).Metadata = { Identifier: "WebdaTest/SelectRow", PrimaryKey: ["uuid"], Subclasses: [] };
+
+@suite
+class StoreSelectFieldsTest extends WebdaApplicationTest {
+  /**
+   * A field list (`SELECT f1, f2.g`) of a client query is applied after the store query: the store receives the
+   * filter only and returns the same rows, projected on the selected fields plus the primary key
+   */
+  @test
+  async clientFieldListNeverReachesTheStore() {
+    const store = new MemoryStore("selectFields", { models: [] } as any);
+    const repository: any = store.getRepository(SelectRow as any);
+    registerRepository(SelectRow, repository);
+    for (let i = 0; i < 6; i++) {
+      await repository.create({
+        uuid: `row${i}`,
+        state: ["CA", "OR"][i % 2],
+        order: i,
+        team: { id: i, name: `t${i}` }
+      });
+    }
+    const queries: string[] = [];
+    const original = repository.query.bind(repository);
+    const stubQuery = stub(repository, "query").callsFake(async (q: any, ...args: any[]) => {
+      queries.push(String(q));
+      return original(q, ...args);
+    });
+    try {
+      const context: any = new OperationContext();
+      const filter = 'state = "CA" ORDER BY order ASC LIMIT 2';
+      const full = await queryModelWithPermissions(SelectRow, filter, context);
+      const partial = await queryModelWithPermissions(SelectRow, `SELECT order, team.id WHERE ${filter}`, context);
+      assert.deepStrictEqual(partial.results, [
+        { uuid: "row0", order: 0, team: { id: 0 } },
+        { uuid: "row2", order: 2, team: { id: 2 } }
+      ]);
+      assert.deepStrictEqual(
+        partial.results.map(row => row.uuid),
+        full.results.map(row => row.uuid)
+      );
+      // Same paging: the token of a page continues with another field list
+      assert.ok(partial.continuationToken);
+      const next = await queryModelWithPermissions(
+        SelectRow,
+        `SELECT order WHERE ${filter} OFFSET "${partial.continuationToken}"`,
+        context
+      );
+      assert.deepStrictEqual(next.results, [{ uuid: "row4", order: 4 }]);
+      // The store was asked for the filter, the same one with and without field list
+      assert.strictEqual(queries.length, 3);
+      assert.strictEqual(queries[0], queries[1]);
+      queries.forEach(q => assert.doesNotMatch(q, /SELECT/));
+    } finally {
+      stubQuery.restore();
+    }
+    // Repositories still refuse a field list: objects are returned whole
+    await assert.rejects(() => repository.query("SELECT order"), /field lists are not accepted/);
+  }
+}
 
 @suite
 class StoreAggregationTest extends WebdaApplicationTest {

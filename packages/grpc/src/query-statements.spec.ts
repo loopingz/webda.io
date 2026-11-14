@@ -27,7 +27,7 @@ class GrpcNote extends CoreModel {
 GrpcNote.registerSerializer();
 
 /**
- * The gRPC unary dispatch with the real core: a Query operation takes a filter only
+ * The gRPC unary dispatch with the real core: a Query operation takes a filter, optionally with a field list
  */
 @suite
 class GrpcQueryStatementsTest extends WebdaApplicationTest {
@@ -84,7 +84,7 @@ class GrpcQueryStatementsTest extends WebdaApplicationTest {
   }
 
   @test
-  async queryRpcTakesAFilterOnly() {
+  async queryRpcTakesAFilterOrAFieldList() {
     const schema = { type: "object", properties: { query: { type: "string" } } };
     useApplication().getSchemas()["grpcSearchRequest"] = schema;
     try {
@@ -102,7 +102,14 @@ class GrpcQueryStatementsTest extends WebdaApplicationTest {
       output: "void",
       context: { model: GrpcNote }
     } as any);
-    for (const query of ["DELETE", "DELETE WHERE uuid = 'n1'", "UPDATE SET title = 'pwned'", "SELECT title"]) {
+    for (const query of [
+      "DELETE",
+      "DELETE WHERE uuid = 'n1'",
+      "UPDATE SET title = 'pwned'",
+      "SELECT COUNT(*) AS n",
+      "SELECT __secret",
+      "SELECT title.constructor"
+    ]) {
       const res = await this.unary(query);
       assert.strictEqual(res.status, GrpcStatus.INVALID_ARGUMENT, `${query}: ${res.message}`);
     }
@@ -113,5 +120,12 @@ class GrpcQueryStatementsTest extends WebdaApplicationTest {
       ok.response.results.map((n: any) => n.uuid),
       ["n1"]
     );
+    assert.strictEqual(ok.response.results[0].title, "keep");
+    // A field list is accepted: the selected fields plus the primary key, the others are absent from the message
+    const partial = await this.unary("SELECT title WHERE title = 'keep'");
+    assert.strictEqual(partial.status, undefined, partial.message);
+    assert.deepStrictEqual(partial.response.results, [{ uuid: "n1", title: "keep" }]);
+    const keyOnly = await this.unary("SELECT missing");
+    assert.deepStrictEqual(keyOnly.response.results, [{ uuid: "n1" }]);
   }
 }

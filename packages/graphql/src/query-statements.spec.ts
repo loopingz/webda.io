@@ -74,6 +74,12 @@ describe("GraphQL query arguments take a filter only", () => {
         query
       );
     }
+    // A field list is refused here, unlike the REST, gRPC and MCP Query operations: the selection set chooses
+    await assert.rejects(
+      () => svc.queryModel(Note, "SELECT uuid", alice),
+      /SELECT field lists are not accepted by queries: use the selection set/
+    );
+    await assert.rejects(() => svc.queryModel(Note, "DELETE", alice), /DELETE statements are not accepted by queries/);
     // Nothing was deleted or changed
     assert.deepStrictEqual((await Note.query("")).results.map((n: any) => [n.uuid, !!n.public]).sort(), [
       ["n-alice", false],
@@ -107,6 +113,7 @@ describe("GraphQL query arguments take a filter only", () => {
         );
       }
     }
+    assert.throws(() => svc.parseFilter("SELECT uuid"), /use the selection set/);
     const kept = await fields.notes.resolve(source, { filter: "uuid = 'n-alice'" }, alice, { fieldNodes: [] } as any);
     assert.deepStrictEqual(
       kept.map((n: any) => n.uuid),

@@ -35,7 +35,7 @@ parse("SELECT name, profile.email WHERE age > 18").fields; // ["name", "profile.
 
 `toString()` prints the canonical form of every statement (including `LIMIT 0`) and parses back to the same query. A `Query` object built or changed by code can be checked with `normalizeQuery(query)`: field paths (letters, digits, `_`), operators, values (strings, finite numbers, booleans), LIMIT and OFFSET are validated and the query is parsed again from its text. Repositories do this for every object they receive. `PrependCondition(query, condition)` keeps the statement head and its ORDER BY / LIMIT / OFFSET and ANDs the condition into the WHERE, both sides keeping their grouping (`( a OR b ) AND ( c OR d )`); the condition itself must be a filter.
 
-`parse(query, allowedFields)` checks the SELECT fields and the SET targets against a list of fields (a dotted path is allowed when it or one of its parents is listed) and throws a `SyntaxError` otherwise; `validateQueryFields(query, allowedFields)` does the same on a parsed query. `assertFilterQuery(query)` refuses anything but a plain filter.
+`parse(query, allowedFields)` checks the SELECT fields and the SET targets against a list of fields (a dotted path is allowed when it or one of its parents is listed) and throws a `SyntaxError` otherwise; `validateQueryFields(query, allowedFields)` does the same on a parsed query. `assertFilterQuery(query)` refuses anything but a plain filter. `projectFields(object, paths)` keeps the fields of a field list on an object (see [Field selection](#field-selection)).
 
 ## Aggregation: SELECT … GROUP BY
 
@@ -72,15 +72,87 @@ names stay attributes: `count = 1 AND min = 2` is still a filter.
 
 ## Where statements are accepted
 
-| Entry point                                                         | Plain filter | `SELECT` field list      | `DELETE` / `UPDATE`      |
-| ------------------------------------------------------------------- | ------------ | ------------------------ | ------------------------ |
-| Query operations (REST, gRPC, MCP), `Audit.Query`                   | yes          | **400**                  | **400**                  |
-| GraphQL query and `filter` arguments, subscriptions, links and maps | yes          | **BAD_USER_INPUT**       | **BAD_USER_INPUT**       |
-| `Repository.query()` / `iterate()`, `Model.query()`                 | yes          | refused (`WebdaQLError`) | refused (`WebdaQLError`) |
-| `Repository.deleteMany()`                                           | no           | no                       | `DELETE` only            |
-| `Repository.updateMany()`                                           | no           | no                       | `UPDATE` only            |
+| Entry point                                                         | Plain filter | `SELECT` field list       | `DELETE` / `UPDATE`      |
+| ------------------------------------------------------------------- | ------------ | ------------------------- | ------------------------ |
+| Query operations (REST, gRPC, MCP)                                  | yes          | **yes** (partial results) | **400**                  |
+| `Audit.Query`, offline sync filters                                 | yes          | **400**                   | **400**                  |
+| GraphQL query and `filter` arguments, subscriptions, links and maps | yes          | **BAD_USER_INPUT**        | **BAD_USER_INPUT**       |
+| `Repository.query()` / `iterate()`, `Model.query()`                 | yes          | refused (`WebdaQLError`)  | refused (`WebdaQLError`) |
+| `Repository.deleteMany()`                                           | no           | no                        | `DELETE` only            |
+| `Repository.updateMany()`                                           | no           | no                        | `UPDATE` only            |
 
-**Field lists are a parse-level feature**: nothing projects results on them yet (GraphQL selection sets already choose the fields). **DELETE and UPDATE are repository-level operations**: they never run through the Query operations exposed to clients. A `__` field in a field list or a SET target is refused like a `__` filter.
+**Field lists project the results of the Query operations** (see [Field selection](#field-selection)); aggregations (`SELECT … GROUP BY`) are refused there with a 400 and run through `Model.aggregate()`. **DELETE and UPDATE are repository-level operations**: they never run through the Query operations exposed to clients. A `__` field in a field list or a SET target is refused like a `__` filter.
+
+## Field selection
+
+The Query operations (REST, gRPC, MCP) accept a field list. Each result then holds only the selected fields plus the
+primary key:
+
+```
+SELECT title, owner.name WHERE status = 'open' ORDER BY due ASC LIMIT 20
+```
+
+```json
+{
+  "results": [{ "uuid": "t1", "title": "Write the docs", "owner": { "name": "Ada" } }],
+  "continuationToken": "eyJhbGciOi…"
+}
+```
+
+A query without a field list returns whole objects, as before.
+
+**What a field list changes, and what it does not**
+
+- Only the response changes. The store still reads whole rows, and the model's permission query, `canAct(ctx, "get")`
+  and `toDTO()` run on them. A field list removes fields from an object the caller already receives: it cannot show
+  more, and it does not make the store query cheaper.
+- The page, the `continuationToken` and the `total` are those of the same query without the field list. A token can
+  be sent back with another field list.
+- `WHERE` and `ORDER BY` can use fields that are not selected.
+
+**Projection rules** (`projectFields(object, paths)` of `@webda/ql`, applied to the `toDTO()` form of each row)
+
+| Rule                    | Example                                                                    |
+| ----------------------- | -------------------------------------------------------------------------- |
+| Primary key always kept | `SELECT title` returns `{ uuid, title }` (every field of a composite key)  |
+| Dotted path             | `SELECT b.c` returns `{ b: { c } }`                                        |
+| Sibling paths merge     | `SELECT b.c, b.d` returns `{ b: { c, d } }`                                |
+| Path and parent         | `SELECT b, b.c` returns the whole `b`                                      |
+| Through an array        | `SELECT tags.name` on `tags: [{ name, color }]` returns `tags: [{ name }]` |
+| Through a scalar/`null` | `SELECT b.c` when `b` is `5` or `null`: `b` is omitted                     |
+| Missing value           | omitted, no `null` is added; an existing `null` is kept                    |
+| Relations               | returned as they are in the object (ids or link objects), not loaded       |
+| Key order               | the order of the object, not of the field list                             |
+
+**Errors** (`400 Bad Request`, before the store is asked)
+
+| Query                                                  | Message                                    |
+| ------------------------------------------------------ | ------------------------------------------ |
+| A field that is not in the model's Output schema       | `Unknown field "<path>"`                   |
+| A `__` segment (`SELECT __secret`, `SELECT a.__hash`)  | `Private fields cannot be queried`         |
+| A `constructor` or `prototype` segment                 | `Unknown field "<path>"`                   |
+| Aggregate functions or `GROUP BY`                      | `Aggregations are not accepted by queries` |
+| More than 64 paths, or a path of more than 16 segments | a message giving the limit                 |
+
+A selected path must start with a field of the Output schema of the model or of one of its subclasses (a query on a
+model returns the rows of its subclasses), or with a primary key field. The rest of a dotted path is not checked: a
+sub-path that does not exist is absent from the results. A model without Output schema metadata is not checked at all.
+A field that `toDTO()` hides from the caller is absent too, not an error: whether it is visible can depend on the row.
+
+**Per transport**
+
+- **REST**: `PUT /tasks` with `{ "q": "SELECT title WHERE status = 'open'" }`, or `GET /tasks?q=…` with
+  `"queryMethod": "GET"`. The OpenAPI result schema still references the model: its `required` fields may be missing
+  from a partial result.
+- **MCP**: the `Tasks.Query` tool takes the same `query`. A field list keeps tool results small.
+- **gRPC**: the message types do not change. A field that is not selected is not sent, so a required (non-`optional`)
+  proto3 field decodes as its default value (`""`, `0`, `false`). Read only the fields you selected.
+- **GraphQL**: a field list is refused (`BAD_USER_INPUT`), the selection set already chooses the fields.
+- **`@webda/sdk`**: `api.Task.query("SELECT title WHERE status = 'open'")` returns partial objects. They refresh the
+  entities already cached and are not cached as whole ones.
+- **Repositories, offline sync, `Audit.Query`**: a field list is refused. `Repository.query()` and `Model.query()`
+  return model instances, and saving a partial instance would erase the fields that were not selected. Sync stores
+  whole objects on the client.
 
 ## Bulk operations on repositories
 

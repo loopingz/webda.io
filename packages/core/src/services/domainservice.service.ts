@@ -26,6 +26,8 @@ import {
   hasModelPermissionCheck,
   hasStaticPermissionCheck,
   NOT_FOUND_MESSAGE,
+  QUERY_DESCRIPTION,
+  QUERY_RESULTS_DESCRIPTION,
   QUERY_TOTAL_SCHEMA,
   queryModelWithPermissions
 } from "../models/permissions.js";
@@ -317,7 +319,8 @@ export class DomainService<
       type: "object",
       properties: {
         query: {
-          type: "string"
+          type: "string",
+          description: QUERY_DESCRIPTION
         },
         count: {
           type: "boolean"
@@ -550,7 +553,10 @@ export class DomainService<
 
   /**
    * Query models
-   * @param query - the query string
+   *
+   * With a field list (`SELECT title, owner.name WHERE ...`) each result only holds the selected fields and the
+   * primary key, see {@link queryModelWithPermissions}.
+   * @param query - the query string: a WebdaQL filter, optionally with a SELECT field list
    * @param count - also return the total of the query (`total`), when the model allows it
    * @returns the query results
    */
@@ -820,7 +826,11 @@ export class DomainService<
         type: "object",
         properties: {
           continuationToken: { type: "string" },
-          results: { type: "array", items: { $ref: `#/definitions/${modelKey}` } },
+          results: {
+            type: "array",
+            description: QUERY_RESULTS_DESCRIPTION,
+            items: { $ref: `#/definitions/${modelKey}` }
+          },
           total: structuredClone(QUERY_TOTAL_SCHEMA)
         }
       };

@@ -17,7 +17,7 @@ statement   : SELECT fieldList whereClause? orderExpression? limitExpression? of
             | UPDATE SET assignmentList whereClause? limitExpression? ;
 ```
 
-The statements (`SELECT`, `DELETE`, `UPDATE`) are described in [Statements](./Statements.md): field lists are parse-level only and DELETE / UPDATE run through the repository `deleteMany` / `updateMany`, never through the Query operations. A plain filter query is an implicit SELECT of every field; it is composed of four optional sections, always in this order:
+The statements (`SELECT`, `DELETE`, `UPDATE`) are described in [Statements](./Statements.md): a field list returns partial results from the Query operations (REST, gRPC, MCP), and DELETE / UPDATE run through the repository `deleteMany` / `updateMany`, never through the Query operations. A plain filter query is an implicit SELECT of every field; it is composed of four optional sections, always in this order:
 
 | Section | Syntax                            | Purpose                              |
 | ------- | --------------------------------- | ------------------------------------ |

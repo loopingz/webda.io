@@ -65,6 +65,13 @@ export class PostService extends Service {
 //    grpcurl -plaintext -d '{"title":"Hello"}' localhost:18080 webda.PostService/CreatePost
 ```
 
+## Partial query results
+
+A Query RPC takes a WebdaQL filter, or `SELECT title, status WHERE ...` to get only those fields plus the primary
+key (see [Field selection](../ql/Statements.md#field-selection)). The message types do
+not change: a field that is not selected is not sent, so a required (non-`optional`) proto3 field decodes as its
+default value (`""`, `0`, `false`). Read only the fields you selected.
+
 ## Reference
 
 - API reference: see the auto-generated typedoc at `docs/pages/Modules/grpc/`.

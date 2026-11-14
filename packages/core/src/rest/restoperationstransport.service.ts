@@ -22,7 +22,7 @@ import type { IncomingMessage, Server } from "node:http";
 import type { Duplex } from "node:stream";
 import { WebSocketServer, type WebSocket } from "ws";
 import { hasSchema } from "../schemas/hooks.js";
-import { QUERY_TOTAL_SCHEMA } from "../models/permissions.js";
+import { QUERY_DESCRIPTION, QUERY_RESULTS_DESCRIPTION, QUERY_TOTAL_SCHEMA } from "../models/permissions.js";
 import type { ModelClass } from "@webda/models";
 import type { ModelAction } from "../models/types.js";
 import type { ModelGraphBehaviorDefinition, ModelMetadata } from "@webda/compiler";
@@ -694,7 +694,8 @@ export class RESTOperationsTransport<
                     schema: {
                       properties: {
                         q: {
-                          type: "string"
+                          type: "string",
+                          description: QUERY_DESCRIPTION
                         },
                         count: {
                           type: "boolean",
@@ -711,7 +712,7 @@ export class RESTOperationsTransport<
                 {
                   name: "q",
                   in: "query",
-                  description: "Query to execute",
+                  description: QUERY_DESCRIPTION,
                   schema: {
                     type: "string"
                   }
@@ -738,6 +739,7 @@ export class RESTOperationsTransport<
                     },
                     results: {
                       type: "array",
+                      description: QUERY_RESULTS_DESCRIPTION,
                       items: {
                         $ref: `#/components/schemas/${identifier}`
                       }

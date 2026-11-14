@@ -276,6 +276,18 @@ describe("ModelClient", () => {
     expect((await api.Task.query("", { select: ["title"] })).continuationToken).toBe("2");
     expect(api.client.cache.getQuery("App/Task", "")).toBeUndefined();
     expect(api.client.cache.getEntity("App/Task", "t1")).toBeUndefined();
+    // A WebdaQL field list is a projection too: partial objects never replace or create a cached entity
+    const fieldList = "SELECT title WHERE status = 'open'";
+    expect((await api.Task.query(fieldList)).results[0].title).toBe("one");
+    expect(api.client.cache.getQuery("App/Task", fieldList)).toBeUndefined();
+    expect(api.client.cache.getEntity("App/Task", "t1")).toBeUndefined();
+    api.client.cache.setEntity("App/Task", "t1", { uuid: "t1", title: "old", status: "open" });
+    await api.Task.query(fieldList);
+    expect(api.client.cache.getEntity("App/Task", "t1")?.data).toEqual({ uuid: "t1", title: "one", status: "open" });
+    // A lowercase `select` is a field name: a plain filter, cached as usual
+    await api.Task.query("select = 1");
+    expect(api.client.cache.getQuery("App/Task", "select = 1")).toMatchObject({ uids: ["t1"] });
+    api.client.cache.clear();
     // no-store
     await api.Task.query("", { cache: "no-store" });
     expect(api.client.cache.getQuery("App/Task", "")).toBeUndefined();
@@ -283,7 +295,7 @@ describe("ModelClient", () => {
     await api.Task.query("");
     expect(api.client.cache.getQuery("App/Task", "")).toMatchObject({ uids: ["t1"], continuationToken: "2" });
     await api.Task.query("", { cache: "reload" });
-    expect(api.calls).toHaveLength(4);
+    expect(api.calls).toHaveLength(7);
     // An empty answer is an empty page
     page = undefined;
     expect(await api.Task.query("nothing")).toEqual({ results: [], continuationToken: undefined });

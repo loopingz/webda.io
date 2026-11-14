@@ -58,6 +58,44 @@ export class CompletionTest {
   }
 
   @test
+  fieldListOption() {
+    const options: CompletionOptions = { fields: TEST_FIELDS, filterOnly: true, fieldList: true };
+    // At the start: SELECT and the filter candidates, no other statement
+    const start = complete("|", options).items.map(i => i.label);
+    for (const label of ["SELECT", "status", "ORDER BY", "LIMIT"]) {
+      assert.ok(start.includes(label), `Should include ${label}`);
+    }
+    assert.ok(!start.includes("DELETE") && !start.includes("UPDATE"), "No DELETE or UPDATE");
+    // Inside the list: fields, never an aggregate function
+    for (const query of ["SELECT |", "SELECT status, |"]) {
+      const labels = complete(query, options).items.map(i => i.label);
+      assert.ok(labels.includes("status") && labels.includes("profile.email"), `${query}: fields`);
+      for (const label of ["COUNT", "SUM", "AVG", "MIN", "MAX", "DISTINCT", "DELETE", "UPDATE"]) {
+        assert.ok(!labels.includes(label), `${query}: no ${label}`);
+      }
+    }
+    // After the list: WHERE and the paging clauses, no GROUP BY or alias
+    const after = complete("SELECT status |", options).items.map(i => i.label);
+    for (const label of ["WHERE", "ORDER BY", "LIMIT"]) {
+      assert.ok(after.includes(label), `Should include ${label}`);
+    }
+    assert.ok(!after.includes("GROUP BY") && !after.includes("AS"), "No GROUP BY or AS");
+    assert.ok(
+      complete("SELECT status WHERE |", options)
+        .items.map(i => i.label)
+        .includes("priority")
+    );
+    // Without filterOnly the option changes nothing
+    assert.deepStrictEqual(
+      complete("|", { fields: TEST_FIELDS, fieldList: true }),
+      complete("|", { fields: TEST_FIELDS })
+    );
+    // filterOnly alone still drops the statements
+    const filterOnly = complete("SELECT status |", { fields: TEST_FIELDS, filterOnly: true }).items.map(i => i.label);
+    assert.ok(!filterOnly.includes("WHERE") && !filterOnly.includes("GROUP BY"));
+  }
+
+  @test
   partialIdentifier() {
     // "sta|" -> status with range [0,3]
     const res = complete("sta|");

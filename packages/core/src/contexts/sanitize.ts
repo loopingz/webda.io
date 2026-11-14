@@ -84,8 +84,15 @@ export const SANITIZE_TEXT = "text";
 export const SANITIZE_MODES: readonly string[] = [SANITIZE_NONE, SANITIZE_HTML, SANITIZE_MARKDOWN];
 
 /**
+ * Last segment of a path standing for the value at the path and everything below it, at any depth
+ * (`meta.**`): the mode of a free-form value
+ */
+export const SANITIZE_DEEP = "**";
+
+/**
  * Sanitization mode per path: a dotted path, `*` standing for any array index or object key (`tags.*`,
- * `items.*.label`), and one of the {@link SANITIZE_MODES}
+ * `items.*.label`), and one of the {@link SANITIZE_MODES}. A path ending with {@link SANITIZE_DEEP} applies to every
+ * text of the value at its prefix, unless a more specific path names another mode
  */
 export type SanitizeModes = Record<string, string>;
 
@@ -99,8 +106,9 @@ export type SanitizeInputOptions = sanitize.IOptions & {
    */
   raw?: boolean | string[];
   /**
-   * The paths whose **string** value is sanitized with another mode (`none`, `html`, `markdown`). A value that is
-   * not a string is sanitized like any other.
+   * The paths whose **string** value is sanitized with another mode (`none`, `html`, `markdown`); a path ending
+   * with {@link SANITIZE_DEEP} names every string below its prefix. A value that is not a string is sanitized like
+   * any other.
    */
   modes?: SanitizeModes;
 };
@@ -126,9 +134,13 @@ const MAX_MARKDOWN_PASSES = 3;
  */
 type ModePattern = {
   /**
-   * The path, split in segments
+   * The path, split in segments, without its trailing {@link SANITIZE_DEEP}
    */
   segments: string[];
+  /**
+   * The path ended with {@link SANITIZE_DEEP}: it also matches every path below it
+   */
+  deep: boolean;
   /**
    * The mode
    */
@@ -262,18 +274,37 @@ export async function sanitizeMarkdown(value: string): Promise<string> {
 
 /**
  * The mode of a path
+ *
+ * The first pattern with the same segments wins (`*` matching any); else the deep pattern (`a.**`) with the longest
+ * prefix of the path, so a mode named for an attribute of a free-form value overrides the mode of the value.
  * @param patterns - the modes, their path split in segments
  * @param segments - the path of a value
- * @returns the mode of the first pattern with the same segments (`*` matching any), undefined for the default
+ * @returns the mode, undefined for the default
  */
 function getMode(patterns: ModePattern[], segments: string[]): string | undefined {
-  return patterns.find(
-    pattern =>
-      pattern.segments.length === segments.length &&
-      pattern.segments.every(function sameSegment(part, i) {
-        return part === "*" || part === segments[i];
-      })
-  )?.mode;
+  const prefixOf = function prefixOf(pattern: ModePattern): boolean {
+    return pattern.segments.every(function sameSegment(part, i) {
+      return part === "*" || part === segments[i];
+    });
+  };
+  const exact = patterns.find(
+    pattern => !pattern.deep && pattern.segments.length === segments.length && prefixOf(pattern)
+  );
+  if (exact) {
+    return exact.mode;
+  }
+  let deepest: ModePattern | undefined;
+  for (const pattern of patterns) {
+    if (
+      pattern.deep &&
+      pattern.segments.length <= segments.length &&
+      (!deepest || pattern.segments.length > deepest.segments.length) &&
+      prefixOf(pattern)
+    ) {
+      deepest = pattern;
+    }
+  }
+  return deepest?.mode;
 }
 
 /**
@@ -409,7 +440,9 @@ function compileModes(modes: SanitizeModes = {}): ModePattern[] {
   return Object.entries(modes)
     .filter(([, mode]) => SANITIZE_MODES.includes(mode))
     .map(function splitPath([path, mode]) {
-      return { segments: path.split("."), mode };
+      const segments = path.split(".");
+      const deep = segments[segments.length - 1] === SANITIZE_DEEP;
+      return { segments: deep ? segments.slice(0, -1) : segments, deep, mode };
     });
 }
 
@@ -487,6 +520,35 @@ function isTextSchema(schema: any, root: any): boolean {
 }
 
 /**
+ * Check whether a schema accepts any JSON value, or any object: a free-form value, whose content no schema describes
+ * @param schema - the schema
+ * @param root - the schema carrying the definitions
+ * @returns true for `{}`, `true`, an untyped schema and an object whose extra properties are free-form
+ */
+function isFreeFormSchema(schema: any, root: any): boolean {
+  schema = resolveInputSchema(schema, root);
+  if (schema === true) {
+    return true;
+  }
+  if (!schema || typeof schema !== "object" || schema.$ref !== undefined) {
+    return false;
+  }
+  if (
+    ["anyOf", "oneOf", "allOf", "enum", "const", "properties", "items", "patternProperties"].some(key => key in schema)
+  ) {
+    return false;
+  }
+  if (schema.type === undefined) {
+    return true;
+  }
+  if (schema.type !== "object") {
+    return false;
+  }
+  const extra = schema.additionalProperties;
+  return extra === undefined || extra === true || isFreeFormSchema(extra, root);
+}
+
+/**
  * Deepest schema nesting followed while looking for sanitization modes
  */
 const MAX_SCHEMA_DEPTH = 32;
@@ -499,10 +561,11 @@ const sanitizeModesCache = new WeakMap<object, SanitizeModes>();
 /**
  * The sanitization modes an input schema declares (`x-webda-sanitize`), per dotted path
  *
- * The keyword only counts on a string, an array of strings or a record of strings: on any other schema it is
- * ignored, so an object or a free-form value is always sanitized as text. Nested properties, array items
- * (`items.*.label`) and record values are followed, as are local `$ref`s. `text` and unknown modes are the default:
- * they are not listed.
+ * The keyword counts on a string, an array of strings or a record of strings, and on a free-form value (`{}`,
+ * `unknown`, `Record<string, unknown>`), listed as `<path>.**`: every text of the value, at any depth, gets the mode.
+ * On an object with declared properties it is ignored: each attribute is tagged on its own. Nested properties, array
+ * items (`items.*.label`) and record values are followed, as are local `$ref`s; the keyword written next to a `$ref`
+ * counts. `text` and unknown modes are the default: they are not listed.
  * @param schema - the input schema
  * @param root - the schema carrying the definitions
  * @returns the modes per path, `*` standing for any array index or record key
@@ -521,14 +584,17 @@ export function getSanitizeModes(schema: any, root: any = schema): SanitizeModes
    * Collect the modes below a schema node
    * @param node - the schema node
    * @param path - its path in the input
-   * @param inherited - the mode of the array or the record above it
+   * @param inherited - the mode of the array or the record above it, or of the union this node is a branch of
+   * @param branch - the node is a branch of a union: an inherited mode only applies to it if it is a text
    */
-  const visit = function visit(node: any, path: string[], inherited?: string) {
+  const visit = function visit(node: any, path: string[], inherited?: string, branch = false) {
+    // The keyword written next to a `$ref` (an attribute whose type is a definition) is the one of the attribute
+    const own: string | undefined = node && typeof node === "object" ? node[SANITIZE_KEYWORD] : undefined;
     node = resolveInputSchema(node, root);
     if (!node || typeof node !== "object" || visiting.has(node) || path.length > MAX_SCHEMA_DEPTH) {
       return;
     }
-    const mode: string | undefined = node[SANITIZE_KEYWORD] ?? inherited;
+    const mode: string | undefined = own ?? node[SANITIZE_KEYWORD] ?? inherited;
     if (isTextSchema(node, root)) {
       // The root of an input is never a text: only a property, an item or a record value has a mode
       if (SANITIZE_MODES.includes(mode) && path.length > 0) {
@@ -536,9 +602,18 @@ export function getSanitizeModes(schema: any, root: any = schema): SanitizeModes
       }
       return;
     }
+    if (isFreeFormSchema(node, root)) {
+      // No schema below to name a text: the mode covers the whole value. In a mixed union only a text branch takes
+      // the mode of the union (an object sent there is sanitized), unless the branch names its own
+      const deepMode = branch ? (own ?? node[SANITIZE_KEYWORD]) : mode;
+      if (SANITIZE_MODES.includes(deepMode) && path.length > 0) {
+        modes[[...path, SANITIZE_DEEP].join(".")] ??= deepMode;
+      }
+      return;
+    }
     visiting.add(node);
-    for (const branch of [...(node.anyOf ?? []), ...(node.oneOf ?? []), ...(node.allOf ?? [])]) {
-      visit(branch, path, mode);
+    for (const choice of [...(node.anyOf ?? []), ...(node.oneOf ?? []), ...(node.allOf ?? [])]) {
+      visit(choice, path, mode, true);
     }
     // A mode is inherited by the items of an array and the values of a record, never by the properties of an object
     for (const [name, property] of Object.entries(node.properties ?? {})) {

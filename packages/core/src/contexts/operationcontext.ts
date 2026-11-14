@@ -3,17 +3,12 @@ import { Readable, Writable } from "stream";
 import { WritableStreamBuffer } from "stream-buffers";
 import { Session } from "../session/session.js";
 import { NotEnumerable, JSONUtils } from "@webda/utils";
-import type sanitize from "sanitize-html";
+import { DEFAULT_SANITIZE_OPTIONS, sanitizeInputWith, type SanitizeInputOptions } from "./sanitize.js";
 import { useLog } from "../loggers/hooks.js";
 import { HttpError } from "../errors/errors.js";
 import { runAsSystem } from "./execution.js";
 import { IUser } from "../models/types.js";
 import { useUserResolver } from "../core/hooks.js";
-
-/**
- * sanitize-html, imported with the first input to sanitize: it loads an HTML and CSS parsing stack
- */
-let sanitizeHtml: typeof sanitize;
 
 /**
  * OperationInput
@@ -42,6 +37,10 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
    * Contain the sanitized request body if computed
    */
   protected _sanitized: any;
+  /**
+   * The sanitization modes (path and mode) the cached body was sanitized with, null when the input was cleared
+   */
+  protected _modes: string | null | undefined;
 
   /**
    * Output
@@ -163,40 +162,33 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
    */
   clearInput() {
     this._sanitized = {};
+    // A cleared input stays cleared, whatever the modes the next reader asks for
+    this._modes = null;
   }
 
   /**
    * Get the sanitized input body, caching the result after the first call
+   *
+   * Every string is HTML-sanitized, except:
+   * - with `raw: true`, nothing is (the parsed body is returned as received, and not cached);
+   * - with `raw: [paths]`, the values of these keys, whatever they hold;
+   * - with `modes: { path: mode }`, the strings at these paths (`*` for any array index or object key), sanitized
+   *   with their mode (`none`, `html`, `markdown`): what an operation input schema declares with `x-webda-sanitize`.
+   *
+   * The body is read again when `raw` is given, or when `modes` differs from the one of the cached body: a change
+   * made to a body read before is lost, so read it once with the options you need.
    * @param sanitizedOptions - the sanitized options
    * @returns the result
    */
   async getInput(
-    sanitizedOptions: sanitize.IOptions & { defaultValue?: any; raw?: boolean | string[] } = {
-      allowedTags: [],
-      allowedAttributes: {}
-    }
+    sanitizedOptions: SanitizeInputOptions & { defaultValue?: any } = DEFAULT_SANITIZE_OPTIONS
   ): Promise<Input> {
-    if (this._sanitized && !sanitizedOptions.raw) {
+    // The mode is part of the key: the same path sanitized another way is another body
+    const modes = JSON.stringify(Object.entries(sanitizedOptions.modes ?? {}).sort());
+    const sameModes = sanitizedOptions.modes === undefined || this._modes === null || this._modes === modes;
+    if (this._sanitized && !sanitizedOptions.raw && sameModes) {
       return this._sanitized;
     }
-    const recursiveSanitize = (obj, options = undefined, path: string = "") => {
-      if (typeof obj === "string") {
-        return sanitizeHtml(obj, options);
-      }
-      if (obj !== null && typeof obj === "object") {
-        Object.keys(obj).forEach(key => {
-          if (["__proto__", "constructor", "prototype"].includes(key)) {
-            delete obj[key];
-            return;
-          }
-          obj[key] =
-            Array.isArray(sanitizedOptions.raw) && sanitizedOptions.raw.includes(path + key)
-              ? obj[key]
-              : recursiveSanitize(obj[key], options, path + key + ".");
-        });
-      }
-      return obj;
-    };
     let data: string | undefined;
     try {
       // TODO define this
@@ -205,12 +197,12 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
       if (sanitizedOptions.raw === true) {
         return JSON.parse(data || sanitizedOptions.defaultValue);
       }
+      this._modes = Array.isArray(sanitizedOptions.raw) ? undefined : modes;
       if (!data || data.length === 0) {
         this._sanitized = sanitizedOptions.defaultValue;
         return this._sanitized;
       }
-      sanitizeHtml ??= (await import("sanitize-html")).default;
-      this._sanitized = recursiveSanitize(JSON.parse(data), sanitizedOptions);
+      this._sanitized = await sanitizeInputWith(JSON.parse(data), sanitizedOptions);
     } catch (err) {
       // Unsupported charset, oversized or timed out body are client errors to report
       if (err instanceof HttpError) {
@@ -282,6 +274,7 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
    */
   public reinit() {
     this._sanitized = undefined;
+    this._modes = undefined;
     if (!this._stream || this._stream instanceof WritableStreamBuffer) {
       this.createStream();
     }

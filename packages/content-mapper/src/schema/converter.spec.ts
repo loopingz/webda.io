@@ -580,3 +580,43 @@ describe("sealed fields", () => {
     ).toBeUndefined();
   });
 });
+
+describe("sanitize opt-out", () => {
+  const schema = schemaOf("params.service.ts", "SanitizeService");
+  const properties = schema.properties!;
+
+  it("compiles @sanitize into x-webda-sanitize, keeping the first word only", () => {
+    expect(properties.displayName).toEqual({
+      type: "string",
+      description: "Kept as sent.",
+      "x-webda-sanitize": "none"
+    });
+    expect(properties.summary["x-webda-sanitize"]).toBe("text");
+    expect((properties.displayName as any).sanitize).toBeUndefined();
+  });
+
+  it("marks a model attribute in every view", () => {
+    const memo = generateModelSchemas(classOf("dto.model.ts", "Memo"), {
+      project: session.ctx.project,
+      checker: session.ctx.checker
+    });
+    for (const view of [memo.Input, memo.Output, memo.Stored]) {
+      expect(view.properties!.title["x-webda-sanitize"]).toBe("none");
+      expect(view.properties!.body["x-webda-sanitize"]).toBeUndefined();
+    }
+  });
+
+  it("ignores a tag naming no mode", () => {
+    expect(properties.untagged).toEqual({ type: "string", description: "A tag naming no mode is ignored." });
+  });
+
+  it("marks the array property and a nested property", () => {
+    expect(properties.labels.type).toBe("array");
+    expect(properties.labels["x-webda-sanitize"]).toBe("none");
+    const profile = properties.profile.$ref
+      ? schema.definitions![decodeURIComponent(properties.profile.$ref.replace("#/definitions/", ""))]
+      : properties.profile;
+    expect(profile.properties!.bio["x-webda-sanitize"]).toBe("none");
+    expect(profile.properties!.age["x-webda-sanitize"]).toBeUndefined();
+  });
+});

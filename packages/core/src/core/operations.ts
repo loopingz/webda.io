@@ -7,6 +7,12 @@ import {
   type DryRunResult
 } from "./icore.js";
 import { OperationContext } from "../contexts/operationcontext.js";
+import {
+  DEFAULT_SANITIZE_OPTIONS,
+  getSanitizeModes,
+  SanitizerUnavailable,
+  type SanitizeModes
+} from "../contexts/sanitize.js";
 import { WebContext } from "../contexts/webcontext.js";
 import * as WebdaError from "../errors/errors.js";
 import { validateSchema, ValidationError } from "../schemas/hooks.js";
@@ -321,6 +327,25 @@ function invalidInput(operationId: string, err: ValidationError): WebdaError.Bad
 }
 
 /**
+ * Validate the input of an operation against a schema, the way `callOperation` does
+ *
+ * For a transport that hands a model its input without calling the operation (the GraphQL mutations of a model no
+ * DomainService exposes): the same validator, and the same error as the operation answers.
+ * @param operationId - the operation, named in the error
+ * @param schema - the schema name (`<name>?` to ignore the required properties)
+ * @param input - the input
+ * @throws BadRequest `<operationId> InvalidInput: ...`, the validation errors in its `details`
+ */
+export function validateOperationInput(operationId: string, schema: string, input: unknown): void {
+  try {
+    validateSchema(schema, input);
+  } catch (err) {
+    if (err instanceof ValidationError) throw invalidInput(operationId, err);
+    throw err;
+  }
+}
+
+/**
  * The streamed input of an operation, each message validated against its input schema as it is read
  * @param operationId - the operation
  * @param schema - its input schema name
@@ -330,12 +355,7 @@ function invalidInput(operationId: string, err: ValidationError): WebdaError.Bad
 async function* validatedStream(operationId: string, schema: string, source: AsyncIterable<unknown>) {
   for await (const item of source) {
     if (schema && schema !== "void") {
-      try {
-        validateSchema(schema, item);
-      } catch (err) {
-        if (err instanceof ValidationError) throw invalidInput(operationId, err);
-        throw err;
-      }
+      validateOperationInput(operationId, schema, item);
     }
     yield item;
   }
@@ -628,6 +648,64 @@ function isSameParameterValue(param: any, value: any): boolean {
 }
 
 /**
+ * Name of the input property receiving the whole request body, for an operation bound that way over REST
+ * @param context - the execution context
+ * @param operation - the operation definition
+ * @returns the property name, undefined when the body holds the input properties
+ */
+function getBodyParameter(context: OperationContext, operation?: OperationDefinition): string | undefined {
+  return (context instanceof WebContext && operation?.rest && operation.rest.body) || undefined;
+}
+
+/**
+ * Sanitization modes of the texts of an operation body
+ *
+ * They come from the operation input schema (`x-webda-sanitize`, see {@link getSanitizeModes}), so a model
+ * operation follows the `@sanitize` tags of its model.
+ * @param context - the execution context
+ * @param operationId - the operation identifier
+ * @returns the modes, per path relative to the request body
+ */
+function getOperationSanitizeModes(context: OperationContext, operationId: string): SanitizeModes {
+  const operation = useInstanceStorage().operations[operationId];
+  if (!operation?.input || operation.input === "void") {
+    return {};
+  }
+  // The `?` variant only drops `required`: the base schema is a stable object, its modes are cached
+  const schema = operation.input.endsWith("?") ? operation.input.slice(0, -1) : operation.input;
+  const modes = getSanitizeModes(useApplication().getSchema(schema));
+  const bodyParameter = getBodyParameter(context, operation);
+  if (!bodyParameter) {
+    return modes;
+  }
+  // The body is the value of one input property: only the paths below it apply, relative to it
+  const prefix = `${bodyParameter}.`;
+  return Object.fromEntries(
+    Object.entries(modes)
+      .filter(([path]) => path.startsWith(prefix))
+      .map(([path, mode]) => [path.slice(prefix.length), mode])
+  );
+}
+
+/**
+ * Read the request body the way an operation receives it: HTML-sanitized, except for the texts its input schema
+ * gives another mode (`@sanitize none`, `html` or `markdown`)
+ *
+ * The body is parsed once per context: the object returned here is the one {@link callOperation} validates, hands
+ * to the authorizers and passes to the operation, and the one `context.getInput()` returns from then on. Code that
+ * needs to change the body before calling the operation (a transport injecting a value) must read it with this
+ * function: a body read with `context.getInput()` beforehand is read again when the operation declares modes.
+ * @param context - the execution context
+ * @param operationId - the operation identifier
+ * @returns the body, undefined when there is none
+ */
+export async function readOperationBody(context: OperationContext, operationId: string): Promise<any> {
+  const modes = getOperationSanitizeModes(context, operationId);
+  // Without a mode the context is called as before, so a context that overrides getInput keeps working
+  return Object.keys(modes).length > 0 ? context.getInput({ ...DEFAULT_SANITIZE_OPTIONS, modes }) : context.getInput();
+}
+
+/**
  * Read the operation input: path/query parameters merged with the request body
  *
  * The body can complete the parameters but never replace one, so the URL always
@@ -645,12 +723,16 @@ async function getOperationInput(
   const params = context.getParameters() || {};
   let input: any;
   try {
-    input = await context.getInput();
-  } catch {
+    input = await readOperationBody(context, operationId);
+  } catch (err) {
+    // A text that cannot be sanitized is never taken for an absent one
+    if (err instanceof SanitizerUnavailable) {
+      throw err;
+    }
     // No input (e.g., GET request)
   }
   const operation = useInstanceStorage().operations[operationId];
-  const bodyParameter = context instanceof WebContext && operation?.rest && operation.rest.body;
+  const bodyParameter = getBodyParameter(context, operation);
   const body = bodyParameter
     ? input === undefined
       ? {}
@@ -710,28 +792,21 @@ async function checkOperation(context: OperationContext, operationId: string) {
     // Each message is validated as the operation reads it (resolveArguments)
     return;
   }
-  try {
-    if (operations[operationId].input && operations[operationId].input !== "void") {
-      // Validate the merged (path params + request body) against the input schema.
-      // Path params (e.g., {uuid}, {hash}) are provided via context.getParameters()
-      // and must be merged with the body before validation because schemas like
-      // uuidRequest and binaryHashRequest declare them as required properties.
-      const { merged, params, body } = await getOperationInput(context, operationId);
-      // Coerce string path/query params (e.g. `"0"`) to the type the
-      // schema declares before validation runs, so AJV doesn't reject
-      // `index: "0"` against `{ type: "number" }`. Mutates `merged` in
-      // place so `resolveArguments` sees the typed value too.
-      const app = useApplication();
-      const inputSchema = app.getSchema(operations[operationId].input);
-      coerceParametersToSchema(inputSchema, merged, params, body, operations[operationId]);
-      validateSchema(operations[operationId].input, merged);
-      context.setExtension("operationResolvedInput", merged);
-    }
-  } catch (err) {
-    if (err instanceof ValidationError) {
-      throw invalidInput(operationId, err);
-    }
-    throw err;
+  if (operations[operationId].input && operations[operationId].input !== "void") {
+    // Validate the merged (path params + request body) against the input schema.
+    // Path params (e.g., {uuid}, {hash}) are provided via context.getParameters()
+    // and must be merged with the body before validation because schemas like
+    // uuidRequest and binaryHashRequest declare them as required properties.
+    const { merged, params, body } = await getOperationInput(context, operationId);
+    // Coerce string path/query params (e.g. `"0"`) to the type the
+    // schema declares before validation runs, so AJV doesn't reject
+    // `index: "0"` against `{ type: "number" }`. Mutates `merged` in
+    // place so `resolveArguments` sees the typed value too.
+    const app = useApplication();
+    const inputSchema = app.getSchema(operations[operationId].input);
+    coerceParametersToSchema(inputSchema, merged, params, body, operations[operationId]);
+    validateOperationInput(operationId, operations[operationId].input, merged);
+    context.setExtension("operationResolvedInput", merged);
   }
   const authorized = await runAuthorizers(context, operationId, operations[operationId], {
     input: context.getExtension("operationResolvedInput"),
@@ -951,15 +1026,10 @@ export function maskValue(val: unknown, seen = new WeakSet<object>()): unknown {
   if (Array.isArray(val)) {
     return val.map(item => maskValue(item, seen));
   }
-  const result: Record<string, unknown> = {};
-  for (const [key, propVal] of Object.entries(val)) {
-    if (SECRET_REGEX.test(key)) {
-      result[key] = SECRET_MASK;
-    } else {
-      result[key] = maskValue(propVal, seen);
-    }
-  }
-  return result;
+  // Object.fromEntries defines own properties: no key of the input is written through, so none reaches a prototype
+  return Object.fromEntries(
+    Object.entries(val).map(([key, propVal]) => [key, SECRET_REGEX.test(key) ? SECRET_MASK : maskValue(propVal, seen)])
+  );
 }
 
 /**

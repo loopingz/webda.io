@@ -86,6 +86,32 @@ export function secretKeywordValue(text: string): true | string[] {
 }
 
 /**
+ * JSON Schema keyword naming how the sanitization of client input treats a text property
+ *
+ * Set by a `@sanitize <mode>` JSDoc tag on a property:
+ * - `text`, the default: every tag is removed, entities are escaped;
+ * - `none`: the text is kept as the client sent it (a name, a title, a diagram source never rendered as HTML);
+ * - `html`: rich text, the default allowlist of sanitize-html (formatting, links, lists, tables);
+ * - `markdown`: a Markdown source, kept as written except raw HTML and unsafe link schemes. It needs the
+ *   `micromark` and `micromark-util-decode-string` packages in the application: `@webda/compiler` fails the build
+ *   without them.
+ *
+ * The mode is copied as written: the runtime sanitizes a mode it does not know like `text`.
+ */
+export const SANITIZE_KEYWORD = "x-webda-sanitize";
+
+/**
+ * The value of the {@link SANITIZE_KEYWORD} keyword for a `@sanitize` tag
+ *
+ * Only the first word counts, so prose can follow it: `@sanitize none - a display name, never rendered as HTML`.
+ * @param text - the tag text
+ * @returns the mode, undefined when the tag names none
+ */
+export function sanitizeKeywordValue(text: string): string | undefined {
+  return /^\s*([\w$][\w$-]*)/.exec(text)?.[1];
+}
+
+/**
  * Tags whose payload TypeScript consumes as a type expression, braces or not.
  *
  * `parseThisTag` calls `parseJSDocTypeExpression` with `mayOmitBraces: true`,
@@ -167,6 +193,11 @@ export function applyDocs(
     if (Annotations.boolean.includes(tag.name as never) || Annotations.string.includes(tag.name as never)) continue;
     if (tag.name === "secret") {
       target[SECRET_KEYWORD] = secretKeywordValue(tag.text);
+      continue;
+    }
+    if (tag.name === "sanitize") {
+      const mode = sanitizeKeywordValue(tag.text);
+      if (mode) target[SANITIZE_KEYWORD] = mode;
       continue;
     }
     if (tag.name === "WebdaBehavior" && tag.text.trim().split(/\s+/)[0] === SEALED_BEHAVIOR) {

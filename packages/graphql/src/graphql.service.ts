@@ -21,6 +21,8 @@ import {
   assertFilterOnly,
   callOperation,
   canCallOperation,
+  parseSubjectKey,
+  readOperationBody,
   isOperationEnabled,
   createOperationFilter,
   useInstanceStorage,
@@ -67,11 +69,13 @@ import { AnyScalarType } from "./types/any.js";
 import { DateScalar } from "./types/date.js";
 import { GraphQLLong } from "./types/long.js";
 import { graphQLNames, restoreInputKeys, WEBDA_KEY } from "./names.js";
+import { RAW_ARGS, sanitizeFieldArguments } from "./sanitize.js";
 import {
   createFromInput,
   enforceModelOperationPermission,
   isInputAttribute,
   loadForAction,
+  modelOperationError,
   operationError,
   updateFromInput
 } from "./mutations.js";
@@ -1043,9 +1047,13 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
           args: {
             [name]: { type: input }
           },
+          // Sanitized with the modes of the model, by the model operation or by createFromInput
+          extensions: { [RAW_ARGS]: [name] },
           resolve: async (_, args, context) => {
             this.log("INFO", "Create", name, context.getCurrentUserId());
-            return createFromInput(model, restoreInputKeys(input, args[name]), context);
+            const data = restoreInputKeys(input, args[name]);
+            const called = await this.callModelOperation(model, "modelCreate", context, data);
+            return called ? called.result : createFromInput(model, data, context);
           }
         };
       }
@@ -1058,8 +1066,13 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
               type: GraphQLString
             }
           },
-          resolve: async (_, args, context) =>
-            updateFromInput(model, args.uuid, restoreInputKeys(input, args[name]), context)
+          // Sanitized with the modes of the model, by the model operation or by updateFromInput
+          extensions: { [RAW_ARGS]: [name] },
+          resolve: async (_, args, context) => {
+            const data = restoreInputKeys(input, args[name]);
+            const called = await this.callModelOperation(model, "modelUpdate", context, data, args.uuid);
+            return called ? called.result : updateFromInput(model, args.uuid, data, context);
+          }
         };
       }
       // check for actions
@@ -1072,8 +1085,10 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
             }
           },
           resolve: async (_, args, context) => {
-            const object = await loadForAction(model, args.uuid, context, "delete");
-            await object.delete();
+            if (!(await this.callModelOperation(model, "modelDelete", context, undefined, args.uuid))) {
+              const object = await loadForAction(model, args.uuid, context, "delete");
+              await object.delete();
+            }
             return {
               success: true
             };
@@ -1310,8 +1325,9 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
             node => node.kind === "Field"
           )) {
             const name = (<FieldNode>field).name.value;
-            // A field without a subscription (`__typename`) has nothing to merge
-            const subscribe = subscriptions[name]?.subscribe;
+            // A field without a subscription (`__typename`) has nothing to merge. The subscription is taken from the
+            // schema, not from the field definitions: it sanitizes its arguments
+            const subscribe = this.schema.getSubscriptionType()!.getFields()[name]?.subscribe;
             if (!subscribe) continue;
             const args: Record<string, unknown> = {};
             (<FieldNode>field).arguments?.forEach(arg => {
@@ -1338,6 +1354,51 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     this.schema = this.getGraphQLSchema(rootFields, mutations, subscriptions);
     // Regenerated after init (operations registered later): serve the new schema
     if (this.handler) this.createHandlers();
+  }
+
+  /**
+   * Run a model mutation as the operation a DomainService registered for it (`<Model>.Create`, `.Update`,
+   * `.Delete`), so GraphQL does exactly what the other transports do: the same permission checks in the same order,
+   * the input sanitized and validated against the model schema, the same events (audit) and transaction
+   *
+   * A model no DomainService exposes has no such operation: the caller then applies the mutation itself.
+   * @param model - model class
+   * @param method - the DomainService method of the operation
+   * @param context - the GraphQL request context
+   * @param input - the model input, as received
+   * @param key - the primary key, for an update or a delete
+   * @returns the operation result, undefined when the model has no such operation
+   * @throws GraphQLError the error of the operation (BAD_USER_INPUT with the validation details, NOT_FOUND,
+   * PERMISSION_DENIED, CONFLICT)
+   */
+  async callModelOperation(
+    model: any,
+    method: "modelCreate" | "modelUpdate" | "modelDelete",
+    context: WebContext,
+    input?: unknown,
+    key?: unknown
+  ): Promise<{ result: unknown } | undefined> {
+    const operations: Record<string, any> = useInstanceStorage().operations!;
+    const id = Object.keys(operations).find(
+      name => operations[name].method === method && operations[name].context?.model === model
+    );
+    if (!id) {
+      return undefined;
+    }
+    const ctx = new GraphQLOperationContext(context, input);
+    if (method !== "modelCreate") {
+      // The key is a parameter of the operation, like the URL of the REST route
+      const fields: string[] = operations[id].context.pkFields ?? ["uuid"];
+      const parsed = parseSubjectKey(fields, key);
+      ctx.setParameters(typeof parsed === "object" ? parsed : { [fields[0]]: parsed });
+    }
+    await ctx.init();
+    try {
+      await callOperation(ctx, id);
+    } catch (err) {
+      throw modelOperationError(err);
+    }
+    return { result: ctx.result };
   }
 
   /**
@@ -1380,12 +1441,16 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       const { args, toInput } = this.operationArgs(op, base);
       const type = this.operationOutputType(op, base);
       const description = op.description || op.summary;
+      // The arguments are the operation input: sanitized by callOperation from the operation input schema, like the
+      // body of the same operation over REST
+      const extensions = { [RAW_ARGS]: Object.keys(args) };
       target[placement.name] =
         placement.kind === "subscription"
           ? {
               type,
               args,
               description,
+              extensions,
               subscribe: async (_source, fieldArgs, context) =>
                 this.subscribeOperation(id, op, toInput(fieldArgs), context),
               resolve: (chunk: unknown) => chunk
@@ -1394,6 +1459,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
               type,
               args,
               description,
+              extensions,
               resolve: async (_source, fieldArgs, context) => this.runOperation(id, op, toInput(fieldArgs), context)
             };
       this.log("INFO", `Add GraphQL ${placement.kind}`, placement.name, "for operation", id);
@@ -1512,7 +1578,8 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     if (!(await isOperationEnabled(ctx, id, op))) {
       throw operationError(new WebdaError.NotFound(`${id} Unknown`));
     }
-    if (!(await canCallOperation(ctx, id, { input }))) {
+    // The authorizers are asked on the input the operation will receive: the sanitized one
+    if (!(await canCallOperation(ctx, id, { input: await readOperationBody(ctx, id) }))) {
       throw operationError(new WebdaError.Forbidden(`${id} PermissionDenied`));
     }
     callOperation(ctx, id).then(
@@ -1854,19 +1921,22 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       mutations,
       subscription
     });
-    return new GraphQLSchema({
-      query: new GraphQLObjectType({
-        name: "Query",
-        fields: rootFields
-      }),
-      types: Object.values(this.modelsMap),
-      subscription:
-        Object.keys({ ...subscription }).length > 0
-          ? new GraphQLObjectType({ fields: { ...subscription }, name: "Subscription" })
-          : null,
-      mutation:
-        Object.keys(mutations).length > 0 ? new GraphQLObjectType({ fields: mutations, name: "Mutations" }) : null
-    });
+    // Every resolver, the ones other services contributed included, receives sanitized arguments
+    return sanitizeFieldArguments(
+      new GraphQLSchema({
+        query: new GraphQLObjectType({
+          name: "Query",
+          fields: rootFields
+        }),
+        types: Object.values(this.modelsMap),
+        subscription:
+          Object.keys({ ...subscription }).length > 0
+            ? new GraphQLObjectType({ fields: { ...subscription }, name: "Subscription" })
+            : null,
+        mutation:
+          Object.keys(mutations).length > 0 ? new GraphQLObjectType({ fields: mutations, name: "Mutations" }) : null
+      })
+    );
   }
 
   /**
@@ -1965,6 +2035,23 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
   }
 
   /**
+   * Read a GraphQL request as the client sent it
+   *
+   * It is not sanitized here: sanitizing the document would change its literals before they are parsed, and the
+   * variables are not all texts of the same kind. Every argument is sanitized once graphql-js has coerced it (see
+   * `sanitizeFieldArguments`), a model input with the modes of its model, an operation input from its schema.
+   * @param ctx - incoming web context
+   * @returns the parsed body, undefined when there is none or it is not JSON
+   */
+  protected async readRequest(ctx: WebContext<any>): Promise<any> {
+    try {
+      return JSON.parse(await ctx.getRawInputAsString());
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
    * Handle POST requests to the GraphQL endpoint
    * @param ctx - incoming web context with the GraphQL query body
    */
@@ -1996,7 +2083,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       url: httpContext.getUrl(),
       method: httpContext.getMethod(),
       headers: httpContext.getHeaders(),
-      body: await ctx.getInput(),
+      body: await this.readRequest(ctx),
       raw: ctx,
       context: ctx
     });

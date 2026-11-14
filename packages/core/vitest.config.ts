@@ -82,6 +82,7 @@ export default defineConfig({
       "src/services/domainservice.spec.ts",
       "src/services/domainservice-behaviors.spec.ts",
       "src/services/domainservice-permissions.spec.ts",
+      "src/services/domainservice-sanitize.spec.ts",
       "src/services/behavior-roundtrip.spec.ts",
       "src/services/binary-behavior.spec.ts",
       "src/services/binary-complete-http.spec.ts",

@@ -75,6 +75,12 @@ Map `Webda/SyncChange` to a store like any model. Operations: `Sync.Pull`, `Sync
 The routes are relative to the REST transport `url`: with `"url": "/api/"`, they are `/api/sync/...` and the client
 `baseUrl` must end with `/api`.
 
+The texts of a pushed mutation are sanitized with the rules of its model, like the input of the model's own
+operations: an attribute tagged `@sanitize none` is kept as the client wrote it, `@sanitize html` and
+`@sanitize markdown` follow their mode, the others are HTML-sanitized as text. A patch is applied as the client
+computed it, then only the attributes it changed are sanitized. A synced model with a `@sanitize markdown` attribute
+needs `micromark` and `micromark-util-decode-string` installed in the application, as for its own operations.
+
 ### Scope queries
 
 A scope query is a WebdaQL filter, empty to sync the whole model. Requests are rejected with a `400` when there is no

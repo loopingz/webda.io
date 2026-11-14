@@ -76,10 +76,18 @@
   },
   "peerDependencies": {
     "@webda/test": "workspace:^",
+    "micromark": "^4.0.3",
+    "micromark-util-decode-string": "^2.0.1",
     "sinon": "^21.0.3",
     "vitest": "^4.1.2"
   },
   "peerDependenciesMeta": {
+    "micromark": {
+      "optional": true
+    },
+    "micromark-util-decode-string": {
+      "optional": true
+    },
     "sinon": {
       "optional": true
     },
@@ -107,6 +115,8 @@
     "jest": "^30.5.2",
     "jose": "^6.2.15",
     "jscodeshift": "^17.4.0",
+    "micromark": "^4.0.3",
+    "micromark-util-decode-string": "^2.0.1",
     "prettier": "^3.9.10",
     "sinon": "^22.1.0",
     "skott": "^0.35.12",

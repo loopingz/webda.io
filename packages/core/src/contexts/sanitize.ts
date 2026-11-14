@@ -282,6 +282,11 @@ export async function sanitizeMarkdown(value: string): Promise<string> {
  * @returns the mode, undefined for the default
  */
 function getMode(patterns: ModePattern[], segments: string[]): string | undefined {
+  /**
+   * Check whether the segments of a pattern match the start of the path
+   * @param pattern - the pattern
+   * @returns true when each segment of the pattern is `*` or the segment of the path at its index
+   */
   const prefixOf = function prefixOf(pattern: ModePattern): boolean {
     return pattern.segments.every(function sameSegment(part, i) {
       return part === "*" || part === segments[i];

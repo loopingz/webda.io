@@ -1591,6 +1591,17 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
       plain.map(page => page.map(r => r.uuid))
     );
     assert.ok(mixed[1][0] instanceof AclDoc, "no field list: model instances, as before");
+    // Rows without toDTO() (a model class built without `@webda/models`) are projected as they are
+    const rawModel: any = {
+      canAct: () => true,
+      query: async () => ({ results: [{ uuid: "p1", title: "Plain", other: 1 }] })
+    };
+    assert.deepStrictEqual((await queryModelWithPermissions(rawModel, "SELECT title", ctx)).results, [
+      { uuid: "p1", title: "Plain" }
+    ]);
+    assert.deepStrictEqual((await queryModelWithPermissions(rawModel, undefined, ctx)).results, [
+      { uuid: "p1", title: "Plain", other: 1 }
+    ]);
     // The total is the one of the filter
     const counted = await queryModelWithPermissions(PermTask, "SELECT title LIMIT 1", ctx, { count: true });
     assert.deepStrictEqual(counted.total, { value: 2, relation: "eq" });

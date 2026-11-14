@@ -950,7 +950,7 @@ export async function queryModelWithPermissions<T = any>(
   // The public form is built as the caller: a model can hide fields per caller in toDTO()
   const project = (paths: string[]): T[] =>
     runWithContext(context as any, () =>
-      results.map((row: any) => projectFields(typeof row?.toDTO === "function" ? row.toDTO() : row, paths) as T)
+      results.map((row: any) => projectFields(typeof row.toDTO === "function" ? row.toDTO() : row, paths) as T)
     );
   return {
     results: fields === undefined ? results : project([...primaryKeyFields(model), ...fields]),

@@ -92,7 +92,9 @@ export function secretKeywordValue(text: string): true | string[] {
  * - `text`, the default: every tag is removed, entities are escaped;
  * - `none`: the text is kept as the client sent it (a name, a title, a diagram source never rendered as HTML);
  * - `html`: rich text, the default allowlist of sanitize-html (formatting, links, lists, tables);
- * - `markdown`: a Markdown source, kept as written except raw HTML and unsafe link schemes.
+ * - `markdown`: a Markdown source, kept as written except raw HTML and unsafe link schemes. It needs the
+ *   `micromark` and `micromark-util-decode-string` packages in the application: `@webda/compiler` fails the build
+ *   without them.
  *
  * The mode is copied as written: the runtime sanitizes a mode it does not know like `text`.
  */

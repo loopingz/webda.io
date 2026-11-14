@@ -7,7 +7,12 @@ import {
   type DryRunResult
 } from "./icore.js";
 import { OperationContext } from "../contexts/operationcontext.js";
-import { DEFAULT_SANITIZE_OPTIONS, getSanitizeModes, type SanitizeModes } from "../contexts/sanitize.js";
+import {
+  DEFAULT_SANITIZE_OPTIONS,
+  getSanitizeModes,
+  SanitizerUnavailable,
+  type SanitizeModes
+} from "../contexts/sanitize.js";
 import { WebContext } from "../contexts/webcontext.js";
 import * as WebdaError from "../errors/errors.js";
 import { validateSchema, ValidationError } from "../schemas/hooks.js";
@@ -705,7 +710,11 @@ async function getOperationInput(
   let input: any;
   try {
     input = await readOperationBody(context, operationId);
-  } catch {
+  } catch (err) {
+    // A text that cannot be sanitized is never taken for an absent one
+    if (err instanceof SanitizerUnavailable) {
+      throw err;
+    }
     // No input (e.g., GET request)
   }
   const operation = useInstanceStorage().operations[operationId];

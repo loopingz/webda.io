@@ -125,7 +125,7 @@ Tag an attribute `@sanitize <mode>` to say what kind of text it holds:
 | `text` (default) | No tag at all, `&`, `<` and `>` escaped as entities | Anything rendered as is in a page |
 | `none` | The text exactly as the client sent it | Plain text never rendered as HTML: names, titles, diagram sources. Escape it wherever it is rendered |
 | `html` | The HTML, restricted to an allowlist of formatting tags (see below) | Rich text from a WYSIWYG editor |
-| `markdown` | The Markdown source as written, without raw HTML nor unsafe link schemes (see below) | Markdown rendered by a CommonMark renderer |
+| `markdown` | The Markdown source as written, without raw HTML nor unsafe link schemes (see below) | Markdown rendered by a CommonMark renderer. Needs two packages installed in the application (see below) |
 
 ```typescript
 export class Team extends UuidModel {
@@ -179,6 +179,14 @@ The text goes through [sanitize-html](https://github.com/apostrophecms/sanitize-
 Every other tag is removed and its text kept, except `script`, `style`, `textarea` and `option`, removed with their content. There is no `img`. Text outside tags is entity-escaped (`R&D` is stored as `R&amp;D`), as HTML requires.
 
 #### `markdown`
+
+This mode needs two packages, optional peer dependencies of `@webda/core`, installed in the application:
+
+```bash
+pnpm add micromark micromark-util-decode-string
+```
+
+`webdac build` fails when an attribute, or an operation input, is tagged `@sanitize markdown` and one of them is not installed: the error names the packages and the tagged properties. At runtime they are only imported when a Markdown text is sanitized; if they are missing then, the request fails with a `501` and nothing is stored: the text is never kept unsanitized. The `text`, `none` and `html` modes need nothing more than `@webda/core`.
 
 The source is parsed as [CommonMark](https://commonmark.org) by [micromark](https://github.com/micromark/micromark) and kept as written: `&`, `<` and `>` in the text, block quotes, code spans and code blocks are untouched. Only what a renderer would pass through as active content is changed:
 

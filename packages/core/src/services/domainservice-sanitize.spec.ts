@@ -9,7 +9,13 @@ import { WebContext } from "../contexts/webcontext.js";
 import { HttpContext, HttpMethodType } from "../contexts/httpcontext.js";
 import { runWithContext } from "../contexts/execution.js";
 import { SimpleOperationContext } from "../contexts/simplecontext.js";
-import { getSanitizeModes, sanitizeInput, sanitizeMarkdown, SANITIZE_KEYWORD } from "../contexts/sanitize.js";
+import {
+  getSanitizeModes,
+  sanitizeInput,
+  sanitizeMarkdown,
+  SanitizerUnavailable,
+  SANITIZE_KEYWORD
+} from "../contexts/sanitize.js";
 import { callOperation, readOperationBody, registerOperation } from "../core/operations.js";
 import { useApplication } from "../application/hooks.js";
 import { useDynamicService } from "../core/hooks.js";
@@ -326,6 +332,28 @@ class DomainServiceSanitizeTest extends WebdaApplicationTest {
     assert.strictEqual((await Team.ref("team-a").get()).displayName, "R&D <team>");
     // The pattern still applies, to the text as sent
     assert.strictEqual((await this.request("PATCH", "/s/teams/team-a", { displayName: "R&D " })).status, 400);
+  }
+
+  @test
+  async unavailableSanitizerFailsTheOperation() {
+    // micromark is an optional peer dependency: without it a Markdown text is refused, never stored as received
+    const ctx = await this.context({ notes: "<script>alert(1)</script>" });
+    ctx.getInput = async () => {
+      throw new SanitizerUnavailable();
+    };
+    await assert.rejects(
+      () => callOperation(ctx, "Team.Create"),
+      (err: any) => err instanceof SanitizerUnavailable && err.getResponseCode() === 501
+    );
+    assert.strictEqual((await Team.query("")).results.length, 1, "nothing created");
+    // Any other failure to read the body is an absent body, as before
+    const unreadable = await this.context({});
+    unreadable.setParameters({ uuid: "team-a" });
+    unreadable.getInput = async () => {
+      throw new Error("unreadable");
+    };
+    await callOperation(unreadable, "Team.Get");
+    assert.strictEqual(JSON.parse(unreadable.getOutput()).displayName, "Initial");
   }
 
   @test

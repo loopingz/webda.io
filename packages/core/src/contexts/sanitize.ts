@@ -1,10 +1,37 @@
 import type sanitize from "sanitize-html";
 import { resolveInputSchema } from "../rest/binding.js";
+import { NotImplemented } from "../errors/errors.js";
 
 /**
  * sanitize-html, imported with the first input to sanitize: it loads an HTML and CSS parsing stack
  */
 let sanitizeHtml: typeof sanitize;
+
+/**
+ * The packages the `markdown` mode needs: optional peer dependencies, installed by the applications that use it
+ */
+export const MARKDOWN_PACKAGES: readonly string[] = ["micromark", "micromark-util-decode-string"];
+
+/**
+ * A text cannot be sanitized because the packages of its mode are not installed
+ *
+ * It is never replaced by another sanitization, nor by none: the request fails, and so does an operation whose
+ * input holds such a text.
+ */
+export class SanitizerUnavailable extends NotImplemented {
+  /**
+   * Create a new SanitizerUnavailable
+   * @param cause - the import error
+   */
+  constructor(cause?: unknown) {
+    super(
+      `The \`markdown\` sanitization (\`@sanitize markdown\`, "x-webda-sanitize": "markdown") requires the packages ` +
+        `${MARKDOWN_PACKAGES.join(" and ")}: install them in the application ` +
+        `(pnpm add ${MARKDOWN_PACKAGES.join(" ")})`
+    );
+    this.cause = cause;
+  }
+}
 
 /**
  * The micromark functions the `markdown` mode needs, imported with the first Markdown text to sanitize
@@ -175,12 +202,14 @@ function sanitizeMarkdownText(value: string): string {
 }
 
 /**
- * Import sanitize-html, and micromark when a Markdown text is to be sanitized
- * @param withMarkdown - whether micromark is needed
+ * Import micromark, with the first Markdown text to sanitize
+ * @throws SanitizerUnavailable when micromark or micromark-util-decode-string is not installed
  */
-async function loadSanitizers(withMarkdown: boolean): Promise<void> {
-  sanitizeHtml ??= (await import("sanitize-html")).default;
-  if (withMarkdown && !markdown) {
+async function loadMarkdown(): Promise<void> {
+  if (markdown) {
+    return;
+  }
+  try {
     const { parse, preprocess, postprocess } = await import("micromark");
     const { decodeString } = await import("micromark-util-decode-string");
     markdown = {
@@ -198,6 +227,8 @@ async function loadSanitizers(withMarkdown: boolean): Promise<void> {
       },
       decodeString
     };
+  } catch (err) {
+    throw new SanitizerUnavailable(err);
   }
 }
 
@@ -217,9 +248,11 @@ async function loadSanitizers(withMarkdown: boolean): Promise<void> {
  * cover MDX, nor syntax extensions that give other constructs a meaning.
  * @param value - the Markdown source
  * @returns the sanitized source
+ * @throws SanitizerUnavailable when micromark or micromark-util-decode-string is not installed
  */
 export async function sanitizeMarkdown(value: string): Promise<string> {
-  await loadSanitizers(true);
+  sanitizeHtml ??= (await import("sanitize-html")).default;
+  await loadMarkdown();
   return sanitizeMarkdownText(value);
 }
 
@@ -240,25 +273,9 @@ function getMode(patterns: ModePattern[], segments: string[]): string | undefine
 }
 
 /**
- * Sanitize a text with a mode
- * @param value - the text
- * @param mode - its mode, undefined for the default
- * @param options - the options of the default sanitization
- * @returns the sanitized text
+ * A Markdown text found while micromark was not loaded yet: the object or array holding it, and its key
  */
-function sanitizeString(value: string, mode: string | undefined, options: SanitizeInputOptions): string {
-  switch (mode) {
-    case SANITIZE_NONE:
-      return value;
-    case SANITIZE_HTML:
-      // The default allowlist of sanitize-html
-      return sanitizeHtml(value);
-    case SANITIZE_MARKDOWN:
-      return sanitizeMarkdownText(value);
-    default:
-      return sanitizeHtml(value, options);
-  }
-}
+type DeferredText = [holder: any, key: string];
 
 /**
  * Sanitize every string of a parsed JSON value, in place
@@ -266,11 +283,19 @@ function sanitizeString(value: string, mode: string | undefined, options: Saniti
  * @param options - the sanitization options
  * @param patterns - the modes, their path split in segments
  * @param segments - the path of the value
+ * @param deferred - receives the Markdown texts to sanitize once micromark is loaded
  * @returns the sanitized value
  */
-function sanitizeValue(value: any, options: SanitizeInputOptions, patterns: ModePattern[], segments: string[]): any {
+function sanitizeValue(
+  value: any,
+  options: SanitizeInputOptions,
+  patterns: ModePattern[],
+  segments: string[],
+  deferred: DeferredText[]
+): any {
   if (typeof value === "string") {
-    return sanitizeString(value, getMode(patterns, segments), options);
+    // Only the root of an input gets here, and it is never a text with a mode
+    return sanitizeHtml(value, options);
   }
   if (value !== null && typeof value === "object") {
     for (const key of Object.keys(value)) {
@@ -282,7 +307,25 @@ function sanitizeValue(value: any, options: SanitizeInputOptions, patterns: Mode
       if (Array.isArray(options.raw) && options.raw.includes(path.join("."))) {
         continue;
       }
-      value[key] = sanitizeValue(value[key], options, patterns, path);
+      const child = value[key];
+      if (typeof child !== "string") {
+        value[key] = sanitizeValue(child, options, patterns, path, deferred);
+        continue;
+      }
+      switch (getMode(patterns, path)) {
+        case SANITIZE_NONE:
+          break;
+        case SANITIZE_HTML:
+          // The default allowlist of sanitize-html
+          value[key] = sanitizeHtml(child);
+          break;
+        case SANITIZE_MARKDOWN:
+          // micromark is only imported when there is a Markdown text to sanitize
+          deferred.push([value, key]);
+          break;
+        default:
+          value[key] = sanitizeHtml(child, options);
+      }
     }
   }
   return value;
@@ -295,6 +338,7 @@ function sanitizeValue(value: any, options: SanitizeInputOptions, patterns: Mode
  * @param value - the parsed JSON value
  * @param options - the sanitize-html options, and the paths sanitized another way
  * @returns the sanitized value
+ * @throws SanitizerUnavailable when a text is Markdown and micromark is not installed
  */
 export async function sanitizeInputWith<T = any>(value: T, options: SanitizeInputOptions): Promise<T> {
   const patterns = Object.entries(options.modes ?? {})
@@ -302,9 +346,16 @@ export async function sanitizeInputWith<T = any>(value: T, options: SanitizeInpu
     .map(function splitPath([path, mode]) {
       return { segments: path.split("."), mode };
     });
-  await loadSanitizers(patterns.some(pattern => pattern.mode === SANITIZE_MARKDOWN));
-  // The root of an input is never a text with a mode: an empty path matches no pattern
-  return sanitizeValue(value, options, patterns, []) as T;
+  sanitizeHtml ??= (await import("sanitize-html")).default;
+  const deferred: DeferredText[] = [];
+  const result = sanitizeValue(value, options, patterns, [], deferred);
+  if (deferred.length > 0) {
+    await loadMarkdown();
+    for (const [holder, key] of deferred) {
+      holder[key] = sanitizeMarkdownText(holder[key]);
+    }
+  }
+  return result as T;
 }
 
 /**

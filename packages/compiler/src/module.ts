@@ -9,7 +9,7 @@
  * guard, writing the file, and the application's `.webda/module.d.ts`.
  */
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
-import { dirname, relative } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { FileUtils } from "@webda/utils";
 import { useLog } from "@webda/workout";
 import type { Compiler } from "./compiler.js";
@@ -49,12 +49,109 @@ export function reportNamingViolations(compiler: Compiler, violations: NamingVio
   useLog("WARN", message);
 }
 
+/** JSON Schema keyword the `@sanitize` tag compiles to. */
+const SANITIZE_KEYWORD = "x-webda-sanitize";
+
+/**
+ * Packages a sanitization mode needs at runtime.
+ *
+ * They are optional peer dependencies of `@webda/core`: an application that
+ * tags an attribute with the mode installs them itself.
+ */
+export const SANITIZE_MODE_PACKAGES: Record<string, string[]> = {
+  markdown: ["micromark", "micromark-util-decode-string"]
+};
+
+/** Schema keywords whose value is data, not a schema. */
+const SCHEMA_DATA_KEYWORDS = ["default", "examples", "enum", "const"];
+
+/**
+ * List the properties of a schema tagged with a sanitization mode.
+ * @param schema - a JSON schema, or any part of one
+ * @param mode - the mode to look for
+ * @param path - name of the property being visited
+ * @returns the properties, as dotted paths (`[]` for array items, `#Name` for a definition)
+ */
+export function findSanitizeMode(schema: unknown, mode: string, path: string = ""): string[] {
+  if (!schema || typeof schema !== "object") return [];
+  if (Array.isArray(schema)) return schema.flatMap(item => findSanitizeMode(item, mode, path));
+  const found = (schema as Record<string, unknown>)[SANITIZE_KEYWORD] === mode ? [path] : [];
+  for (const [key, value] of Object.entries(schema)) {
+    if (SCHEMA_DATA_KEYWORDS.includes(key) || !value || typeof value !== "object") continue;
+    if (key === "properties" || key === "definitions") {
+      // A map of names to schemas
+      for (const [name, child] of Object.entries(value)) {
+        const prefix = key === "definitions" ? `#${name}` : name;
+        found.push(...findSanitizeMode(child, mode, path ? `${path}.${prefix}` : prefix));
+      }
+    } else {
+      found.push(...findSanitizeMode(value, mode, key === "items" ? `${path}[]` : path));
+    }
+  }
+  return found;
+}
+
+/**
+ * Whether an application can import a package.
+ *
+ * Looks for `node_modules/<name>` in the application and its parent folders,
+ * the way a bare `import` is resolved. `require.resolve` is not used: it also
+ * searches `NODE_PATH`, which pnpm points at its store of every transitive
+ * package while a script runs, and an `import` at runtime never looks there.
+ * @param appPath - root of the application being compiled
+ * @param name - the package name
+ * @returns true when the package is installed for the application
+ */
+export function isPackageInstalled(appPath: string, name: string): boolean {
+  for (let dir = appPath; ; dir = dirname(dir)) {
+    if (existsSync(join(dir, "node_modules", name, "package.json"))) return true;
+    if (dirname(dir) === dir) return false;
+  }
+}
+
+/**
+ * Check that the packages of the sanitization modes a module uses are installed.
+ *
+ * `@sanitize markdown` is sanitized at runtime with micromark, an optional
+ * peer dependency of `@webda/core`. Without it every request carrying such a
+ * text fails, so the build fails first. The packages are looked up from the
+ * application being compiled, not from this package, which may see them when
+ * the application does not.
+ * @param appPath - root of the application being compiled
+ * @param mod - the generated module
+ * @returns one error per mode whose packages are missing, naming the properties that use it
+ */
+export function checkSanitizeModePackages(appPath: string, mod: Record<string, any>): string[] {
+  const errors: string[] = [];
+  for (const [mode, packages] of Object.entries(SANITIZE_MODE_PACKAGES)) {
+    const missing = packages.filter(name => !isPackageInstalled(appPath, name));
+    if (missing.length === 0) continue;
+    const uses = [
+      // What a client can send: the Input schema of a model, and the operation inputs among the top-level schemas
+      ...Object.entries(mod.models ?? {}).flatMap(([name, model]: [string, any]) =>
+        findSanitizeMode(model?.Schemas?.Input, mode).map(path => `model ${name}, attribute ${path}`)
+      ),
+      ...Object.entries(mod.schemas ?? {})
+        .filter(([name]) => !name.endsWith(".output"))
+        .flatMap(([name, schema]) => findSanitizeMode(schema, mode).map(path => `schema ${name}, property ${path}`))
+    ];
+    if (uses.length === 0) continue;
+    errors.push(
+      `@sanitize ${mode} requires ${missing.join(" and ")}, which ${missing.length > 1 ? "are" : "is"} not installed ` +
+        `in ${appPath}. Install with: pnpm add ${packages.join(" ")}\n` +
+        `Used by:\n${uses.map(use => ` - ${use}`).join("\n")}`
+    );
+  }
+  return errors;
+}
+
 /**
  * Write the generated module and its derived files.
  *
  * Refuses to write when generation reported errors — the cases the
  * TypeScript 6 generator threw on, such as an unresolved relation target —
- * so a partial module never replaces a complete one.
+ * so a partial module never replaces a complete one. A sanitization mode
+ * whose packages the application did not install is such an error too.
  * @param compiler - the compiler whose project is being built
  * @param generated - the generator's answer
  * @returns the module written, or undefined when generation failed
@@ -62,8 +159,9 @@ export function reportNamingViolations(compiler: Compiler, violations: NamingVio
 export function writeModule(compiler: Compiler, generated: GeneratedModule): WebdaModule | undefined {
   try {
     reportNamingViolations(compiler, generated.namingViolations);
-    if (generated.errors.length) {
-      throw new Error(generated.errors.join("\n"));
+    const errors = [...generated.errors, ...checkSanitizeModePackages(compiler.project.getAppPath(), generated.module)];
+    if (errors.length) {
+      throw new Error(errors.join("\n"));
     }
     const mod = generated.module as unknown as WebdaModule;
     FileUtils.save(mod, compiler.project.getAppPath("webda.module.json"));

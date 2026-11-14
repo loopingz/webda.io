@@ -83,7 +83,8 @@ The routes are relative to the REST transport `url`: with `"url": "/api/"`, they
 The texts of a pushed mutation are sanitized with the rules of its model, like the input of the model's own
 operations: an attribute tagged `@sanitize none` is kept as the client wrote it, `@sanitize html` and
 `@sanitize markdown` follow their mode, the others are HTML-sanitized as text. A patch is applied as the client
-computed it, then only the attributes it changed are sanitized.
+computed it, then only the attributes it changed are sanitized. A synced model with a `@sanitize markdown` attribute
+needs `micromark` and `micromark-util-decode-string` installed in the application, as for its own operations.
 
 ### Scope queries
 

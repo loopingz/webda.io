@@ -21,6 +21,7 @@ import {
   assertFilterOnly,
   callOperation,
   canCallOperation,
+  readOperationBody,
   isOperationEnabled,
   createOperationFilter,
   useInstanceStorage,
@@ -67,6 +68,7 @@ import { AnyScalarType } from "./types/any.js";
 import { DateScalar } from "./types/date.js";
 import { GraphQLLong } from "./types/long.js";
 import { graphQLNames, restoreInputKeys, WEBDA_KEY } from "./names.js";
+import { RAW_ARGS, sanitizeFieldArguments } from "./sanitize.js";
 import {
   createFromInput,
   enforceModelOperationPermission,
@@ -1043,6 +1045,8 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
           args: {
             [name]: { type: input }
           },
+          // Sanitized by createFromInput, with the modes of the model
+          extensions: { [RAW_ARGS]: [name] },
           resolve: async (_, args, context) => {
             this.log("INFO", "Create", name, context.getCurrentUserId());
             return createFromInput(model, restoreInputKeys(input, args[name]), context);
@@ -1058,6 +1062,8 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
               type: GraphQLString
             }
           },
+          // Sanitized by updateFromInput, with the modes of the model
+          extensions: { [RAW_ARGS]: [name] },
           resolve: async (_, args, context) =>
             updateFromInput(model, args.uuid, restoreInputKeys(input, args[name]), context)
         };
@@ -1310,8 +1316,9 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
             node => node.kind === "Field"
           )) {
             const name = (<FieldNode>field).name.value;
-            // A field without a subscription (`__typename`) has nothing to merge
-            const subscribe = subscriptions[name]?.subscribe;
+            // A field without a subscription (`__typename`) has nothing to merge. The subscription is taken from the
+            // schema, not from the field definitions: it sanitizes its arguments
+            const subscribe = this.schema.getSubscriptionType()!.getFields()[name]?.subscribe;
             if (!subscribe) continue;
             const args: Record<string, unknown> = {};
             (<FieldNode>field).arguments?.forEach(arg => {
@@ -1380,12 +1387,16 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       const { args, toInput } = this.operationArgs(op, base);
       const type = this.operationOutputType(op, base);
       const description = op.description || op.summary;
+      // The arguments are the operation input: sanitized by callOperation from the operation input schema, like the
+      // body of the same operation over REST
+      const extensions = { [RAW_ARGS]: Object.keys(args) };
       target[placement.name] =
         placement.kind === "subscription"
           ? {
               type,
               args,
               description,
+              extensions,
               subscribe: async (_source, fieldArgs, context) =>
                 this.subscribeOperation(id, op, toInput(fieldArgs), context),
               resolve: (chunk: unknown) => chunk
@@ -1394,6 +1405,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
               type,
               args,
               description,
+              extensions,
               resolve: async (_source, fieldArgs, context) => this.runOperation(id, op, toInput(fieldArgs), context)
             };
       this.log("INFO", `Add GraphQL ${placement.kind}`, placement.name, "for operation", id);
@@ -1512,7 +1524,8 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     if (!(await isOperationEnabled(ctx, id, op))) {
       throw operationError(new WebdaError.NotFound(`${id} Unknown`));
     }
-    if (!(await canCallOperation(ctx, id, { input }))) {
+    // The authorizers are asked on the input the operation will receive: the sanitized one
+    if (!(await canCallOperation(ctx, id, { input: await readOperationBody(ctx, id) }))) {
       throw operationError(new WebdaError.Forbidden(`${id} PermissionDenied`));
     }
     callOperation(ctx, id).then(
@@ -1841,19 +1854,22 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       mutations,
       subscription
     });
-    return new GraphQLSchema({
-      query: new GraphQLObjectType({
-        name: "Query",
-        fields: rootFields
-      }),
-      types: Object.values(this.modelsMap),
-      subscription:
-        Object.keys({ ...subscription }).length > 0
-          ? new GraphQLObjectType({ fields: { ...subscription }, name: "Subscription" })
-          : null,
-      mutation:
-        Object.keys(mutations).length > 0 ? new GraphQLObjectType({ fields: mutations, name: "Mutations" }) : null
-    });
+    // Every resolver, the ones other services contributed included, receives sanitized arguments
+    return sanitizeFieldArguments(
+      new GraphQLSchema({
+        query: new GraphQLObjectType({
+          name: "Query",
+          fields: rootFields
+        }),
+        types: Object.values(this.modelsMap),
+        subscription:
+          Object.keys({ ...subscription }).length > 0
+            ? new GraphQLObjectType({ fields: { ...subscription }, name: "Subscription" })
+            : null,
+        mutation:
+          Object.keys(mutations).length > 0 ? new GraphQLObjectType({ fields: mutations, name: "Mutations" }) : null
+      })
+    );
   }
 
   /**
@@ -1952,6 +1968,23 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
   }
 
   /**
+   * Read a GraphQL request as the client sent it
+   *
+   * It is not sanitized here: sanitizing the document would change its literals before they are parsed, and the
+   * variables are not all texts of the same kind. Every argument is sanitized once graphql-js has coerced it (see
+   * `sanitizeFieldArguments`), a model input with the modes of its model, an operation input from its schema.
+   * @param ctx - incoming web context
+   * @returns the parsed body, undefined when there is none or it is not JSON
+   */
+  protected async readRequest(ctx: WebContext<any>): Promise<any> {
+    try {
+      return JSON.parse(await ctx.getRawInputAsString());
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
    * Handle POST requests to the GraphQL endpoint
    * @param ctx - incoming web context with the GraphQL query body
    */
@@ -1983,7 +2016,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       url: httpContext.getUrl(),
       method: httpContext.getMethod(),
       headers: httpContext.getHeaders(),
-      body: await ctx.getInput(),
+      body: await this.readRequest(ctx),
       raw: ctx,
       context: ctx
     });

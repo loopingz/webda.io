@@ -117,6 +117,8 @@ mutation {
 
 Returns `{ success: true }` on success.
 
+The input of a mutation is sanitized like the body of the same REST operation: every text as HTML-safe text, except the attributes the model tags `@sanitize none`, `html` or `markdown` (see [Text sanitization](../models/Defining-Models.md#text-sanitization--sanitize)). Every other argument (keys, queries) is sanitized as text.
+
 ## Custom operations
 
 When a model defines `@Operation()` methods, they become additional mutations:

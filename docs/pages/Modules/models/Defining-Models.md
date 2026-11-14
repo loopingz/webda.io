@@ -208,7 +208,7 @@ Limits to know:
 
 #### Where the modes apply
 
-The tag is honoured by the model operations (create, update, patch) on every transport that calls them (REST, gRPC, MCP), by any operation whose input schema carries the keyword (a service `@Operation` taking a typed object with tagged properties), and by the offline `Sync.Push`. The GraphQL endpoint sanitizes its whole request body as `text`, whatever the tag: a tagged attribute is still sanitized as `text` there.
+The tag is honoured on every transport: by the model operations (create, update, patch) over REST, gRPC and MCP, by the GraphQL mutations, by the offline `Sync.Push`, and by any operation whose input schema carries the keyword (a service `@Operation` taking a typed object with tagged properties). An attribute stores the same value whichever transport wrote it.
 
 Code that receives model data outside a model operation applies the same rules with `sanitizeModelText(Model, input)` (then `sanitizeModelInput` to drop the attributes a client cannot write). `sanitizeMarkdown(text)` sanitizes one Markdown source.
 

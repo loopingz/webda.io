@@ -197,7 +197,9 @@ There is no `"query"` or `"patch"` action: a query is filtered with `"get"` (see
 
 ### Client input
 
-Before input reaches a model, the DomainService (and GraphQL) removes:
+Every string of the request body is HTML-sanitized first (tags removed, entities escaped), except the attributes the model tags `@sanitize none` (see [Plain text attributes](./Defining-Models.md#plain-text-attributes--sanitize-none)). The body is read once: the object validated against the operation input schema is the one handed to the authorizers and the one the model receives (`DomainService.getModelInput()`), so what is stored is what was validated. Do not override `getModelInput()` to read the raw body (`context.getInput({ raw: true })`): tag the attributes instead.
+
+Then, before input reaches a model, the DomainService (and GraphQL) removes:
 
 - `__`-prefixed (private) attributes, at any depth;
 - `_`-prefixed (server-managed) **top-level** attributes: `_user`, `_roles`, `_groups`, `_creationDate`... (nested objects keep their `_` keys). A model that genuinely accepts one from clients lists it in its static `getClientWritableAttributes()`; the parent link of a create is kept (and checked against the parent);

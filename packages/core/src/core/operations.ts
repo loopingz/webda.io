@@ -7,6 +7,7 @@ import {
   type DryRunResult
 } from "./icore.js";
 import { OperationContext } from "../contexts/operationcontext.js";
+import { DEFAULT_SANITIZE_OPTIONS, getRawTextPaths } from "../contexts/sanitize.js";
 import { WebContext } from "../contexts/webcontext.js";
 import * as WebdaError from "../errors/errors.js";
 import { validateSchema, ValidationError } from "../schemas/hooks.js";
@@ -628,6 +629,60 @@ function isSameParameterValue(param: any, value: any): boolean {
 }
 
 /**
+ * Name of the input property receiving the whole request body, for an operation bound that way over REST
+ * @param context - the execution context
+ * @param operation - the operation definition
+ * @returns the property name, undefined when the body holds the input properties
+ */
+function getBodyParameter(context: OperationContext, operation?: OperationDefinition): string | undefined {
+  return (context instanceof WebContext && operation?.rest && operation.rest.body) || undefined;
+}
+
+/**
+ * Body paths of the texts an operation opts out of the HTML sanitization
+ *
+ * They come from the operation input schema (`x-webda-sanitize: none`, see {@link getRawTextPaths}), so a model
+ * operation follows the `@sanitize` tags of its model.
+ * @param context - the execution context
+ * @param operationId - the operation identifier
+ * @returns the paths, relative to the request body
+ */
+function getOperationRawTextPaths(context: OperationContext, operationId: string): string[] {
+  const operation = useInstanceStorage().operations[operationId];
+  if (!operation?.input || operation.input === "void") {
+    return [];
+  }
+  // The `?` variant only drops `required`: the base schema is a stable object, its paths are cached
+  const schema = operation.input.endsWith("?") ? operation.input.slice(0, -1) : operation.input;
+  const paths = getRawTextPaths(useApplication().getSchema(schema));
+  const bodyParameter = getBodyParameter(context, operation);
+  if (!bodyParameter) {
+    return paths;
+  }
+  // The body is the value of one input property: only the paths below it apply, relative to it
+  const prefix = `${bodyParameter}.`;
+  return paths.filter(path => path.startsWith(prefix)).map(path => path.slice(prefix.length));
+}
+
+/**
+ * Read the request body the way an operation receives it: HTML-sanitized, except for the texts its input schema
+ * opts out (`@sanitize none`)
+ *
+ * The body is parsed once per context: the object returned here is the one {@link callOperation} validates, hands
+ * to the authorizers and passes to the operation, and the one `context.getInput()` returns from then on. Code that
+ * needs to change the body before calling the operation (a transport injecting a value) must read it with this
+ * function: a body read with `context.getInput()` beforehand is read again when the operation keeps some texts.
+ * @param context - the execution context
+ * @param operationId - the operation identifier
+ * @returns the body, undefined when there is none
+ */
+export async function readOperationBody(context: OperationContext, operationId: string): Promise<any> {
+  const rawText = getOperationRawTextPaths(context, operationId);
+  // Without opt-out the context is called as before, so a context that overrides getInput keeps working
+  return rawText.length > 0 ? context.getInput({ ...DEFAULT_SANITIZE_OPTIONS, rawText }) : context.getInput();
+}
+
+/**
  * Read the operation input: path/query parameters merged with the request body
  *
  * The body can complete the parameters but never replace one, so the URL always
@@ -645,12 +700,12 @@ async function getOperationInput(
   const params = context.getParameters() || {};
   let input: any;
   try {
-    input = await context.getInput();
+    input = await readOperationBody(context, operationId);
   } catch {
     // No input (e.g., GET request)
   }
   const operation = useInstanceStorage().operations[operationId];
-  const bodyParameter = context instanceof WebContext && operation?.rest && operation.rest.body;
+  const bodyParameter = getBodyParameter(context, operation);
   const body = bodyParameter
     ? input === undefined
       ? {}

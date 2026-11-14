@@ -103,3 +103,14 @@ export class Receipt {
     this.amount = data.amount;
   }
 }
+
+/** A model with a plain text attribute, kept as the client sent it. */
+export class Memo {
+  /**
+   * Never rendered as HTML.
+   * @sanitize none
+   */
+  title: string;
+  /** Sanitized, the default. */
+  body: string;
+}

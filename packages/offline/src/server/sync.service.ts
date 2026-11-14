@@ -15,6 +15,7 @@ import {
   useModelMetadata,
   useRepository,
   sanitizeModelInput,
+  sanitizeModelText,
   validateModelSchema
 } from "@webda/core";
 import { patch as applyDelta } from "@webda/versioning";
@@ -118,6 +119,26 @@ function sameJson(a: unknown, b: unknown): boolean {
   if (a === b) return true;
   if (a === undefined || b === undefined) return false;
   return isDeepStrictEqual(JSON.parse(JSON.stringify(a)), JSON.parse(JSON.stringify(b)));
+}
+
+/**
+ * Copy a parsed JSON value without the keys that reach a prototype (`__proto__`, `constructor`, `prototype`), at
+ * any depth: what the sanitization of the operation input removes, for a value read from the request body
+ * @param value - the parsed JSON value
+ * @returns the copy
+ */
+function withoutUnsafeKeys(value: any): any {
+  if (Array.isArray(value)) {
+    return value.map(withoutUnsafeKeys);
+  }
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value)
+        .filter(([key]) => !["__proto__", "constructor", "prototype"].includes(key))
+        .map(([key, item]) => [key, withoutUnsafeKeys(item)])
+    );
+  }
+  return value;
 }
 
 /**
@@ -585,10 +606,56 @@ export class SyncService extends Service<SyncServiceParameters> {
       throw new WebdaError.BadRequest(`At most ${this.parameters.maxMutations} mutations are accepted`);
     }
     const results: MutationResult[] = [];
-    for (const mutation of mutations) {
+    for (const mutation of await this.withSentPatches(mutations)) {
       results.push(await this.applyMutation(mutation));
     }
     return { results };
+  }
+
+  /**
+   * Give each mutation the `patch` the client sent, before the HTML sanitization of the operation input
+   *
+   * The operation input is sanitized as a whole, but a patch holds model data: its texts follow the rules of the
+   * model (`@sanitize none` attributes are kept as sent, see `sanitizeModelText`), like the input of the model's
+   * own operations, and a `@webda/versioning` delta must be applied as it was computed. Only `patch` is taken from
+   * the request body, a free-form value the input schema does not constrain: every other field is the validated one.
+   * When the body cannot be read (the method was called directly), the mutations are used as given.
+   * @param mutations - the validated mutations
+   * @returns the mutations, with their patch as sent
+   */
+  protected async withSentPatches(mutations: Mutation[]): Promise<Mutation[]> {
+    let sent: any;
+    try {
+      sent = JSON.parse(await useContext<OperationContext>().getRawInputAsString())?.mutations;
+    } catch {
+      // No JSON body to read
+    }
+    if (!Array.isArray(sent) || sent.length !== mutations.length) {
+      return mutations;
+    }
+    return mutations.map((mutation, i) =>
+      mutation && typeof mutation === "object" && sent[i]?.patch !== undefined
+        ? { ...mutation, patch: withoutUnsafeKeys(sent[i].patch) }
+        : mutation
+    );
+  }
+
+  /**
+   * HTML-sanitize the attributes a patch changed, with the rules of the model
+   *
+   * The attributes it left alone keep their stored value: only what the client wrote is client input.
+   * @param model - the model class
+   * @param before - the object before the patch
+   * @param after - the object after the patch
+   * @returns the object after the patch, its changed texts sanitized
+   */
+  protected async sanitizeChanges(model: any, before: any, after: any): Promise<any> {
+    if (!after || typeof after !== "object" || Array.isArray(after)) {
+      return after;
+    }
+    const changed = Object.fromEntries(Object.entries(after).filter(([key, value]) => !sameJson(value, before?.[key])));
+    // A copy: a changed value can share nested objects with the stored one
+    return { ...after, ...(await sanitizeModelText(model, structuredClone(changed))) };
   }
 
   /**
@@ -699,7 +766,10 @@ export class SyncService extends Service<SyncServiceParameters> {
       const current = await this.load(modelId, m.ref.key);
       if (m.op === "create") {
         if (current) return this.keyInUse(mutationId, modelId, current);
-        const input = { ...sanitizeModelInput(model, m.patch ?? {}, context), ...keyFields };
+        const input = {
+          ...sanitizeModelInput(model, await sanitizeModelText(model, m.patch ?? {}), context),
+          ...keyFields
+        };
         const candidate = new model();
         candidate["load"](input);
         await checkModelPermission(candidate, context, "create", model);
@@ -734,7 +804,7 @@ export class SyncService extends Service<SyncServiceParameters> {
           return { mutationId, status: "ok", rev: 0 };
         }
         const before = this.toSynced(modelId, current).object;
-        const after = applyDelta(before, m.patch);
+        const after = await this.sanitizeChanges(model, before, applyDelta(before, m.patch));
         // Server-managed attributes keep their stored value; client-writable ones come from `after`
         const writable = sanitizeModelInput(model, after, context);
         const writableBefore = sanitizeModelInput(model, before, context);

@@ -86,6 +86,26 @@ export function secretKeywordValue(text: string): true | string[] {
 }
 
 /**
+ * JSON Schema keyword naming how the HTML sanitization of client input treats a property
+ *
+ * Set by a `@sanitize` JSDoc tag on a property: `@sanitize none` keeps the text as the client sent it (a name, a
+ * title, markdown or a diagram source that is never rendered as HTML), `@sanitize text` names the default (every
+ * tag removed, entities escaped). Any other value is kept for a future named profile and sanitized like `text`.
+ */
+export const SANITIZE_KEYWORD = "x-webda-sanitize";
+
+/**
+ * The value of the {@link SANITIZE_KEYWORD} keyword for a `@sanitize` tag
+ *
+ * Only the first word counts, so prose can follow it: `@sanitize none - a display name, never rendered as HTML`.
+ * @param text - the tag text
+ * @returns the mode, undefined when the tag names none
+ */
+export function sanitizeKeywordValue(text: string): string | undefined {
+  return /^\s*([\w$][\w$-]*)/.exec(text)?.[1];
+}
+
+/**
  * Tags whose payload TypeScript consumes as a type expression, braces or not.
  *
  * `parseThisTag` calls `parseJSDocTypeExpression` with `mayOmitBraces: true`,
@@ -167,6 +187,11 @@ export function applyDocs(
     if (Annotations.boolean.includes(tag.name as never) || Annotations.string.includes(tag.name as never)) continue;
     if (tag.name === "secret") {
       target[SECRET_KEYWORD] = secretKeywordValue(tag.text);
+      continue;
+    }
+    if (tag.name === "sanitize") {
+      const mode = sanitizeKeywordValue(tag.text);
+      if (mode) target[SANITIZE_KEYWORD] = mode;
       continue;
     }
     if (tag.name === "WebdaBehavior" && tag.text.trim().split(/\s+/)[0] === SEALED_BEHAVIOR) {

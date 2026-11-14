@@ -611,6 +611,108 @@ class PushTest extends SyncTest {
   }
 
   @test
+  async createFollowsTheModelSanitization() {
+    // Note.body is tagged `@sanitize none`, Note.title is not: the same texts as over the model operations (#1068)
+    const uuid = "22222222-2222-4222-8222-222222222222";
+    for (const [i, text] of ["R&D", "a && b", "Tom <3 Jerry", "A-->B"].entries()) {
+      const key = uuid.slice(0, -1) + i;
+      const [res] = await this.push([
+        {
+          mutationId: `c${i}`,
+          ref: { model: "Test/Note", key },
+          baseRev: 0,
+          op: "create",
+          patch: { title: text, body: text, tags: [text], __private: "x", constructor: { a: 1 } }
+        }
+      ]);
+      assert.strictEqual(res.status, "ok", JSON.stringify(res));
+      const stored: any = await Note.ref(key).get();
+      assert.strictEqual(stored.body, text, "the tagged attribute is kept verbatim");
+      assert.strictEqual(res.object.body, text);
+      assert.notStrictEqual(stored.title, text, "the untagged attribute is still sanitized");
+      assert.notStrictEqual(stored.tags[0], text);
+      // Private attributes and prototype keys are still stripped
+      assert.strictEqual(stored.__private, undefined);
+      assert.ok(!Object.hasOwn(stored, "constructor"));
+    }
+    assert.strictEqual((await Note.ref(uuid.slice(0, -1) + "0").get()).title, "R&amp;D");
+  }
+
+  @test
+  async patchFollowsTheModelSanitization() {
+    // `status` was written by the server: a patch that leaves it alone does not rewrite it
+    const note = await Note.create({ title: "a", body: "line 1\nline 2\nline 3", status: "a < b" } as any);
+    const dto = note.toDTO();
+    const body = "line 1\nR&D <team> && a-->b\nline 3";
+    const [res] = await this.push([
+      {
+        mutationId: "p1",
+        ref: { model: "Test/Note", key: note.uuid },
+        baseRev: 1,
+        op: "patch",
+        patch: diff(dto, { ...dto, title: "R&D <b>bold</b>", body })
+      }
+    ]);
+    assert.strictEqual(res.status, "ok", JSON.stringify(res));
+    const stored: any = await Note.ref(note.uuid).get();
+    assert.strictEqual(stored.body, body, "the delta is applied as computed, the tagged text kept verbatim");
+    assert.strictEqual(stored.title, "R&amp;D bold", "the untagged attribute is sanitized");
+    assert.strictEqual(stored.status, "a < b", "an attribute the patch did not change keeps its stored value");
+    assert.strictEqual(res.object.body, body);
+    // The stored text is the one validated: a value of the wrong type is refused, whatever its sanitized form
+    const [bad] = await this.push([
+      {
+        mutationId: "p2",
+        ref: { model: "Test/Note", key: note.uuid },
+        baseRev: 2,
+        op: "patch",
+        patch: diff(stored.toDTO(), { ...stored.toDTO(), body: { html: "<b>x</b>" } })
+      }
+    ]);
+    assert.strictEqual(bad.status, "rejected");
+    assert.strictEqual(bad.error.code, "VALIDATION");
+  }
+
+  @test
+  async pushWithoutRequestBody() {
+    // Called directly (no request body to read): the mutations are used as given, and sanitized all the same
+    const uuid = "33333333-3333-4333-8333-333333333333";
+    const mutation: any = {
+      mutationId: "d1",
+      ref: { model: "Test/Note", key: uuid },
+      baseRev: 0,
+      op: "create",
+      patch: { title: "R&D", body: "R&D" }
+    };
+    const run = (body: any, mutations: any[]) =>
+      runWithContext(new UserContext(undefined, body), () => this.sync.push(mutations));
+    const { results } = await run(undefined, [mutation]);
+    assert.strictEqual(results[0].status, "ok", JSON.stringify(results));
+    const stored: any = await Note.ref(uuid).get();
+    assert.deepStrictEqual([stored.title, stored.body], ["R&amp;D", "R&D"]);
+    // A body that does not list the same mutations is ignored
+    const other = { ...mutation, mutationId: "d2", ref: { model: "Test/Note", key: uuid.slice(0, -1) + "4" } };
+    const mismatch = await run({ mutations: [] }, [other]);
+    assert.strictEqual(mismatch.results[0].status, "ok");
+    const notArray = await run({ mutations: "none" }, [{ ...other, mutationId: "d3" }, null]);
+    assert.deepStrictEqual(
+      notArray.results.map(r => r.status),
+      ["conflict", "rejected"]
+    );
+    // A mutation without patch (a delete) and a malformed one are left as they are
+    const mixed = await run({ mutations: [{}, null, { patch: { title: "<i>t</i>", list: [{ __proto__: 1 }] } }] }, [
+      { mutationId: "d4", ref: { model: "Test/Note", key: uuid }, baseRev: 1, op: "delete" },
+      null,
+      { ...mutation, mutationId: "d5", ref: { model: "Test/Note", key: uuid.slice(0, -1) + "5" } }
+    ]);
+    assert.deepStrictEqual(
+      mixed.results.map(r => r.status),
+      ["ok", "rejected", "ok"]
+    );
+    assert.strictEqual((await Note.ref(uuid.slice(0, -1) + "5").get()).title, "t");
+  }
+
+  @test
   async pushLimitIsMaxMutations() {
     const mutation = (i: number) => ({
       mutationId: `m${i}`,

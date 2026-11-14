@@ -117,6 +117,24 @@
     * @webda/async bumped from ^3.7.1 to ^3.7.2
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-beta.15](https://github.com/loopingz/webda.io/compare/gcp-v4.0.0-beta.14...gcp-v4.0.0-beta.15) (2026-11-14)
+
+
+### Bug Fixes
+
+* sqlite on Node 22, stable gcp module file, deterministic downloadTo test ([#1070](https://github.com/loopingz/webda.io/issues/1070)) ([d992918](https://github.com/loopingz/webda.io/commit/d992918039c3f7006c8c522ea250d70027a10f99))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.15
+    * @webda/ql bumped to 4.0.0-beta.12
+  * devDependencies
+    * @webda/bench bumped to 4.0.0-beta.15
+    * @webda/compiler bumped to 4.0.0-beta.15
+
 ## [4.0.0-beta.14](https://github.com/loopingz/webda.io/compare/gcp-v4.0.0-beta.13...gcp-v4.0.0-beta.14) (2026-11-10)
 
 

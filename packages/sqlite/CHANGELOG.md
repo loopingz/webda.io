@@ -1,5 +1,25 @@
 # Changelog
 
+## [4.0.0-beta.7](https://github.com/loopingz/webda.io/compare/sqlite-v4.0.0-beta.6...sqlite-v4.0.0-beta.7) (2026-11-14)
+
+
+### Bug Fixes
+
+* sqlite on Node 22, stable gcp module file, deterministic downloadTo test ([#1070](https://github.com/loopingz/webda.io/issues/1070)) ([d992918](https://github.com/loopingz/webda.io/commit/d992918039c3f7006c8c522ea250d70027a10f99))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.15
+    * @webda/ql bumped to 4.0.0-beta.12
+    * @webda/sql bumped to 4.0.0-beta.7
+    * @webda/sql-schema bumped to 4.0.0-beta.4
+  * devDependencies
+    * @webda/bench bumped to 4.0.0-beta.15
+    * @webda/compiler bumped to 4.0.0-beta.15
+
 ## [4.0.0-beta.6](https://github.com/loopingz/webda.io/compare/sqlite-v4.0.0-beta.5...sqlite-v4.0.0-beta.6) (2026-11-10)
 
 

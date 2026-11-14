@@ -134,6 +134,24 @@
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-beta.15](https://github.com/loopingz/webda.io/compare/graphql-v4.0.0-beta.14...graphql-v4.0.0-beta.15) (2026-11-14)
+
+
+### Features
+
+* **ql:** SELECT field lists at runtime (partial results) ([#1075](https://github.com/loopingz/webda.io/issues/1075)) ([fdbf962](https://github.com/loopingz/webda.io/commit/fdbf9620d72cff70725c24463f453bfe170bf473))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-beta.15
+    * @webda/ql bumped to 4.0.0-beta.12
+    * @webda/runtime bumped to 4.0.0-beta.15
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.15
+
 ## [4.0.0-beta.14](https://github.com/loopingz/webda.io/compare/graphql-v4.0.0-beta.13...graphql-v4.0.0-beta.14) (2026-11-10)
 
 

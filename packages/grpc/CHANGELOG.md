@@ -1,5 +1,22 @@
 # Changelog
 
+## [4.0.0-beta.15](https://github.com/loopingz/webda.io/compare/grpc-v4.0.0-beta.14...grpc-v4.0.0-beta.15) (2026-11-14)
+
+
+### Features
+
+* **ql:** SELECT field lists at runtime (partial results) ([#1075](https://github.com/loopingz/webda.io/issues/1075)) ([fdbf962](https://github.com/loopingz/webda.io/commit/fdbf9620d72cff70725c24463f453bfe170bf473))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-beta.15
+    * @webda/core bumped to 4.0.0-beta.15
+  * peerDependencies
+    * @webda/core bumped from ^4.0.0-beta.1 to ^4.0.0-beta.15
+
 ## [4.0.0-beta.14](https://github.com/loopingz/webda.io/compare/grpc-v4.0.0-beta.13...grpc-v4.0.0-beta.14) (2026-11-10)
 
 

@@ -1,5 +1,7 @@
 # @webda/sealed-client module
 
+[![npm](https://img.shields.io/npm/v/@webda/sealed-client)](https://www.npmjs.com/package/@webda/sealed-client)
+
 This module is part of Webda Application Framework that allows you to quickly develop applications with all modern prerequisites: Security, Extensibility, GraphQL, REST, CloudNative [https://webda.io](https://webda.io)
 
 <img src="https://webda.io/img/webda.svg" width="128" />

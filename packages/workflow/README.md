@@ -1,5 +1,7 @@
 # @webda/workflow module
 
+[![npm](https://img.shields.io/npm/v/@webda/workflow)](https://www.npmjs.com/package/@webda/workflow)
+
 This module is part of Webda Application Framework that allows you to quickly develop applications with all modern prerequisites: Security, Extensibility, GraphQL, REST, CloudNative [https://webda.io](https://webda.io)
 
 <img src="https://webda.io/img/webda.svg" width="128" />

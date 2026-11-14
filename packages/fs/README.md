@@ -5,6 +5,7 @@ This module is part of Webda Application Framework that allows you to quickly de
 <img src="https://webda.io/img/webda.svg" width="128" />
 
 ![CI](https://github.com/loopingz/webda.io/workflows/CI/badge.svg)
+[![npm](https://img.shields.io/npm/v/@webda/fs)](https://www.npmjs.com/package/@webda/fs)
 
 [![Join the chat at https://gitter.im/loopingz/webda](https://badges.gitter.im/loopingz/webda.svg)](https://gitter.im/loopingz/webda?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![codecov](https://codecov.io/gh/loopingz/webda.io/branch/main/graph/badge.svg?token=8N9DNM3K3O)](https://codecov.io/gh/loopingz/webda.io)

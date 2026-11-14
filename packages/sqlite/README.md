@@ -1,5 +1,7 @@
 # @webda/sqlite
 
+[![npm](https://img.shields.io/npm/v/@webda/sqlite)](https://www.npmjs.com/package/@webda/sqlite)
+
 `Webda/SQLiteStore`, `Webda/SQLiteQueue` and `Webda/SQLitePubSub` on Node's built-in `node:sqlite`
 (Node >= 22.13, no third-party dependency). Without a `persistence` block the database lives in memory and is lost
 on `stop()`, like `MemoryStore`; with `persistence.path` it is a single durable file.

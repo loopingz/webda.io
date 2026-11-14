@@ -1,5 +1,7 @@
 # @webda/sql
 
+[![npm](https://img.shields.io/npm/v/@webda/sql)](https://www.npmjs.com/package/@webda/sql)
+
 Engine-neutral "one JSON document per row" store for Webda: a `uuid` key column and a `data` JSON column per
 table, CRUD and conditional writes, WebdaQL translated to SQL, class filtering through the stored `__type`,
 bulk `deleteMany` / `updateMany`, native aggregations and the raw access used by the migration commands.

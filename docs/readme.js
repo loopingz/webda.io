@@ -4,7 +4,9 @@ const header = fs.readFileSync("README.header.md", "utf8");
 const footer = fs.readFileSync("README.footer.md", "utf8");
 
 function updateReadme(content, package) {
-  const newHeader = header.replace(/{{name}}/g, package.name).replace(/{{description}}/g, package.description);
+  // A private package (the repository root) is not on npm: no npm badge
+  const template = package.private ? header.replace(/^\[!\[npm\].*\n/m, "") : header;
+  const newHeader = template.replace(/{{name}}/g, package.name).replace(/{{description}}/g, package.description);
   const newFooter = footer.replace(/{{name}}/g, package.name);
   // Markers are matched with any surrounding blank lines, so the output stays stable after prettier
   const headerMatch = content.match(/\n*<!-- README_HEADER -->\n*/);

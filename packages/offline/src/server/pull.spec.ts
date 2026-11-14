@@ -241,4 +241,41 @@ class PullTest extends SyncTest {
     } while (token);
     assert.deepStrictEqual(titles.sort(), ["a", "b"]);
   }
+
+  @test
+  async scopeQueryIsNotSanitizedItsLiteralsAre() {
+    // Written by a client: `title` is stored with the default sanitization, `body` as sent (`@sanitize none`)
+    const uuid = "55555555-5555-4555-8555-555555555555";
+    await this.op("Sync.Push", {
+      mutations: [
+        {
+          mutationId: "q1",
+          ref: { model: "Test/Note", key: uuid },
+          baseRev: 0,
+          op: "create",
+          patch: { title: "R&D <b>x</b>", body: "R&D <b>x</b>", count: 3 }
+        }
+      ]
+    });
+    await Note.create({ title: "other", body: "other", count: 1 } as any);
+    const titles = async (query: string) =>
+      (await this.op("Sync.Snapshot", { scope: { model: "Test/Note", query } })).objects.map(o => o.object.title);
+    // A literal finds a text with the value the client wrote, whatever the mode of the attribute
+    assert.deepStrictEqual(await titles("title = 'R&D <b>x</b>'"), ["R&amp;D x"]);
+    assert.deepStrictEqual(await titles("body = 'R&D <b>x</b>'"), ["R&amp;D x"]);
+    // Comparisons parse: the query is not HTML-sanitized with the body of the request
+    assert.deepStrictEqual(await titles("count > 2 AND count < 4"), ["R&amp;D x"]);
+    assert.deepStrictEqual(await titles("count < 2"), ["other"]);
+    // The same scope decides what a pull sends
+    const start = (await this.op("Sync.Pull", { scopes: [{ model: "Test/Note" }] })).cursor;
+    await Note.ref(uuid).patch({ count: 4 } as any);
+    const pulled = await this.op("Sync.Pull", {
+      scopes: [{ model: "Test/Note", query: "body = 'R&D <b>x</b>' AND count > 3" }],
+      cursor: start
+    });
+    assert.deepStrictEqual(
+      pulled.upserts.map(u => u.ref.key),
+      [uuid]
+    );
+  }
 }

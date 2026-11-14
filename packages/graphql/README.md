@@ -116,7 +116,8 @@ The request is not sanitized as a whole: every **argument** is, once GraphQL has
 | --- | --- |
 | The input of a model mutation (`createPost(Post: ...)`, `updatePost`) | With the `@sanitize` modes of the model, like the body of the same REST operation: an attribute stores the same value on every transport |
 | The arguments of an operation (service operations, model and behavior actions, subscriptions on a streamed operation) | From the operation input schema, like the body of the same REST operation |
-| Anything else: keys (`uuid`), WebdaQL `query` and `filter` arguments, the arguments of a field another service adds | As text: tags removed, `&`, `<`, `>` escaped. In a WebdaQL query `<` and `>` are restored afterwards, so comparisons work |
+| WebdaQL `query` and `filter` arguments | Not sanitized: the query is parsed, and its string literals are sanitized per attribute, like on the other transports (see the model documentation, Text sanitization, Queries) |
+| Anything else: keys (`uuid`), the arguments of a field another service adds | As text: tags removed, `&`, `<`, `>` escaped |
 
 The keys that reach a prototype (`__proto__`, `constructor`, `prototype`) are removed from every argument. A field added through the `Webda.GraphQL.Schema` event gets the same treatment without doing anything: no argument reaches a resolver unsanitized. A resolver that must sanitize an argument itself names it in the field `extensions` (`webdaRawArgs: ["name"]`).
 

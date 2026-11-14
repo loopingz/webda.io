@@ -19,6 +19,7 @@ import {
   getClientWritableAttributes,
   assertNoPrivateFields,
   assertFilterOnly,
+  sanitizeQueryLiterals,
   callOperation,
   canCallOperation,
   parseSubjectKey,
@@ -649,9 +650,11 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
                 type: GraphQLString
               }
             },
+            // WebdaQL: parsed, its literals sanitized per attribute by parseFilter
+            extensions: { [RAW_ARGS]: ["filter"] },
             resolve: async (source, args, context, info) => {
               const src = link.type === "LINKS_MAP" ? Object.values(source[link.attribute]) : source[link.attribute];
-              const filter = this.parseFilter(args.filter);
+              const filter = await this.parseFilter(args.filter, this.app.getModel(link.model));
               return (
                 await Promise.all(
                   ((src || []) as (string | { uuid: string })[]).map(i =>
@@ -738,9 +741,11 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
               type: GraphQLString
             }
           },
+          // WebdaQL: parsed, its literals sanitized per attribute by parseFilter
+          extensions: { [RAW_ARGS]: ["filter"] },
           resolve: async (source, args, context, info) => {
             const modelDefinition = this.app.getModel(map.model);
-            const filter = this.parseFilter(args.filter);
+            const filter = await this.parseFilter(args.filter, modelDefinition);
             return (
               await Promise.all(
                 ((source[map.attribute] || []) as { uuid: string }[]).map(i =>
@@ -765,11 +770,13 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
               type: GraphQLString
             }
           },
+          // WebdaQL: parsed, its literals sanitized per attribute by the query
+          extensions: { [RAW_ARGS]: ["query"] },
           resolve: async (source, args, context, info) => {
             const res = await this.queryRelated(
               source[query.attribute],
               this.app.getModel(query.model),
-              WebdaQL.unsanitize(args.query || ""),
+              args.query || "",
               context
             );
             this.countOperation(context, res.results.length);
@@ -811,18 +818,21 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
    * Parse the `filter` argument of a links or maps field: WebdaQL evaluated on the linked objects, which may not read
    * private (`__`) fields
    * @param filter - the client filter
+   * @param model - the model of the linked objects, for the sanitization of the literals
    * @returns the validator, undefined without filter
    * @throws GraphQLError BAD_USER_INPUT for an invalid filter, one reading private fields, or a statement (DELETE,
    * UPDATE, SELECT field list): GraphQL selection sets choose the fields
    */
-  parseFilter(filter?: string): WebdaQL.PartialValidator | undefined {
+  async parseFilter(filter?: string, model?: any): Promise<WebdaQL.PartialValidator | undefined> {
     if (!filter) {
       return undefined;
     }
     try {
-      const validator = new WebdaQL.PartialValidator(WebdaQL.unsanitize(filter));
+      const validator = new WebdaQL.PartialValidator(filter);
       assertNoPrivateFields(validator);
       this.assertNoStatement(validator);
+      // Evaluated on the linked objects as they are stored: its literals are sanitized like their texts were
+      await sanitizeQueryLiterals(model, validator);
       return validator;
     } catch (err) {
       throw new GraphQLError(err instanceof WebdaError.BadRequest ? err.message : "Invalid filter", {
@@ -1105,13 +1115,15 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
             defaultValue: ""
           }
         },
+        // WebdaQL: parsed, its literals sanitized per attribute by the query
+        extensions: { [RAW_ARGS]: ["query"] },
         resolve: async (_, args, context) => {
           // Same permission filtering as the DomainService query operation
-          return await this.queryModel(model, WebdaQL.unsanitize(args.query || ""), context);
+          return await this.queryModel(model, args.query || "", context);
         },
         subscribe: async (_source, args, context) => {
           this.log("DEBUG", "Subscription called on", args);
-          return this.registerAsyncIteratorQuery(model, plural, WebdaQL.unsanitize(args.query || ""), context);
+          return this.registerAsyncIteratorQuery(model, plural, args.query || "", context);
         }
       };
       const uuidField = (metadata.PrimaryKey && metadata.PrimaryKey[0]) || "uuid";
@@ -1659,7 +1671,12 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
    */
   protected async withTotal(model: any, query: string, context: any): Promise<QueryResultWithTotal> {
     await enforceModelOperationPermission(model, context, "query", { query });
-    const res: QueryResultWithTotal = await queryModelWithPermissions(model, query, context);
+    const res: QueryResultWithTotal = await queryModelWithPermissions(model, query, context).catch(err => {
+      // The answer of the query operation on the other transports: the query is not echoed
+      throw err instanceof SyntaxError
+        ? new GraphQLError("Query syntax error", { extensions: { code: "BAD_USER_INPUT" } })
+        : err;
+    });
     // Not enumerable: never serialized, only reached by the field resolver
     Object.defineProperty(res, QUERY_TOTAL, { value: () => countModelWithPermissions(model, query, context) });
     return res;
@@ -1720,7 +1737,9 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     this.assertFilterQuery(query);
     const runQuery = () => queryModelWithPermissions(model, query, context);
     let result = await runQuery();
+    // Evaluated on the created objects as they are stored: its literals are sanitized like the page query ones
     const queryInfo = new WebdaQL.QueryValidator(query);
+    await sanitizeQueryLiterals(model, queryInfo);
     const updatedCallback = async (evt: RepositoryEvent) => {
       this.log("TRACE", "Event from", evt.emitterId, evt.object_id);
       if (!result.results.find(e => evt.object_id === e.getUUID())) return;

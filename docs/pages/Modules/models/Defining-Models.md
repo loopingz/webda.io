@@ -212,6 +212,28 @@ The tag is honoured on every transport: by the model operations (create, update,
 
 Code that receives model data outside a model operation applies the same rules with `sanitizeModelText(Model, input)` (then `sanitizeModelInput` to drop the attributes a client cannot write). `sanitizeMarkdown(text)` sanitizes one Markdown source.
 
+#### Queries
+
+A WebdaQL query sent by a client is **not** HTML-sanitized, on any transport (REST `PUT` body or `GET` URL, gRPC, MCP, GraphQL `query` and `filter` arguments, offline sync scopes): it is parsed, never rendered, and escaping it would break `<` and `>`. A query that does not parse is a `400` with the message `Query syntax error` everywhere.
+
+Its **string literals** are sanitized instead, each with the mode of the attribute it is compared with, by the functions that sanitize a written value. A client therefore finds a text with the value it sent, whatever the mode:
+
+| Attribute | Client wrote | Stored | Found with |
+| --- | --- | --- | --- |
+| default (`text`) | `R&D` | `R&amp;D` | `description = 'R&D'` |
+| `@sanitize none` | `R&D <team>` | `R&D <team>` | `displayName = 'R&D <team>'` |
+| `@sanitize markdown` | `<b>x</b> & y` | `&lt;b>x&lt;/b> & y` | `notes = '<b>x</b> & y'` |
+| `@sanitize html` | `<i>z</i><script>w</script>` | `<i>z</i>` | `content = '<i>z</i><script>w</script>'` |
+
+- every operator taking a string is covered (`=`, `!=`, `<`, `<=`, `>`, `>=`, `LIKE`, `IN`, `CONTAINS`); numbers, booleans and `NOW()` are left alone;
+- the attribute is resolved like on write: `profile.bio` has the mode of that nested property, `labels CONTAINS 'x'` the mode of the items of `labels`. An attribute the schema does not know, or that is not a text, gets the default;
+- the mode is the one of the **queried model**: a subclass that tags the same attribute another way is not looked at, although its rows are returned by the query;
+- `LIKE` patterns keep their `%`, `_` and `\%` / `\_`. A pattern is a fragment of a text, and a fragment holding `<` cannot always be sanitized like the whole text was (a tag cut in two, Markdown inside a code span): use `LIKE` on plain fragments;
+- it only helps for texts a client wrote. A text the application stored itself was not sanitized: a client literal compared with it is still sanitized with the mode of the attribute;
+- a `@sanitize markdown` attribute in a query needs `micromark` installed, as on write.
+
+**Queries written by the application are not changed.** `Model.query()`, `Repository.query()` and a `getPermissionQuery()` compare with the stored values as they are: to match a default (`text`) attribute a client wrote, use its stored, escaped form (`description = 'R&amp;D'`), or sanitize the value with `sanitizeString(value)`. The audit log is recorded by the server: the literals of an `Audit.Query` are compared as written.
+
 ## Plural form
 
 By default, the REST route collection is the plural of the class name (`Post` → `/posts`, `Tag` → `/tags`). Override with `[WEBDA_PLURAL]`:

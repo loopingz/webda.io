@@ -117,7 +117,7 @@ mutation {
 
 Returns `{ success: true }` on success.
 
-A mutation calls the model operation the REST route calls (`<Model>.Create`, `.Update`, `.Delete`): its input is validated against the model schema, and a refused input is a `BAD_USER_INPUT` error carrying the validation errors in `extensions.details`. The input of a mutation is sanitized like the body of the same REST operation: every text as HTML-safe text, except the attributes the model tags `@sanitize none`, `html` or `markdown` (see [Text sanitization](../models/Defining-Models.md#text-sanitization--sanitize)). Every other argument (keys, queries) is sanitized as text.
+A mutation calls the model operation the REST route calls (`<Model>.Create`, `.Update`, `.Delete`): its input is validated against the model schema, and a refused input is a `BAD_USER_INPUT` error carrying the validation errors in `extensions.details`. The input of a mutation is sanitized like the body of the same REST operation: every text as HTML-safe text, except the attributes the model tags `@sanitize none`, `html` or `markdown` (see [Text sanitization](../models/Defining-Models.md#text-sanitization--sanitize)). A `query` or `filter` argument is not sanitized: it is parsed, and its string literals are sanitized per attribute. Every other argument (keys) is sanitized as text.
 
 ## Custom operations
 

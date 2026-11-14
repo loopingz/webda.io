@@ -41,12 +41,16 @@ class GrpcQueryStatementsTest extends WebdaApplicationTest {
   /**
    * Send one message through the gRPC handler
    * @param query - the query field of the request
+   * @param operation - the operation the RPC calls
    * @returns the response or the gRPC error status
    */
-  async unary(query: string): Promise<{ response?: any; status?: number; message?: string }> {
+  async unary(
+    query: string,
+    operation: string = "GrpcNotes.Query"
+  ): Promise<{ response?: any; status?: number; message?: string }> {
     const service: any = Object.create(GrpcService.prototype);
     service.parameters = new GrpcServiceParameters().load({});
-    service.rpcToOperation = new Map([["/webda.GrpcNotes/Query", "GrpcNotes.Query"]]);
+    service.rpcToOperation = new Map([["/webda.GrpcNotes/Query", operation]]);
     service.rpcMethods = new Map([
       [
         "/webda.GrpcNotes/Query",
@@ -127,5 +131,37 @@ class GrpcQueryStatementsTest extends WebdaApplicationTest {
     assert.deepStrictEqual(partial.response.results, [{ uuid: "n1", title: "keep" }]);
     const keyOnly = await this.unary("SELECT missing");
     assert.deepStrictEqual(keyOnly.response.results, [{ uuid: "n1" }]);
+  }
+
+  @test
+  async queryRpcTakesTheQueryAsWritten() {
+    // The request schema of the DomainService query operations: its `query` is not HTML-sanitized
+    const schema = (DomainService as any).schemas.searchRequest;
+    useApplication().getSchemas()["grpcRawSearchRequest"] = schema;
+    this.registerService(new DomainService("GrpcRawDomain", new DomainServiceParameters().load({})));
+    registerRepository(GrpcNote, new MemoryRepository(GrpcNote, ["uuid"]));
+    // As a client write stores it: the default sanitization escapes the text
+    await GrpcNote.create({ uuid: "rd", title: "R&amp;D" } as any);
+    await GrpcNote.create({ uuid: "zed", title: "Zed" } as any);
+    registerOperation("GrpcRawNotes.Query", {
+      service: "GrpcRawDomain",
+      method: "modelQuery",
+      input: "grpcRawSearchRequest",
+      output: "void",
+      context: { model: GrpcNote }
+    } as any);
+    const found = async (query: string) => {
+      const res = await this.unary(query, "GrpcRawNotes.Query");
+      assert.strictEqual(res.status, undefined, `${query}: ${res.message}`);
+      return res.response.results.map((n: any) => n.uuid).sort();
+    };
+    // Comparisons parse, and a literal finds a text with the value the client wrote
+    assert.deepStrictEqual(await found("title > 'S'"), ["zed"]);
+    assert.deepStrictEqual(await found("title < 'S'"), ["rd"]);
+    assert.deepStrictEqual(await found("title = 'R&D'"), ["rd"]);
+    assert.deepStrictEqual(await found("title LIKE 'R&%' OR title IN ['<b>Zed</b>']"), ["rd", "zed"]);
+    const bad = await this.unary("title = = 'x'", "GrpcRawNotes.Query");
+    assert.strictEqual(bad.status, GrpcStatus.INVALID_ARGUMENT);
+    assert.match(bad.message!, /Query syntax error/);
   }
 }

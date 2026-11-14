@@ -13,6 +13,7 @@ import { useApplication, useParameters } from "../application/hooks.js";
 import { useCore, useModelMetadata } from "../core/hooks.js";
 import { runWithInstanceStorage, useInstanceStorage } from "../core/instancestorage.js";
 import { callOperation, canCallOperation, getOperationStreaming, readOperationBody } from "../core/operations.js";
+import { DEFAULT_SANITIZE_OPTIONS } from "../contexts/sanitize.js";
 import { isOperationEnabled } from "../services/featureflags.js";
 import { runOperation } from "./streaming.js";
 import { AsyncQueue } from "../core/asyncqueue.js";
@@ -772,7 +773,9 @@ export class RESTOperationsTransport<
         let count: unknown;
         const parentId = `pid.${depth - 1}`;
         if (context.getHttpContext().getMethod() === "PUT") {
-          const input = await context.getInput();
+          // The query is not HTML-sanitized, like the `q` of the URL with GET: it is parsed, and its literals are
+          // sanitized per attribute by the query operation
+          const input = await context.getInput({ ...DEFAULT_SANITIZE_OPTIONS, modes: { q: "none" } });
           if (input === undefined || input === null) {
             // getInput() yields undefined for an empty body (query everything) but also for a body that is not
             // JSON: report the latter as a client error instead of failing on `.q`
@@ -800,7 +803,8 @@ export class RESTOperationsTransport<
         try {
           query = new QueryValidator(queryString);
         } catch (err) {
-          throw new WebdaError.BadRequest(`Invalid query ${queryString}`);
+          // The message of the query operation on every transport: the query is not echoed
+          throw new WebdaError.BadRequest("Query syntax error");
         }
 
         // Inject parent attribute

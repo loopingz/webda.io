@@ -113,7 +113,7 @@ describe("GraphQL query arguments take a filter only", () => {
         );
       }
     }
-    assert.throws(() => svc.parseFilter("SELECT uuid"), /use the selection set/);
+    await assert.rejects(() => svc.parseFilter("SELECT uuid"), /use the selection set/);
     const kept = await fields.notes.resolve(source, { filter: "uuid = 'n-alice'" }, alice, { fieldNodes: [] } as any);
     assert.deepStrictEqual(
       kept.map((n: any) => n.uuid),

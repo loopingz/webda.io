@@ -13,7 +13,9 @@ export interface SyncScope {
    */
   model: string;
   /**
-   * Query
+   * WebdaQL filter: parsed, never rendered, so it is not HTML-sanitized; the server sanitizes its string literals
+   * per attribute
+   * @sanitize none
    */
   query?: string;
 }

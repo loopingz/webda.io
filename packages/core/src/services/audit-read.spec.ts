@@ -420,6 +420,14 @@ class AuditReadTest extends WebdaApplicationTest {
       () => this.call("Audit.Query", { q: "operationId = = 'x'" }, { id: "root", roles: ["admin"] }),
       this.isError(WebdaError.BadRequest)
     );
+    // The query is not HTML-sanitized: comparisons parse, and a literal is compared as written with what the
+    // server recorded
+    await this.seed({ operationId: op, error: "a < b & c" });
+    const admin = { id: "root", roles: ["admin"] };
+    const failed = await this.call("Audit.Query", { q: `operationId = '${op}' AND error = 'a < b & c'` }, admin);
+    assert.strictEqual(failed.results.length, 1);
+    const since = await this.call("Audit.Query", { q: `operationId = '${op}' AND timestamp > 0` }, admin);
+    assert.strictEqual(since.results.length, 2);
   }
 
   @test

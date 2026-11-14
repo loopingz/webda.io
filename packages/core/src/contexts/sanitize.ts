@@ -1,6 +1,7 @@
 import type sanitize from "sanitize-html";
 import { resolveInputSchema } from "../rest/binding.js";
 import { NotImplemented } from "../errors/errors.js";
+import { useModelMetadata } from "../core/hooks.js";
 
 /**
  * sanitize-html, imported with the first input to sanitize: it loads an HTML and CSS parsing stack
@@ -387,11 +388,7 @@ function sanitizeValue(
  * @throws SanitizerUnavailable when a text is Markdown and micromark is not installed
  */
 export async function sanitizeInputWith<T = any>(value: T, options: SanitizeInputOptions): Promise<T> {
-  const patterns = Object.entries(options.modes ?? {})
-    .filter(([, mode]) => SANITIZE_MODES.includes(mode))
-    .map(function splitPath([path, mode]) {
-      return { segments: path.split("."), mode };
-    });
+  const patterns = compileModes(options.modes);
   sanitizeHtml ??= (await import("sanitize-html")).default;
   const state: SanitizeState = { markdownNeeded: false };
   const result = sanitizeValue(value, options, patterns, [], state);
@@ -401,6 +398,56 @@ export async function sanitizeInputWith<T = any>(value: T, options: SanitizeInpu
   // The first Markdown text of the process: import micromark, then sanitize the value again, as it was received
   await loadMarkdown();
   return sanitizeValue(value, options, patterns, [], state) as T;
+}
+
+/**
+ * Split the paths of sanitization modes in segments
+ * @param modes - the modes per dotted path
+ * @returns the patterns of the modes that change how a text is sanitized
+ */
+function compileModes(modes: SanitizeModes = {}): ModePattern[] {
+  return Object.entries(modes)
+    .filter(([, mode]) => SANITIZE_MODES.includes(mode))
+    .map(function splitPath([path, mode]) {
+      return { segments: path.split("."), mode };
+    });
+}
+
+/**
+ * The sanitization mode of a path, among the modes of an input schema
+ * @param modes - the modes per dotted path (see {@link getSanitizeModes})
+ * @param path - the path of a value, in segments
+ * @returns the mode (`none`, `html` or `markdown`), undefined for the default sanitization
+ */
+export function getSanitizeMode(modes: SanitizeModes, path: string[]): string | undefined {
+  return getMode(compileModes(modes), path);
+}
+
+/**
+ * Sanitize one text with a mode, exactly as the input sanitization does for a text at a path of that mode
+ *
+ * For a value that is compared with stored texts rather than stored itself: the literal of a query.
+ * @param value - the text
+ * @param mode - its mode, undefined for the default
+ * @returns the sanitized text
+ * @throws SanitizerUnavailable when the mode is `markdown` and micromark is not installed
+ */
+export async function sanitizeString(value: string, mode?: string): Promise<string> {
+  return (await sanitizeInput({ value }, mode ? { modes: { value: mode } } : {})).value;
+}
+
+/**
+ * Sanitization modes of the texts of a model: the attributes its Input schema marks `x-webda-sanitize`
+ * (`@sanitize none`, `html` or `markdown` on the property, see {@link getSanitizeModes})
+ * @param model - the model class
+ * @returns the modes per dotted path, `*` standing for any array index or record key
+ */
+export function getModelSanitizeModes(model: any): SanitizeModes {
+  try {
+    return getSanitizeModes(useModelMetadata(model)?.Schemas?.Input);
+  } catch {
+    return {};
+  }
 }
 
 /**

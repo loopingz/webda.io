@@ -7,6 +7,7 @@ import type { IOperationContext } from "../contexts/icontext.js";
 import * as WebdaError from "../errors/errors.js";
 import { useModel } from "../application/hooks.js";
 import { useDynamicService, useModelMetadata } from "../core/hooks.js";
+import { getModelSanitizeModes, getSanitizeMode, sanitizeString } from "../contexts/sanitize.js";
 import type { CryptoService } from "../services/cryptoservice.service.js";
 
 /**
@@ -715,7 +716,71 @@ function checkClientQuery(model: any, query: string): QueryValidator {
 }
 
 /**
- * Check a client query and merge the model's permission query into it
+ * Sanitize the string literals of a client query the way the texts they are compared with were sanitized when they
+ * were written
+ *
+ * A client query is not HTML-sanitized as a whole, on any transport: its grammar is its validation, and escaping it
+ * breaks `<` and `>`. But the texts it is compared with are stored sanitized (`R&D` is stored `R&amp;D` in an
+ * attribute with the default sanitization, as written in a `@sanitize none` one). So each string literal, and each
+ * string of an `IN` list, is sanitized with the mode of the attribute it is compared with, by the functions of the
+ * write path (`sanitizeString`): a client finds a text with the value it sent.
+ *
+ * - the mode comes from the Input schema of `model` (the queried model: a subclass tagging the same attribute
+ *   another way is not looked at); an attribute the schema does not know, or that is not a text, gets the default;
+ * - a `CONTAINS` literal has the mode of the items of the attribute (`tags.*`);
+ * - numbers, booleans, null and dynamic values (`NOW()`) are left alone;
+ * - the parsed query is changed, never its text: a literal cannot alter the structure of the query.
+ *
+ * Only for queries written by a client. A query written by the application (`Model.query()`, a permission query)
+ * compares with the stored values as they are: nothing is rewritten.
+ * @param model - the model class the query is run on
+ * @param query - the parsed client query, modified in place
+ * @returns true when a literal was changed
+ * @throws SanitizerUnavailable when a literal is compared with a `markdown` attribute and micromark is not installed
+ */
+export async function sanitizeQueryLiterals(model: any, query: QueryValidator): Promise<boolean> {
+  const modes = getModelSanitizeModes(model);
+  let changed = false;
+  /**
+   * Sanitize a literal
+   * @param value - the literal
+   * @param path - the path of the texts it is compared with
+   * @returns the sanitized literal
+   */
+  const literal = async function literal(value: unknown, path: string[]): Promise<any> {
+    if (typeof value !== "string") {
+      return value;
+    }
+    const sanitized = await sanitizeString(value, getSanitizeMode(modes, path));
+    changed ||= sanitized !== value;
+    return sanitized;
+  };
+  /**
+   * Sanitize the literals of an expression
+   * @param expression - the expression
+   */
+  const visit = async function visit(expression: Expression): Promise<void> {
+    if (expression instanceof LogicalExpression) {
+      for (const child of expression.children) {
+        await visit(child);
+      }
+    } else if (expression instanceof ComparisonExpression) {
+      const raw = expression.rawValue;
+      if (Array.isArray(raw)) {
+        expression.rawValue = await Promise.all(raw.map(item => literal(item, expression.attribute)));
+      } else {
+        const path = expression.operator === "CONTAINS" ? [...expression.attribute, "*"] : expression.attribute;
+        expression.rawValue = await literal(raw, path);
+      }
+    }
+  };
+  await visit(query.getExpression());
+  return changed;
+}
+
+/**
+ * Check a client query, sanitize its literals ({@link sanitizeQueryLiterals}) and merge the model's permission
+ * query into it
  *
  * @param model - the model class
  * @param query - the client query
@@ -724,14 +789,21 @@ function checkClientQuery(model: any, query: string): QueryValidator {
  * @throws WebdaError.BadRequest for a private field ({@link assertNoPrivateFields}), a statement
  * ({@link assertQueryStatement}) or a field list the model does not allow ({@link assertSelectFields})
  */
-function prepareClientQuery(model: any, query: string, context: IOperationContext): ClientQuery | undefined {
+async function prepareClientQuery(
+  model: any,
+  query: string,
+  context: IOperationContext
+): Promise<ClientQuery | undefined> {
   const client = checkClientQuery(model, query);
   if (!hasModelPermissionCheck(model)) {
     return undefined;
   }
+  // Before the permission query is merged (its literals are the application's) and before the query is bound to
+  // the continuation token: the same client query always gives the same sanitized query
+  const text = (await sanitizeQueryLiterals(model, client)) ? client.toString() : (query ?? "");
   const permission: PermissionQuery | null | undefined =
     typeof model.getPermissionQuery === "function" ? model.getPermissionQuery(context) : undefined;
-  return { client, permission, merged: new QueryValidator(mergePermissionQuery(query ?? "", permission)) };
+  return { client, permission, merged: new QueryValidator(mergePermissionQuery(text, permission)) };
 }
 
 /**
@@ -845,7 +917,7 @@ export async function countModelWithPermissions(
   query: string,
   context: IOperationContext
 ): Promise<QueryTotal | undefined> {
-  return countClientQuery(model, prepareClientQuery(model, query, context));
+  return countClientQuery(model, await prepareClientQuery(model, query, context));
 }
 
 /**
@@ -886,7 +958,7 @@ export async function queryModelWithPermissions<T = any>(
   context: IOperationContext,
   options?: { count?: boolean }
 ): Promise<{ results: T[]; continuationToken?: string; total?: QueryTotal }> {
-  const prepared = prepareClientQuery(model, query, context);
+  const prepared = await prepareClientQuery(model, query, context);
   if (!prepared) {
     // Deny by default: no row can be read, the store is not even asked
     return { results: [], continuationToken: undefined };

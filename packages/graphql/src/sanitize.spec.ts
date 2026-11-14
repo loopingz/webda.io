@@ -512,16 +512,6 @@ class GraphQLSanitizeTest extends WebdaApplicationTest {
       (await this.gql(`query ($id: String) { Article(uuid: $id) { uuid } }`, { id: "<i>x</i>" })).Article.uuid,
       "x"
     );
-    // A WebdaQL query: sanitized as text like the `q` of a REST query (PUT body), then `<` and `>` are restored, so
-    // comparisons work and a literal matches the texts stored with the default sanitization
-    const uuids = async (query: string) =>
-      (await this.gql(`query ($q: String) { Articles(query: $q) { results { uuid } } }`, { q: query })).Articles.results
-        .map((a: any) => a.uuid)
-        .sort();
-    assert.deepStrictEqual(await uuids("summary = 'R&D'"), [a1]);
-    assert.deepStrictEqual(await uuids("summary = '<b>R&D</b>'"), [a1]);
-    assert.deepStrictEqual(await uuids("summary > 'S'"), ["x"]);
-    assert.deepStrictEqual(await uuids("summary < 'S'"), [a1]);
     // A field another service adds, with arguments nothing describes
     assert.deepStrictEqual(
       JSON.parse(
@@ -535,6 +525,86 @@ class GraphQLSanitizeTest extends WebdaApplicationTest {
     );
     const [[custom]] = await this.ws({ query: `{ customEcho(text: "<script>x</script>a < b") }` });
     assert.deepStrictEqual(JSON.parse(custom.data.customEcho), { text: "a &lt; b" });
+  }
+
+  @test
+  async queryStringsBehaveTheSameEverywhere() {
+    const { callOperation, SimpleOperationContext } = await import("@webda/core");
+    const rd = (await this.send("POST", "/api/articles", { summary: "R&D", title: "R&D", tags: ["a && b"] })).uuid;
+    const zed = (await this.send("POST", "/api/articles", { summary: "Zed <b>x</b>", title: "Zed <b>x</b>" })).uuid;
+    const keys = (res: any) => res.results.map((article: any) => article.uuid).sort();
+    /**
+     * @param q - a WebdaQL query
+     * @returns the rows found over REST (PUT body), the operation called directly (gRPC, MCP) and GraphQL (a
+     * variable and a literal of the document)
+     */
+    const everywhere = async (q: string): Promise<any[]> => {
+      const rest = await this.send("PUT", "/api/articles", { q }).then(keys, err => err.message);
+      const ctx = new SimpleOperationContext();
+      await ctx.init();
+      ctx.setSession(new Session());
+      ctx.setInput(Buffer.from(JSON.stringify({ query: q })));
+      const direct = await callOperation(ctx, "Articles.Query").then(
+        () => keys(JSON.parse(ctx.getOutput())),
+        err => err.message
+      );
+      const variable = await this.send("POST", "/graphql", {
+        query: `query ($q: String) { Articles(query: $q) { results { uuid } } }`,
+        variables: { q }
+      });
+      const literal = await this.send("POST", "/graphql", {
+        query: `{ Articles(query: ${JSON.stringify(q)}) { results { uuid } } }`
+      });
+      return [
+        rest,
+        direct,
+        ...[variable, literal].map(res => (res.errors ? res.errors[0].message : keys(res.data.Articles)))
+      ];
+    };
+    // `summary` has the default sanitization (stored escaped), `title` is `@sanitize none` (stored as written)
+    const cases: [string, string[]][] = [
+      ["summary > 'S'", [zed]],
+      ["summary < 'S'", [rd]],
+      ["title >= 'S' AND title <= 'Zz'", [zed]],
+      ["summary = 'R&D'", [rd]],
+      ["title = 'R&D'", [rd]],
+      ["title = 'Zed <b>x</b>'", [zed]],
+      ["summary = 'Zed <b>x</b>'", [zed]],
+      ["summary = 'Zed x'", [zed]],
+      ['title = "R&D"', [rd]],
+      ["title != 'R&D'", [zed]],
+      ["summary LIKE 'R&%'", [rd]],
+      ["title LIKE 'Zed <b>_</b>'", [zed]],
+      ["summary IN ['R&D', 'nope']", [rd]],
+      ["title IN ['R&D', 'Zed <b>x</b>']", [rd, zed].sort()],
+      ["tags CONTAINS 'a && b'", [rd]],
+      ["title = 'R&amp;D'", []]
+    ];
+    for (const [q, expected] of cases) {
+      for (const [i, found] of (await everywhere(q)).entries()) {
+        assert.deepStrictEqual(found, expected, `${q} over ${["REST", "the operation", "a variable", "a literal"][i]}`);
+      }
+    }
+    // A query that does not parse: the same message everywhere, without the query in it
+    assert.deepStrictEqual(await everywhere("summary = = '<b>'"), Array(4).fill("Query syntax error"));
+    // The filter of a list of links and a sub-query follow the same rule (see parseFilter)
+    const filter = await this.service.parseFilter("title = 'R&D' AND summary = 'R&D'", Article);
+    assert.strictEqual(filter!.eval(await Article.ref(rd).get()), true);
+    assert.strictEqual(filter!.eval(await Article.ref(zed).get()), false);
+    assert.strictEqual(await this.service.parseFilter(""), undefined);
+    // A field list is still refused by GraphQL (the selection set chooses the fields), accepted over REST
+    const selecting = await everywhere("SELECT title WHERE title = 'R&D'");
+    assert.deepStrictEqual(selecting.slice(0, 2), [[rd], [rd]]);
+    for (const refused of selecting.slice(2)) {
+      assert.match(String(refused), /SELECT field lists are not accepted/);
+    }
+    // A subscription on the list without query: every article
+    const context = await this.newContext<WebContext>();
+    context.setSession(new Session());
+    const subscription = this.service.schema.getSubscriptionType()!.getFields().Articles;
+    const iterator: any = await subscription.subscribe!(undefined, {}, context, undefined as any);
+    assert.strictEqual((await iterator.next()).value.Articles.results.length, 2);
+    await iterator.return?.();
   }
 
   @test

@@ -7,6 +7,7 @@ import {
   registerOperation,
   registerRepository,
   Session,
+  useApplication,
   CoreModel,
   WebdaError
 } from "@webda/core";
@@ -76,5 +77,37 @@ class McpQueryStatementsTest extends McpFixtureTest {
       input: { query: "SELECT title WHERE title = 'keep'" }
     });
     assert.deepStrictEqual(JSON.parse(JSON.stringify((partial.value as any).results)), [{ uuid: "n1", title: "keep" }]);
+  }
+
+  @test
+  async queryToolsTakeTheQueryAsWritten() {
+    registerFixture();
+    this.registerService(new DomainService("McpRawDomain", new DomainServiceParameters().load({})));
+    registerRepository(McpNote, new MemoryRepository(McpNote, ["uuid"]));
+    // As a client write stores it: the default sanitization escapes the text
+    await McpNote.create({ uuid: "rd", title: "R&amp;D" } as any);
+    await McpNote.create({ uuid: "zed", title: "Zed" } as any);
+    // The request schema of the DomainService query operations: its `query` is not HTML-sanitized
+    useApplication().getSchemas()["mcpRawSearchRequest"] = (DomainService as any).schemas.searchRequest;
+    registerOperation("McpRawNotes.Query", {
+      service: "McpRawDomain",
+      method: "modelQuery",
+      input: "mcpRawSearchRequest",
+      output: "void",
+      context: { model: McpNote }
+    } as any);
+    const found = async (query: string) => {
+      const { value } = await runOperation("McpRawNotes.Query", { session: new Session(), input: { query } });
+      return (value as any).results.map((n: any) => n.uuid).sort();
+    };
+    // The query is not HTML-sanitized: comparisons parse, and a literal finds a text with the value the client wrote
+    assert.deepStrictEqual(await found("title > 'S'"), ["zed"]);
+    assert.deepStrictEqual(await found("title < 'S'"), ["rd"]);
+    assert.deepStrictEqual(await found("title = 'R&D'"), ["rd"]);
+    assert.deepStrictEqual(await found("title LIKE 'R&%' OR title IN ['<b>Zed</b>']"), ["rd", "zed"]);
+    await assert.rejects(
+      () => runOperation("McpRawNotes.Query", { session: new Session(), input: { query: "title = = 'x'" } }),
+      /Query syntax error/
+    );
   }
 }

@@ -1880,6 +1880,9 @@ export class PartialExpressionBuilder extends ExpressionBuilder {
 
 /**
  * Remove artifact from sanitize-html inside query
+ *
+ * Client queries are no longer HTML-sanitized by the transports of `@webda/core` and `@webda/graphql`, which do not
+ * call this anymore; kept for applications that sanitize a query themselves.
  * @param query - the query string to unsanitize
  * @returns the cleaned query string
  */

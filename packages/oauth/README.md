@@ -1,5 +1,7 @@
 # @webda/oauth
 
+[![npm](https://img.shields.io/npm/v/@webda/oauth)](https://www.npmjs.com/package/@webda/oauth)
+
 OAuth 2.1 authorization server for Webda applications. It lets a third-party client (the Webda CLI, an MCP client, any
 OAuth 2.1 client) act on behalf of a signed-in user with a **delegated, scoped token**: the user consents to a set of
 operations, and the issued access token can only call those.

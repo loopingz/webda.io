@@ -1,5 +1,7 @@
 # @webda/bench
 
+[![npm](https://img.shields.io/npm/v/@webda/bench)](https://www.npmjs.com/package/@webda/bench)
+
 Benchmark framework for the Webda abstractions. One suite per abstraction, shared by every backend:
 
 | Suite      | Function      | Abstraction     | Scenarios                                                                                                                                                        |

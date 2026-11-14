@@ -674,6 +674,32 @@ class PushTest extends SyncTest {
   }
 
   @test
+  async patchReplacingTheWholeObject() {
+    // A delta can replace the object by a value that is not one: there is no attribute to sanitize then
+    const sync: any = this.sync;
+    for (const value of ["<b>text</b>", null, ["<b>x</b>"]]) {
+      assert.strictEqual(await sync.sanitizeChanges(Note, { title: "a" }, value), value);
+    }
+    // Without a previous object, every attribute is a change
+    assert.deepStrictEqual(await sync.sanitizeChanges(Note, undefined, { title: "<b>t</b>", body: "<b>b</b>" }), {
+      title: "t",
+      body: "<b>b</b>"
+    });
+    const note = await Note.create({ title: "a" } as any);
+    const [res] = await this.push([
+      {
+        mutationId: "r1",
+        ref: { model: "Test/Note", key: note.uuid },
+        baseRev: 1,
+        op: "patch",
+        patch: diff(note.toDTO(), "<b>text</b>")
+      }
+    ]);
+    assert.strictEqual(res.status, "rejected", JSON.stringify(res));
+    assert.strictEqual((await Note.ref(note.uuid).get()).title, "a");
+  }
+
+  @test
   async pushWithoutRequestBody() {
     // Called directly (no request body to read): the mutations are used as given, and sanitized all the same
     const uuid = "33333333-3333-4333-8333-333333333333";

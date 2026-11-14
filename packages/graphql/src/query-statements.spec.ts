@@ -18,7 +18,9 @@ const STATEMENTS = [
   "UPDATE SET public = TRUE",
   "UPDATE SET public = TRUE WHERE uuid = 'n-bob'",
   "SELECT uuid",
-  "SELECT uuid, _user WHERE uuid = 'n-alice'"
+  "SELECT uuid, _user WHERE uuid = 'n-alice'",
+  "HYDRATE _user",
+  "uuid = 'n-alice' HYDRATE _user INNER LIMIT 1"
 ];
 
 /**
@@ -80,6 +82,13 @@ describe("GraphQL query arguments take a filter only", () => {
       /SELECT field lists are not accepted by queries: use the selection set/
     );
     await assert.rejects(() => svc.queryModel(Note, "DELETE", alice), /DELETE statements are not accepted by queries/);
+    // HYDRATE too, unlike REST and MCP: the relation fields of the schema load the related objects
+    await assert.rejects(
+      () => svc.queryModel(Note, "HYDRATE _user", alice),
+      /HYDRATE is not accepted: select the relation fields/
+    );
+    // Lowercase words are fields
+    assert.deepStrictEqual((await svc.queryModel(Note, "hydrate = 1 OR uuid = 'n-alice'", alice)).results.length, 1);
     // Nothing was deleted or changed
     assert.deepStrictEqual((await Note.query("")).results.map((n: any) => [n.uuid, !!n.public]).sort(), [
       ["n-alice", false],
@@ -114,6 +123,7 @@ describe("GraphQL query arguments take a filter only", () => {
       }
     }
     assert.throws(() => svc.parseFilter("SELECT uuid"), /use the selection set/);
+    assert.throws(() => svc.parseFilter("HYDRATE notes"), /HYDRATE is not accepted: select the relation fields/);
     const kept = await fields.notes.resolve(source, { filter: "uuid = 'n-alice'" }, alice, { fieldNodes: [] } as any);
     assert.deepStrictEqual(
       kept.map((n: any) => n.uuid),

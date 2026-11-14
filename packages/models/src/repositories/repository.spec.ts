@@ -484,6 +484,22 @@ export class CovRepositoryTest {
     (NoSchemaModel as any).Metadata = {};
     const noSchemaRepo = new MemoryRepository<typeof NoSchemaModel>(NoSchemaModel, ["uuid"]);
     assert.deepStrictEqual(noSchemaRepo.getCompletionFields(), []);
+    assert.deepStrictEqual(noSchemaRepo.getCompletionRelations(), []);
+
+    // getCompletionRelations: the parent and the links, the relations a HYDRATE clause can name
+    class RelationsModel extends UuidModel {}
+    (RelationsModel as any).Metadata = {
+      Relations: {
+        parent: { attribute: "project", model: "Test/Project" },
+        links: [{ attribute: "owner", model: "Test/User", type: "LINK" }],
+        queries: [{ attribute: "comments", model: "Test/Comment", targetAttribute: "task" }]
+      }
+    };
+    const relationsRepo = new MemoryRepository<typeof RelationsModel>(RelationsModel, ["uuid"]);
+    assert.deepStrictEqual(relationsRepo.getCompletionRelations(), [
+      { name: "project", model: "Test/Project" },
+      { name: "owner", model: "Test/User" }
+    ]);
   }
 
   @test

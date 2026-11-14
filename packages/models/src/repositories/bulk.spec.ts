@@ -241,11 +241,14 @@ class BulkStatementsTest {
   async statementTypesAreChecked() {
     const repo = new MemoryRepository<typeof Task>(Task, ["uuid"]);
     await this.fill(repo, 2);
-    // query / iterate are SELECT only: no DELETE, no UPDATE, no field list
+    // query / iterate are SELECT only: no DELETE, no UPDATE, no field list, and no HYDRATE (objects are returned
+    // as they are stored)
     for (const statement of [
       "DELETE WHERE priority = 1",
       "UPDATE SET title = 'x'",
-      "SELECT title WHERE priority = 1"
+      "SELECT title WHERE priority = 1",
+      "priority = 1 HYDRATE owner",
+      "HYDRATE owner INNER, owner.team LIMIT 1"
     ]) {
       await assert.rejects(() => repo.query(statement), WebdaQLError, statement);
       await assert.rejects(async () => {
@@ -256,11 +259,12 @@ class BulkStatementsTest {
       await assert.rejects(() => repo.query(parse(statement) as any), WebdaQLError, statement);
     }
     assert.deepStrictEqual(await this.uuids(repo), ["t1", "t2"], "nothing was deleted or changed");
+    await assert.rejects(() => repo.query("HYDRATE owner"), /HYDRATE is not accepted here/);
     // The bulk methods take their own statement only
-    for (const statement of ["priority = 1", "SELECT title", "UPDATE SET title = 'x'"]) {
+    for (const statement of ["priority = 1", "SELECT title", "UPDATE SET title = 'x'", "HYDRATE owner"]) {
       await assert.rejects(() => repo.deleteMany(statement), /deleteMany needs a DELETE statement/, statement);
     }
-    for (const statement of ["priority = 1", "SELECT title", "DELETE"]) {
+    for (const statement of ["priority = 1", "SELECT title", "DELETE", "HYDRATE owner"]) {
       await assert.rejects(() => repo.updateMany(statement), /updateMany needs an? UPDATE statement/, statement);
     }
     await assert.rejects(() => repo.deleteMany(parse("DELETE"), [1]), /statement string/);

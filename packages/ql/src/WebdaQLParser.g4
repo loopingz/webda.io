@@ -17,13 +17,18 @@ deleteStatement: DELETE whereClause? limitExpression?;
 // UPDATE SET <assignments> [WHERE <condition>] [LIMIT n]
 updateStatement: UPDATE SET assignmentList whereClause? limitExpression?;
 
-// SELECT <fields and metrics> [WHERE <condition>] [GROUP BY ...] [ORDER BY ...] [LIMIT n] [OFFSET token]
-selectStatement: SELECT fieldList whereClause? groupByExpression? orderExpression? limitExpression? offsetExpression?;
+// SELECT <fields and metrics> [WHERE <condition>] [GROUP BY ...] [HYDRATE ...] [ORDER BY ...] [LIMIT n] [OFFSET token]
+// HYDRATE is refused with GROUP BY or metrics when the query is built
+selectStatement: SELECT fieldList whereClause? groupByExpression? hydrateClause? orderExpression? limitExpression? offsetExpression?;
 
 // Plain filter query
-filterQuery: expression? orderExpression? limitExpression? offsetExpression?;
+filterQuery: expression? hydrateClause? orderExpression? limitExpression? offsetExpression?;
 
 whereClause: WHERE expression;
+
+// HYDRATE rel, rel.sub INNER: relations replaced by the related objects (LEFT by default)
+hydrateClause: HYDRATE hydrateItem (COMMA hydrateItem)*;
+hydrateItem: identifier (INNER | LEFT)?;
 
 // UPDATE SET targets and their values
 assignmentList: assignment (COMMA assignment)*;

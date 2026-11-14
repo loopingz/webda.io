@@ -31,6 +31,8 @@ import { UpdateStatementContext } from "./WebdaQLParserParser.js";
 import { SelectStatementContext } from "./WebdaQLParserParser.js";
 import { FilterQueryContext } from "./WebdaQLParserParser.js";
 import { WhereClauseContext } from "./WebdaQLParserParser.js";
+import { HydrateClauseContext } from "./WebdaQLParserParser.js";
+import { HydrateItemContext } from "./WebdaQLParserParser.js";
 import { AssignmentListContext } from "./WebdaQLParserParser.js";
 import { AssignmentContext } from "./WebdaQLParserParser.js";
 import { FieldListContext } from "./WebdaQLParserParser.js";
@@ -407,6 +409,28 @@ export interface WebdaQLParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	exitWhereClause?: (ctx: WhereClauseContext) => void;
+
+	/**
+	 * Enter a parse tree produced by `WebdaQLParserParser.hydrateClause`.
+	 * @param ctx the parse tree
+	 */
+	enterHydrateClause?: (ctx: HydrateClauseContext) => void;
+	/**
+	 * Exit a parse tree produced by `WebdaQLParserParser.hydrateClause`.
+	 * @param ctx the parse tree
+	 */
+	exitHydrateClause?: (ctx: HydrateClauseContext) => void;
+
+	/**
+	 * Enter a parse tree produced by `WebdaQLParserParser.hydrateItem`.
+	 * @param ctx the parse tree
+	 */
+	enterHydrateItem?: (ctx: HydrateItemContext) => void;
+	/**
+	 * Exit a parse tree produced by `WebdaQLParserParser.hydrateItem`.
+	 * @param ctx the parse tree
+	 */
+	exitHydrateItem?: (ctx: HydrateItemContext) => void;
 
 	/**
 	 * Enter a parse tree produced by `WebdaQLParserParser.assignmentList`.

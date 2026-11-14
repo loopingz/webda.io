@@ -8,6 +8,16 @@ import * as WebdaError from "../errors/errors.js";
 import { useModel } from "../application/hooks.js";
 import { useDynamicService, useModelMetadata } from "../core/hooks.js";
 import type { CryptoService } from "../services/cryptoservice.service.js";
+import {
+  DEFAULT_HYDRATE_MAX_OBJECTS,
+  Hydrator,
+  hydratedKeyPaths,
+  isSelectablePath,
+  planHydration,
+  type HydrateOptions,
+  type HydratePlan
+} from "./hydration.js";
+import { primaryKeyFields, subclassesOf, visibleFields } from "./modelfields.js";
 
 /**
  * The CryptoService, resolved at call time (a static import would make a cycle through the operations module)
@@ -401,7 +411,7 @@ export const CONTINUATION_TOKEN_TTL_MS = 60 * 60 * 1000;
 /**
  * Refuse a client query that reads private (`__`-prefixed) fields, at any depth, in its filter or ORDER BY: a filter
  * on a private field (a password hash...) would reveal its value through which rows match. The field list of a
- * SELECT and the targets of an UPDATE SET are checked too.
+ * SELECT, the targets of an UPDATE SET and the paths of a HYDRATE clause are checked too.
  * @param query - the parsed client query
  * @throws WebdaError.BadRequest when a field path has a `__`-prefixed segment
  */
@@ -420,7 +430,8 @@ export function assertNoPrivateFields(query: QueryValidator): void {
     [
       ...(parsed.orderBy ?? []).map(o => o.field),
       ...(parsed.fields ?? []),
-      ...(parsed.assignments ?? []).map(a => a.field)
+      ...(parsed.assignments ?? []).map(a => a.field),
+      ...(parsed.hydrate ?? []).map(h => h.path)
     ]
       .map(field => field.split("."))
       .some(isPrivate)
@@ -430,21 +441,24 @@ export function assertNoPrivateFields(query: QueryValidator): void {
 }
 
 /**
- * Refuse anything but a filter query: DELETE and UPDATE statements, and SELECT field lists
+ * Refuse anything but a filter query: DELETE and UPDATE statements, SELECT field lists and HYDRATE clauses
  *
- * For the client paths that return or store whole objects: GraphQL (its selection sets choose the fields), the
- * offline sync filters and `Audit.Query`. The Query operations (REST, gRPC, MCP) accept a field list, see
- * {@link assertQueryStatement}.
+ * For the client paths that return or store whole objects: GraphQL (its selection sets choose the fields and its
+ * resolvers load the relations), the offline sync filters and `Audit.Query`. The Query operations accept a field
+ * list (REST, gRPC, MCP) and a HYDRATE clause (REST, MCP), see {@link assertQueryStatement}.
  * @param query - the parsed client query
- * @throws WebdaError.BadRequest for a DELETE or UPDATE statement, or a SELECT field list
+ * @throws WebdaError.BadRequest for a DELETE or UPDATE statement, a SELECT field list or a HYDRATE clause
  */
 export function assertFilterOnly(query: QueryValidator): void {
-  const { type, fields } = query.getQuery();
+  const { type, fields, hydrate } = query.getQuery();
   if (type === "DELETE" || type === "UPDATE") {
     throw new WebdaError.BadRequest(`${type} statements are not accepted by queries`);
   }
   if (fields !== undefined) {
     throw new WebdaError.BadRequest("SELECT field lists are not accepted by queries");
+  }
+  if (hydrate !== undefined) {
+    throw new WebdaError.BadRequest("HYDRATE is not accepted by queries");
   }
 }
 
@@ -478,33 +492,6 @@ export function assertQueryStatement(query: QueryValidator): void {
 }
 
 /**
- * The primary key fields of a model, from its metadata
- * @param model - the model class
- * @returns the field names, `["uuid"]` by default
- */
-function primaryKeyFields(model: any): string[] {
-  let fields: unknown;
-  try {
-    fields = useModelMetadata(model)?.PrimaryKey;
-  } catch {
-    // A class registered without metadata
-  }
-  return Array.isArray(fields) && fields.length ? fields.map(String) : ["uuid"];
-}
-
-/**
- * The fields of the Output schema of a model class, from its own metadata: a class defined without metadata inherits
- * the `Metadata` of its parent class, whose schema does not describe it
- * @param model - the model class
- * @returns the field names, undefined without Output schema metadata
- */
-function outputFields(model: any): string[] | undefined {
-  const properties =
-    model && Object.hasOwn(model, "Metadata") ? model.Metadata?.Schemas?.Output?.properties : undefined;
-  return properties && typeof properties === "object" ? Object.keys(properties) : undefined;
-}
-
-/**
  * Check the field list of a client query (`SELECT f1, f2.g`) against what a client can see of the model
  *
  * A selected path must start with a field of the Output schema of the model or of one of its subclasses (a query
@@ -512,13 +499,18 @@ function outputFields(model: any): string[] | undefined {
  * used: they can name server-only fields. A model without Output schema metadata of its own is not checked: unknown
  * paths are then absent from the results.
  *
+ * A path through a relation follows what the results hold there ({@link isSelectablePath}): through a hydrated
+ * relation (`owner.name` with `HYDRATE owner`), the fields a client can see of the related model; through a relation
+ * that is not hydrated and holds a key, nothing (`owner.name` without `HYDRATE owner` is refused).
+ *
  * The error names the refused path only, and is decided from the schema, never from the rows.
  * @param model - the queried model class
  * @param query - the parsed client query
+ * @param hydration - the checked HYDRATE clause of the query, if any
  * @throws WebdaError.BadRequest for more than {@link MAX_SELECT_FIELDS} paths, a path deeper than
  * {@link MAX_SELECT_DEPTH}, a `constructor` or `prototype` segment, or a path that is not in the Output schema
  */
-export function assertSelectFields(model: any, query: QueryValidator): void {
+export function assertSelectFields(model: any, query: QueryValidator, hydration?: HydratePlan): void {
   const fields = query.getQuery().fields;
   if (fields === undefined) {
     return;
@@ -526,13 +518,8 @@ export function assertSelectFields(model: any, query: QueryValidator): void {
   if (fields.length > MAX_SELECT_FIELDS) {
     throw new WebdaError.BadRequest(`A query cannot select more than ${MAX_SELECT_FIELDS} fields`);
   }
-  let allowed: Set<string> | undefined;
-  if (outputFields(model)) {
-    allowed = new Set(primaryKeyFields(model));
-    for (const clazz of [model, ...subclassesOf(model)]) {
-      outputFields(clazz)?.forEach(name => allowed.add(name));
-    }
-  }
+  const allowed = visibleFields(model);
+  const classes = [model, ...subclassesOf(model)];
   for (const field of fields) {
     const segments = field.split(".");
     if (segments.length > MAX_SELECT_DEPTH) {
@@ -540,7 +527,8 @@ export function assertSelectFields(model: any, query: QueryValidator): void {
     }
     if (
       segments.some(segment => segment === "constructor" || segment === "prototype") ||
-      (allowed && !allowed.has(segments[0]))
+      (allowed && !allowed.has(segments[0])) ||
+      !isSelectablePath(classes, hydration?.nodes ?? [], segments)
     ) {
       throw new WebdaError.BadRequest(`Unknown field "${field}"`);
     }
@@ -548,8 +536,8 @@ export function assertSelectFields(model: any, query: QueryValidator): void {
 }
 
 /**
- * What a continuation token is bound to: it is only accepted back for the same model, the same query (filter and
- * ORDER BY) and the same caller
+ * What a continuation token is bound to: it is only accepted back for the same model, the same query (filter,
+ * HYDRATE clause and ORDER BY) and the same caller
  */
 export type ContinuationTokenBinding = {
   /**
@@ -557,7 +545,7 @@ export type ContinuationTokenBinding = {
    */
   model: string;
   /**
-   * The query the token continues: filter and ORDER BY, without LIMIT and OFFSET
+   * The query the token continues: filter, HYDRATE clause and ORDER BY, without LIMIT and OFFSET
    */
   query: string;
   /**
@@ -674,12 +662,15 @@ export const QUERY_TOTAL_SCHEMA = {
  * Description of the query input of the Query operations, used by their schemas (OpenAPI, MCP tools, gRPC, CLI)
  */
 export const QUERY_DESCRIPTION =
-  "WebdaQL filter, or `SELECT f1, f2.g WHERE ...` to return only those fields plus the primary key";
+  "WebdaQL filter, or `SELECT f1, f2.g WHERE ...` to return only those fields plus the primary key. " +
+  "`HYDRATE rel, rel.sub INNER` before ORDER BY replaces relation keys by the related objects the caller may read " +
+  "(`null` otherwise; INNER drops the result instead): REST and MCP only, limited in depth and in objects loaded";
 /**
  * Description of the `results` of a query, used by the query result schemas
  */
 export const QUERY_RESULTS_DESCRIPTION =
-  "Objects matching the query: items are partial when the query has a field list";
+  "Objects matching the query: items are partial when the query has a field list, " +
+  "and their relation fields hold objects (or null) when the query hydrates them";
 
 /**
  * A client query checked and merged with the model's permission query
@@ -697,21 +688,32 @@ type ClientQuery = {
    * The client query ANDed with the permission query
    */
   merged: QueryValidator;
+  /**
+   * The checked HYDRATE clause of the client query, if any
+   */
+  hydration?: HydratePlan;
 };
 
 /**
- * Check a client query: no private field, no DELETE, UPDATE or aggregation, and a field list the model allows
+ * Check a client query: no private field, no DELETE, UPDATE or aggregation, a HYDRATE clause the relations of the
+ * model allow, and a field list the model allows
  * @param model - the model class
  * @param query - the client query
- * @returns the parsed client query
+ * @param hydrate - how HYDRATE is accepted
+ * @returns the parsed client query and its checked HYDRATE clause
  * @throws WebdaError.BadRequest when refused
  */
-function checkClientQuery(model: any, query: string): QueryValidator {
+function checkClientQuery(
+  model: any,
+  query: string,
+  hydrate?: HydrateOptions
+): { client: QueryValidator; hydration?: HydratePlan } {
   const client = new QueryValidator(query ?? "");
   assertNoPrivateFields(client);
   assertQueryStatement(client);
-  assertSelectFields(model, client);
-  return client;
+  const hydration = planHydration(model, client, hydrate);
+  assertSelectFields(model, client, hydration);
+  return { client, hydration };
 }
 
 /**
@@ -720,18 +722,25 @@ function checkClientQuery(model: any, query: string): QueryValidator {
  * @param model - the model class
  * @param query - the client query
  * @param context - the caller context
+ * @param hydrate - how HYDRATE is accepted
  * @returns the checked queries, undefined when the model defines no permission check (no row can be read)
  * @throws WebdaError.BadRequest for a private field ({@link assertNoPrivateFields}), a statement
- * ({@link assertQueryStatement}) or a field list the model does not allow ({@link assertSelectFields})
+ * ({@link assertQueryStatement}), a HYDRATE clause ({@link planHydration}) or a field list the model does not allow
+ * ({@link assertSelectFields})
  */
-function prepareClientQuery(model: any, query: string, context: IOperationContext): ClientQuery | undefined {
-  const client = checkClientQuery(model, query);
+function prepareClientQuery(
+  model: any,
+  query: string,
+  context: IOperationContext,
+  hydrate?: HydrateOptions
+): ClientQuery | undefined {
+  const { client, hydration } = checkClientQuery(model, query, hydrate);
   if (!hasModelPermissionCheck(model)) {
     return undefined;
   }
   const permission: PermissionQuery | null | undefined =
     typeof model.getPermissionQuery === "function" ? model.getPermissionQuery(context) : undefined;
-  return { client, permission, merged: new QueryValidator(mergePermissionQuery(query ?? "", permission)) };
+  return { client, permission, hydration, merged: new QueryValidator(mergePermissionQuery(query ?? "", permission)) };
 }
 
 /**
@@ -749,28 +758,6 @@ function definingClass(start: any, key: string, onPrototype: boolean): any {
     }
   }
   return undefined;
-}
-
-/**
- * Return every subclass of the model, transitively, from its metadata
- * @param model - a model class
- * @param seen - the subclasses found so far
- * @returns every subclass of the model, transitively, from its metadata
- */
-function subclassesOf(model: any, seen: Set<any> = new Set()): any[] {
-  let metadata: any;
-  try {
-    metadata = useModelMetadata(model);
-  } catch {
-    // A class registered without metadata
-  }
-  for (const sub of (metadata ?? model?.Metadata)?.Subclasses ?? []) {
-    if (typeof sub === "function" && !seen.has(sub)) {
-      seen.add(sub);
-      subclassesOf(sub, seen);
-    }
-  }
-  return [...seen];
 }
 
 /**
@@ -799,8 +786,10 @@ function permissionQueryCoversCanAct(model: any): boolean {
  */
 async function countClientQuery(model: any, prepared: ClientQuery | undefined): Promise<QueryTotal | undefined> {
   // Rows are filtered with canAct after the store query: the store count only matches the readable rows when the
-  // model states that its permission query alone decides (partial: false)
+  // model states that its permission query alone decides (partial: false). An INNER relation drops rows too: a
+  // store count cannot know which, and would reveal how many rows hold an unreadable relation
   if (
+    prepared?.hydration?.inner ||
     prepared?.permission?.partial !== false ||
     typeof model.count !== "function" ||
     !permissionQueryCoversCanAct(model)
@@ -838,7 +827,7 @@ async function countClientQuery(model: any, prepared: ClientQuery | undefined): 
  * @param query - the client query
  * @param context - the caller context
  * @returns the total, undefined when the model defines no permission check, its permission query is missing or
- * partial, or its store refuses an in-memory count (`aggregationFallback: "deny"`)
+ * partial, the query has an INNER relation, or its store refuses an in-memory count (`aggregationFallback: "deny"`)
  */
 export async function countModelWithPermissions(
   model: any,
@@ -846,6 +835,37 @@ export async function countModelWithPermissions(
   context: IOperationContext
 ): Promise<QueryTotal | undefined> {
   return countClientQuery(model, prepareClientQuery(model, query, context));
+}
+
+/**
+ * Read an object a query hydrates, with the rules of a `GET` as the caller: a model without permission check is never
+ * read (default deny), then the operation-level gate, then the model's `canAct("get")` (the related class and, for a
+ * subclass row, its own class)
+ * @param model - the related model class
+ * @param key - its primary key
+ * @param context - the caller context
+ * @param canGet - the operation-level gate, if any
+ * @returns the object, undefined when it is missing or the caller may not read it: the two cannot be told apart
+ */
+async function readForHydration(
+  model: any,
+  key: any,
+  context: IOperationContext,
+  canGet?: HydrateOptions["canGet"]
+): Promise<any> {
+  if (!hasModelPermissionCheck(model) || (canGet && (await canGet(model, key)) !== true)) {
+    return undefined;
+  }
+  let object: any;
+  try {
+    object = await model.ref(key).get();
+  } catch {
+    // Repositories throw when the object does not exist
+  }
+  if (!object || object.isDeleted?.()) {
+    return undefined;
+  }
+  return (await askPermission(staticCanAct(model, object), context, "get", object)) === true ? object : undefined;
 }
 
 /**
@@ -870,35 +890,44 @@ export async function countModelWithPermissions(
  *   form of the row (`toDTO()`, built as the caller) reduced to the selected paths plus the primary key
  *   (`projectFields` of `@webda/ql`). The field list is applied last and never reaches the store: the rows are read
  *   whole, so the permission query, `canAct` and `toDTO()` see every field, and the page, the token and the total are
- *   those of the same query without field list. A token can be sent back with another field list.
+ *   those of the same query without field list. A token can be sent back with another field list;
+ * - with a HYDRATE clause (`HYDRATE owner, project INNER, project.team`, checked by {@link planHydration}), each
+ *   result is the public form of the row with the listed relations replaced by the related objects ({@link Hydrator}).
+ *   A related object is read like a `GET` as the caller ({@link readForHydration}) and replaced by its own public
+ *   form; a missing or unreadable one is `null` (LEFT, the default), or drops the row (INNER). A row dropped by INNER
+ *   counts like a row refused by `canAct`: it is replaced within the same scan budget. The clause never reaches the
+ *   store; it is part of what the continuation token is bound to, and no total is given with an INNER relation. A
+ *   field list is applied after hydration, and keeps the primary key of the hydrated objects it goes through.
  *
  * @param model - the model class
  * @param query - the client query
  * @param context - the caller context
- * @param options - `count` adds the total of the query
+ * @param options - `count` adds the total of the query, `hydrate` sets how HYDRATE is accepted
  * @param options.count - count the total of the query
- * @returns the query results the caller may read (partial plain objects with a field list), and the total when
- * asked and allowed
+ * @param options.hydrate - limits of HYDRATE, its operation-level gate, or its refusal
+ * @returns the query results the caller may read (plain objects with a field list or a HYDRATE clause, partial with
+ * a field list), and the total when asked and allowed
  */
 export async function queryModelWithPermissions<T = any>(
   model: any,
   query: string,
   context: IOperationContext,
-  options?: { count?: boolean }
+  options?: { count?: boolean; hydrate?: HydrateOptions }
 ): Promise<{ results: T[]; continuationToken?: string; total?: QueryTotal }> {
-  const prepared = prepareClientQuery(model, query, context);
+  const prepared = prepareClientQuery(model, query, context, options?.hydrate);
   if (!prepared) {
     // Deny by default: no row can be read, the store is not even asked
     return { results: [], continuationToken: undefined };
   }
-  const { client, merged } = prepared;
+  const { client, merged, hydration } = prepared;
   const limit = Math.min(client.getLimit(), MAX_QUERY_LIMIT);
   // The query without its LIMIT and OFFSET: filter and ORDER BY
   const orderBy = (merged.getQuery().orderBy ?? []).map(o => `${o.field} ${o.direction}`).join(", ");
   const base = `${merged.getExpression().toString()}${orderBy ? ` ORDER BY ${orderBy}` : ""}`.trim();
   const binding: ContinuationTokenBinding = {
     model: modelIdentifier(model),
-    query: base,
+    // An INNER relation changes which rows a page holds: a token only continues the query with the same clause
+    query: hydration ? `${base} HYDRATE ${hydration.clause}` : base,
     user: context.getCurrentUserId() || "anonymous"
   };
   let offset = client.getOffset();
@@ -918,6 +947,14 @@ export async function queryModelWithPermissions<T = any>(
   const page = (count: number, token?: string) =>
     new QueryValidator(base).merge(`LIMIT ${count}${token ? ` OFFSET ${JSON.stringify(token)}` : ""}`).toString();
   const budget = Math.min(Math.max(limit * SCAN_FACTOR, MIN_SCANNED_ROWS), MAX_SCANNED_ROWS);
+  const hydrator = hydration
+    ? new Hydrator(
+        hydration,
+        context,
+        (target, key) => readForHydration(target, key, context, options?.hydrate?.canGet),
+        Math.max(Math.trunc(options?.hydrate?.maxObjects ?? DEFAULT_HYDRATE_MAX_OBJECTS), 1)
+      )
+    : undefined;
   const results: T[] = [];
   let scanned = 0;
   let pages = 1;
@@ -930,7 +967,9 @@ export async function queryModelWithPermissions<T = any>(
     const readable = await Promise.all(
       rows.map(async r => (await askPermission(staticCanAct(model, r), context, "get", r)) === true)
     );
-    results.push(...rows.filter((_r, i) => readable[i]));
+    const accepted = rows.filter((_r, i) => readable[i]);
+    // Hydrated per page: a row refused by an INNER relation is replaced like a row refused by canAct
+    results.push(...(hydrator ? await hydrator.hydrate(accepted) : accepted));
     token = res.continuationToken;
     if (!token || results.length >= limit) {
       // Store exhausted, or page full
@@ -947,13 +986,19 @@ export async function queryModelWithPermissions<T = any>(
   }
   const total = await counting;
   const fields = client.getQuery().fields;
-  // The public form is built as the caller: a model can hide fields per caller in toDTO()
+  // The public form is built as the caller: a model can hide fields per caller in toDTO(). Hydrated rows already
+  // are in their public form
   const project = (paths: string[]): T[] =>
     runWithContext(context as any, () =>
-      results.map((row: any) => projectFields(typeof row.toDTO === "function" ? row.toDTO() : row, paths) as T)
+      results.map(
+        (row: any) => projectFields(!hydration && typeof row.toDTO === "function" ? row.toDTO() : row, paths) as T
+      )
     );
   return {
-    results: fields === undefined ? results : project([...primaryKeyFields(model), ...fields]),
+    results:
+      fields === undefined
+        ? results
+        : project([...primaryKeyFields(model), ...(hydration ? hydratedKeyPaths(hydration, fields) : []), ...fields]),
     continuationToken: token ? await sealContinuationToken(String(token), binding) : undefined,
     ...(total ? { total } : {})
   };

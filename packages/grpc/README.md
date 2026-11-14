@@ -81,6 +81,10 @@ key (see [Field selection](../../docs/pages/Modules/ql/Statements.md#field-selec
 not change: a field that is not selected is not sent, so a required (non-`optional`) proto3 field decodes as its
 default value (`""`, `0`, `false`). Read only the fields you selected.
 
+`HYDRATE` is refused by a Query RPC (`INVALID_ARGUMENT`, `HYDRATE is not available over gRPC`): the messages type a
+relation as its key, so a hydrated object does not fit them. Read the related objects with their own RPCs, or use the
+REST or MCP Query operation (see [Hydration](../../docs/pages/Modules/ql/Statements.md#hydration)).
+
 ## Streaming
 
 All four modes (unary, server, client and bidirectional streams) are live: messages are sent as the generator yields,

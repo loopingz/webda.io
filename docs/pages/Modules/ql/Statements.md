@@ -8,7 +8,7 @@ sidebar_label: Statements
 Besides a plain filter query, WebdaQL parses three statements:
 
 ```
-SELECT f1, f2.g [WHERE <filter>] [ORDER BY ...] [LIMIT n] [OFFSET "token"]
+SELECT f1, f2.g [WHERE <filter>] [HYDRATE ...] [ORDER BY ...] [LIMIT n] [OFFSET "token"]
 SELECT g1, COUNT(*) AS n, SUM(f) AS s [WHERE <filter>] [GROUP BY g1] [ORDER BY ...] [LIMIT n]
 DELETE [WHERE <filter>] [LIMIT n]
 UPDATE SET a = <value>, b.c = <value> [WHERE <filter>] [LIMIT n]
@@ -18,6 +18,7 @@ UPDATE SET a = <value>, b.c = <value> [WHERE <filter>] [LIMIT n]
 - **A plain filter is an implicit `SELECT` of every field**: `parse("status = 'open'").type` is `"SELECT"`. A bare field list without the keyword (`name, age WHERE ...`) is a syntax error.
 - Fields can be dotted paths (`profile.email`). SET values are literals (string, number, `TRUE`/`FALSE`), `NOW(...)` function calls, or parameters; `NULL` cannot be assigned.
 - Parameters (`?`, `:name`) work in WHERE, LIMIT, OFFSET and SET values: `bind("UPDATE SET status = ? WHERE owner = ?", ["archived", user])`.
+- A filter query and a `SELECT` field list take a `HYDRATE rel, rel.sub INNER` clause before `ORDER BY`: see [Hydration](#hydration).
 
 The parsed `Query` carries the statement:
 
@@ -35,7 +36,7 @@ parse("SELECT name, profile.email WHERE age > 18").fields; // ["name", "profile.
 
 `toString()` prints the canonical form of every statement (including `LIMIT 0`) and parses back to the same query. A `Query` object built or changed by code can be checked with `normalizeQuery(query)`: field paths (letters, digits, `_`), operators, values (strings, finite numbers, booleans), LIMIT and OFFSET are validated and the query is parsed again from its text. Repositories do this for every object they receive. `PrependCondition(query, condition)` keeps the statement head and its ORDER BY / LIMIT / OFFSET and ANDs the condition into the WHERE, both sides keeping their grouping (`( a OR b ) AND ( c OR d )`); the condition itself must be a filter.
 
-`parse(query, allowedFields)` checks the SELECT fields and the SET targets against a list of fields (a dotted path is allowed when it or one of its parents is listed) and throws a `SyntaxError` otherwise; `validateQueryFields(query, allowedFields)` does the same on a parsed query. `assertFilterQuery(query)` refuses anything but a plain filter. `projectFields(object, paths)` keeps the fields of a field list on an object (see [Field selection](#field-selection)).
+`parse(query, allowedFields)` checks the SELECT fields and the SET targets against a list of fields (a dotted path is allowed when it or one of its parents is listed) and throws a `SyntaxError` otherwise; `validateQueryFields(query, allowedFields)` does the same on a parsed query. `assertFilterQuery(query)` refuses anything but a plain filter (a `HYDRATE` clause included). `projectFields(object, paths)` keeps the fields of a field list on an object (see [Field selection](#field-selection)).
 
 ## Aggregation: SELECT … GROUP BY
 
@@ -72,16 +73,17 @@ names stay attributes: `count = 1 AND min = 2` is still a filter.
 
 ## Where statements are accepted
 
-| Entry point                                                         | Plain filter | `SELECT` field list       | `DELETE` / `UPDATE`      |
-| ------------------------------------------------------------------- | ------------ | ------------------------- | ------------------------ |
-| Query operations (REST, gRPC, MCP)                                  | yes          | **yes** (partial results) | **400**                  |
-| `Audit.Query`, offline sync filters                                 | yes          | **400**                   | **400**                  |
-| GraphQL query and `filter` arguments, subscriptions, links and maps | yes          | **BAD_USER_INPUT**        | **BAD_USER_INPUT**       |
-| `Repository.query()` / `iterate()`, `Model.query()`                 | yes          | refused (`WebdaQLError`)  | refused (`WebdaQLError`) |
-| `Repository.deleteMany()`                                           | no           | no                        | `DELETE` only            |
-| `Repository.updateMany()`                                           | no           | no                        | `UPDATE` only            |
+| Entry point                                                         | Plain filter | `SELECT` field list       | `HYDRATE`                | `DELETE` / `UPDATE`      |
+| ------------------------------------------------------------------- | ------------ | ------------------------- | ------------------------ | ------------------------ |
+| Query operations (REST, MCP)                                        | yes          | **yes** (partial results) | **yes**                  | **400**                  |
+| Query operations (gRPC)                                             | yes          | **yes** (partial results) | **INVALID_ARGUMENT**     | **INVALID_ARGUMENT**     |
+| `Audit.Query`, offline sync filters                                 | yes          | **400**                   | **400**                  | **400**                  |
+| GraphQL query and `filter` arguments, subscriptions, links and maps | yes          | **BAD_USER_INPUT**        | **BAD_USER_INPUT**       | **BAD_USER_INPUT**       |
+| `Repository.query()` / `iterate()`, `Model.query()`                 | yes          | refused (`WebdaQLError`)  | refused (`WebdaQLError`) | refused (`WebdaQLError`) |
+| `Repository.deleteMany()`                                           | no           | no                        | no                       | `DELETE` only            |
+| `Repository.updateMany()`                                           | no           | no                        | no                       | `UPDATE` only            |
 
-**Field lists project the results of the Query operations** (see [Field selection](#field-selection)); aggregations (`SELECT … GROUP BY`) are refused there with a 400 and run through `Model.aggregate()`. **DELETE and UPDATE are repository-level operations**: they never run through the Query operations exposed to clients. A `__` field in a field list or a SET target is refused like a `__` filter.
+**Field lists project the results of the Query operations** (see [Field selection](#field-selection)), and **`HYDRATE` loads their relations** (see [Hydration](#hydration)); aggregations (`SELECT … GROUP BY`) are refused there with a 400 and run through `Model.aggregate()`. **DELETE and UPDATE are repository-level operations**: they never run through the Query operations exposed to clients. A `__` field in a field list or a SET target is refused like a `__` filter.
 
 ## Field selection
 
@@ -121,7 +123,7 @@ A query without a field list returns whole objects, as before.
 | Through an array        | `SELECT tags.name` on `tags: [{ name, color }]` returns `tags: [{ name }]` |
 | Through a scalar/`null` | `SELECT b.c` when `b` is `5` or `null`: `b` is omitted                     |
 | Missing value           | omitted, no `null` is added; an existing `null` is kept                    |
-| Relations               | returned as they are in the object (ids or link objects), not loaded       |
+| Relations               | returned as they are in the object (ids or link objects), unless hydrated  |
 | Key order               | the order of the object, not of the field list                             |
 
 **Errors** (`400 Bad Request`, before the store is asked)
@@ -136,7 +138,9 @@ A query without a field list returns whole objects, as before.
 
 A selected path must start with a field of the Output schema of the model or of one of its subclasses (a query on a
 model returns the rows of its subclasses), or with a primary key field. The rest of a dotted path is not checked: a
-sub-path that does not exist is absent from the results. A model without Output schema metadata is not checked at all.
+sub-path that does not exist is absent from the results. The exception is a path through a relation: a relation that
+holds a key (parent, link, array of keys) has no sub-field, so `SELECT owner.name` is refused
+(`Unknown field "owner.name"`) unless the query [hydrates](#hydration) `owner`. A model without Output schema metadata is not checked at all.
 A field that `toDTO()` hides from the caller is absent too, not an error: whether it is visible can depend on the row.
 
 **Per transport**
@@ -153,6 +157,126 @@ A field that `toDTO()` hides from the caller is absent too, not an error: whethe
 - **Repositories, offline sync, `Audit.Query`**: a field list is refused. `Repository.query()` and `Model.query()`
   return model instances, and saving a partial instance would erase the fields that were not selected. Sync stores
   whole objects on the client.
+
+## Hydration
+
+Query results hold relations as keys. `HYDRATE` replaces the listed relations by the related objects, in the same
+query: one call instead of one per related object.
+
+```
+status = 'open' HYDRATE owner, project INNER, project.team ORDER BY due ASC LIMIT 20
+SELECT title, owner.name WHERE status = 'open' HYDRATE owner
+```
+
+```json
+{
+  "results": [
+    {
+      "uuid": "t1",
+      "title": "Write the docs",
+      "owner": { "uuid": "u1", "name": "Ada" },
+      "project": { "uuid": "p1", "name": "Apollo", "team": { "uuid": "g1", "name": "Core" } }
+    }
+  ]
+}
+```
+
+The clause comes after the filter (or the `WHERE` of a `SELECT`) and before `ORDER BY`. A dotted path hydrates the
+relations of a hydrated object: `project.team` implies `project`. It is refused with `GROUP BY` or aggregate
+functions, and in `DELETE` and `UPDATE` (syntax error). The parsed `Query` carries it as
+`hydrate: [{ path: "owner", mode: "LEFT" }, …]`.
+
+**Join modes**, per relation
+
+| Mode             | A related object that is missing, or that the caller may not read                       |
+| ---------------- | --------------------------------------------------------------------------------------- |
+| `LEFT` (default) | The relation is `null`; the result is kept. A relation that is not set is left as it is |
+| `INNER`          | The result is dropped. A relation that is not set drops it too                          |
+
+On a collection, `INNER` removes the missing and unreadable entries, and drops the result when no entry is left. On a
+nested path each level has its own mode: with `HYDRATE project.team INNER`, a project whose team is missing counts as
+missing itself, so `project` is `null` (it is `LEFT`); with `HYDRATE project INNER, project.team INNER` the result is
+dropped.
+
+**What can be hydrated**, and the shape of the result
+
+| Relation                                    | Stored as                | Hydrated as                                                   |
+| ------------------------------------------- | ------------------------ | ------------------------------------------------------------- |
+| `ModelParent`, `ModelLink`                  | a key                    | the object, or `null`                                         |
+| `ModelLinksSimpleArray`                     | an array of keys         | an array of objects or `null`: positions are kept             |
+| `ModelLinksArray`                           | an array of link objects | each entry is the object merged over its link data, or `null` |
+| `ModelLinksMap`                             | link data by key         | the same merge for each entry, or `null`: map keys are kept   |
+| `ModelRelated`, maps, polymorphic, binaries | —                        | refused (`Cannot hydrate "<path>"`)                           |
+
+In a merged entry the fields of the object win over the link data of the same name. A reverse relation
+(`ModelRelated`) is a query of its own: use the Query operation of the related model with a filter, or GraphQL.
+
+**Permissions**
+
+- Each related object is read as the caller, with the rules of a `GET`: the `Get` operation of its model must be
+  exposed and allowed for the caller (operation permission, token scopes, authorizers), then the model's
+  `canAct(ctx, "get")` decides. A model without `canAct` is never returned.
+- A missing object and an object the caller may not read give the same result (`null`, or a dropped result): the
+  response does not tell them apart, exactly like a direct `GET` answers 404 for both.
+- A hydrated object is its `toDTO()` form, built as the caller: fields it hides from this caller stay hidden. The
+  relation keys are read from the `toDTO()` form of the result too: a relation it hides is not hydrated.
+- `__` fields are refused in a path, and never part of a hydrated object.
+
+**Paging and totals**
+
+- A result dropped by `INNER` counts like a result refused by `canAct`: it is replaced from the next store pages, so
+  a page holds up to `LIMIT` results. When the scan budget of the page is spent the page can be shorter; its
+  `continuationToken` still continues the query.
+- The `continuationToken` is bound to the clause: send it back with the same `HYDRATE` clause (`LEFT` written or
+  implied is the same clause). The field list can still change between pages.
+- `count: true` gives no `total` when a path is `INNER` (the store cannot count the dropped results). With `LEFT`
+  only, the total is the one of the same query without the clause.
+
+**With a field list**: the field list is applied after hydration. A path through a hydrated relation selects fields
+of the related object, and keeps its primary key: `SELECT title, owner.name … HYDRATE owner` returns
+`{ uuid, title, owner: { uuid, name } }`. Such a path is checked against the Output schema of the related model.
+Without `HYDRATE owner`, `owner` holds a key and `SELECT owner.name` is a 400. A `null` relation is kept when the
+relation is selected whole (`SELECT owner`), and absent when a path goes through it (`SELECT owner.name`); a `null`
+entry of a collection has no field to keep and is left out. A path through a hydrated map goes through its keys
+(`labels.<key>.name`).
+
+**Limits** (`DomainService` parameters)
+
+| Parameter                | Default | Meaning                                                                        |
+| ------------------------ | ------- | ------------------------------------------------------------------------------ |
+| `queryHydrateMaxDepth`   | `2`     | Deepest path (`project.team` is 2), between 1 and 5                            |
+| `queryHydrateMaxObjects` | `1000`  | Most distinct related objects one query loads; a query loading more is refused |
+
+Each related object is loaded once per query, whatever the number of results naming it.
+
+**Errors** (`400 Bad Request`; all but the last before the store is asked)
+
+| Query                                                   | Message                                                                       |
+| ------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| A path that is not a chain of parent and link relations | `Cannot hydrate "<path>"`                                                     |
+| A `__` segment                                          | `Private fields cannot be queried`                                            |
+| A path listed twice                                     | `HYDRATE lists "<path>" more than once`                                       |
+| A path deeper than `queryHydrateMaxDepth`               | `HYDRATE "<path>" is deeper than <n>`                                         |
+| More than `queryHydrateMaxObjects` related objects      | `HYDRATE loads more than <n> objects: lower LIMIT or HYDRATE fewer relations` |
+
+**Per transport**
+
+- **REST**: `PUT /tasks` with `{ "q": "HYDRATE owner LIMIT 5" }`. The OpenAPI result schema still references the
+  model: its relation fields hold objects when they are hydrated.
+- **MCP**: the `Tasks.Query` tool takes the same `query`: an agent gets the related objects in one tool call.
+- **gRPC**: refused (`INVALID_ARGUMENT`, `HYDRATE is not available over gRPC`). The messages type a relation as its
+  key.
+- **GraphQL**: refused (`BAD_USER_INPUT`). Select the relation fields: they already load the related objects.
+- **`@webda/sdk`**: `api.Task.query("HYDRATE owner")` returns the hydrated objects. They are not cached, and never
+  change a cached entity.
+- **Repositories, offline sync, `Audit.Query`**: refused. `Repository.query()` and `Model.query()` return model
+  instances as they are stored; load a relation with its accessor (`task.owner.get()`).
+
+### Hydration keywords
+
+The uppercase words `HYDRATE`, `INNER` and `LEFT` are keywords. **Breaking change:** a filter on an attribute named
+in uppercase like one of them (`LEFT = 1`) no longer parses. Lowercase names stay attributes: `left = 1 AND inner = 2`
+is still a filter.
 
 ## Bulk operations on repositories
 

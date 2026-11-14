@@ -24,16 +24,43 @@ export interface CompletionField {
 }
 
 /**
+ * Relation metadata used to provide the candidates of a HYDRATE clause
+ */
+export interface CompletionRelation {
+  /** Dotted relation path from the queried model, e.g. "project" or "project.team" */
+  name: string;
+  /** Identifier of the related model, shown as detail */
+  model?: string;
+}
+
+/**
+ * The relations of a model that can be hydrated: the subset of the `Metadata.Relations` of a model read by
+ * {@link relationsFromGraph}
+ */
+export interface RelationGraphLike {
+  /** Parent relation */
+  parent?: { attribute: string; model: string };
+  /** Links to other models */
+  links?: { attribute: string; model: string }[];
+}
+
+/**
  * Options configuring WebdaQL code completion
  */
 export interface CompletionOptions {
   /** Known fields; without them no field candidates are returned */
   fields?: CompletionField[];
+  /**
+   * Relations that can be hydrated (see {@link relationsFromGraph}): the candidates after `HYDRATE`, instead of the
+   * fields. Without them no candidate is returned there
+   */
+  relations?: CompletionRelation[];
   /** Only offer filter-query syntax (no SELECT / DELETE / UPDATE): for REST, GraphQL, MCP Query operations */
   filterOnly?: boolean;
   /**
    * With `filterOnly`, also offer a `SELECT f1, f2 WHERE ...` field list (no aggregate functions, GROUP BY, DELETE
-   * or UPDATE): for the Query operations that return partial results (REST, gRPC, MCP)
+   * or UPDATE) and the `HYDRATE` clause: for the Query operations that return partial results (REST, gRPC, MCP).
+   * `HYDRATE`, `INNER` and `LEFT` are not offered with `filterOnly` alone
    */
   fieldList?: boolean;
   /** Named parameters available (offered as `:name` where a value is expected) */
@@ -154,15 +181,87 @@ const FILTER_ONLY_DROPPED = new Set<string>([
   "SUM",
   "AVG",
   "MIN",
-  "MAX"
+  "MAX",
+  "HYDRATE",
+  "INNER",
+  "LEFT"
 ]);
 
 /**
- * Dropped with `filterOnly` and `fieldList`: a plain `SELECT` field list and its `WHERE` are kept
+ * Dropped with `filterOnly` and `fieldList`: a plain `SELECT` field list, its `WHERE` and the `HYDRATE` clause are
+ * kept
  */
 const FIELD_LIST_DROPPED = new Set<string>(
-  [...FILTER_ONLY_DROPPED].filter(word => word !== "SELECT" && word !== "WHERE")
+  [...FILTER_ONLY_DROPPED].filter(word => !["SELECT", "WHERE", "HYDRATE", "INNER", "LEFT"].includes(word))
 );
+
+/**
+ * Tokens that end a HYDRATE clause
+ */
+const AFTER_HYDRATE_TOKENS = new Set<number>([
+  WebdaQLParserParser.ORDER_BY,
+  WebdaQLParserParser.LIMIT,
+  WebdaQLParserParser.OFFSET
+]);
+
+/**
+ * Whether the caret is inside a HYDRATE clause: an identifier there is a relation path, not a field
+ * @param tokens - the tokens of the query
+ * @param caretTokenIndex - index of the token at the caret
+ * @returns true after `HYDRATE`, until the next clause
+ */
+function isInHydrateClause(tokens: Token[], caretTokenIndex: number): boolean {
+  for (let i = Math.min(caretTokenIndex, tokens.length) - 1; i >= 0; i--) {
+    if (tokens[i].type === WebdaQLParserParser.HYDRATE) {
+      return true;
+    }
+    if (AFTER_HYDRATE_TOKENS.has(tokens[i].type)) {
+      return false;
+    }
+  }
+  return false;
+}
+
+/**
+ * The relations a HYDRATE clause can name, as completion candidates: the parent and the links of a model, and the
+ * relations of their targets as dotted paths
+ *
+ * Reverse relations (`queries`), maps, polymorphic links, binaries and behaviors cannot be hydrated and are not
+ * listed.
+ * @param relations - the `Metadata.Relations` of the queried model
+ * @param relations.parent - its parent relation
+ * @param relations.links - its links
+ * @param resolve - returns the `Metadata.Relations` of a model identifier, for the nested paths
+ * @param maxDepth - the deepest path listed (default 2, the default hydration depth)
+ * @returns the relation paths with their target model
+ */
+export function relationsFromGraph(
+  relations: RelationGraphLike | undefined,
+  resolve?: (model: string) => RelationGraphLike | undefined,
+  maxDepth: number = 2
+): CompletionRelation[] {
+  const result: CompletionRelation[] = [];
+  /**
+   * List the relations of one model, then those of their targets
+   * @param graph - the relations of the model
+   * @param prefix - the path of the model from the queried model
+   * @param depth - the depth of the listed paths
+   */
+  const collect = (graph: RelationGraphLike | undefined, prefix: string, depth: number): void => {
+    for (const relation of [...(graph?.parent ? [graph.parent] : []), ...(graph?.links ?? [])]) {
+      if (typeof relation?.attribute !== "string" || !relation.attribute) {
+        continue;
+      }
+      const name = `${prefix}${relation.attribute}`;
+      result.push({ name, model: relation.model });
+      if (depth < maxDepth && resolve) {
+        collect(resolve(relation.model), `${name}.`, depth + 1);
+      }
+    }
+  };
+  collect(relations, "", 1);
+  return result;
+}
 
 const KIND_RANK: Record<CompletionKind, number> = {
   field: 1,
@@ -481,7 +580,18 @@ export function getCompletions(query: string, caret: number, options?: Completio
     // 1. Process candidate rules
     for (const [ruleIndex] of res.rules) {
       if (ruleIndex === WebdaQLParserParser.RULE_identifier) {
-        if (options?.fields) {
+        if (isInHydrateClause(allTokens, caretTokenIndex)) {
+          // A relation path: `project`, and `project.team` once `project.` is typed (candidates are prefix-filtered)
+          for (const relation of options?.relations ?? []) {
+            items.push({
+              label: relation.name,
+              insertText: relation.name,
+              kind: "field",
+              detail: relation.model,
+              range
+            });
+          }
+        } else if (options?.fields) {
           for (const f of options.fields) {
             items.push({
               label: f.name,

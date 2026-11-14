@@ -11,20 +11,27 @@ WebdaQL (WQL) is a structured query language for filtering, ordering, and pagina
 
 ```
 webdaql     : (statement | filterQuery) EOF ;
-filterQuery : expression? orderExpression? limitExpression? offsetExpression? ;
-statement   : SELECT fieldList whereClause? orderExpression? limitExpression? offsetExpression?
+filterQuery : expression? hydrateClause? orderExpression? limitExpression? offsetExpression? ;
+statement   : SELECT fieldList whereClause? hydrateClause? orderExpression? limitExpression? offsetExpression?
             | DELETE whereClause? limitExpression?
             | UPDATE SET assignmentList whereClause? limitExpression? ;
+hydrateClause : HYDRATE identifier (INNER | LEFT)? (, identifier (INNER | LEFT)?)* ;
 ```
 
-The statements (`SELECT`, `DELETE`, `UPDATE`) are described in [Statements](./Statements.md): a field list returns partial results from the Query operations (REST, gRPC, MCP), and DELETE / UPDATE run through the repository `deleteMany` / `updateMany`, never through the Query operations. A plain filter query is an implicit SELECT of every field; it is composed of four optional sections, always in this order:
+The statements (`SELECT`, `DELETE`, `UPDATE`) are described in [Statements](./Statements.md): a field list returns partial results from the Query operations (REST, gRPC, MCP), and DELETE / UPDATE run through the repository `deleteMany` / `updateMany`, never through the Query operations. A plain filter query is an implicit SELECT of every field; it is composed of five optional sections, always in this order:
 
-| Section | Syntax                            | Purpose                              |
-| ------- | --------------------------------- | ------------------------------------ |
-| Filter  | `expression`                      | Predicate — which records to include |
-| Order   | `ORDER BY field [ASC\|DESC], ...` | Sort order                           |
-| Limit   | `LIMIT <integer>`                 | Maximum number of results            |
-| Offset  | `OFFSET "<token>"`                | Continuation token for pagination    |
+| Section | Syntax                                  | Purpose                                                                            |
+| ------- | --------------------------------------- | ---------------------------------------------------------------------------------- |
+| Filter  | `expression`                            | Predicate — which records to include                                               |
+| Hydrate | `HYDRATE rel [INNER\|LEFT], rel.sub...` | Relations replaced by the related objects ([Hydration](./Statements.md#hydration)) |
+| Order   | `ORDER BY field [ASC\|DESC], ...`       | Sort order                                                                         |
+| Limit   | `LIMIT <integer>`                       | Maximum number of results                                                          |
+| Offset  | `OFFSET "<token>"`                      | Continuation token for pagination                                                  |
+
+Keywords are uppercase only. The words `HYDRATE`, `INNER` and `LEFT` are keywords like the aggregation ones
+(`COUNT`, `SUM`, `AS`…): an attribute named in uppercase like one of them can no longer be used in a query
+(**breaking change**), while `hydrate`, `inner` and `left` stay attribute names. `HYDRATE` is run by the REST and MCP
+Query operations only; repositories refuse it.
 
 Values (and the `LIMIT` / `OFFSET` values) can also be `?` or `:name` placeholders, bound from parameters: see [Parameters](./Parameters.md).
 

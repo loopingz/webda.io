@@ -173,6 +173,15 @@ class PullTest extends SyncTest {
       () => this.op("Sync.Snapshot", { scope: { model: "Test/Note", query: "SELECT title" } }),
       /SELECT field lists are not accepted/
     );
+    // Models are synced as they are stored: HYDRATE is refused too
+    await assert.rejects(
+      () => this.op("Sync.Pull", { scopes: [{ model: "Test/Note", query: "title = 'a' HYDRATE owner" }] }),
+      /HYDRATE is not accepted by queries/
+    );
+    await assert.rejects(
+      () => this.op("Sync.Snapshot", { scope: { model: "Test/Note", query: "HYDRATE owner INNER" } }),
+      /HYDRATE is not accepted by queries/
+    );
     await assert.rejects(
       () => this.op("Sync.Pull", { scopes: [{ model: "Test/Note", query: "title = " }] }),
       /syntax/i

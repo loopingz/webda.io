@@ -18,6 +18,7 @@ sidebar_label: "@webda/mcp"
 
 - **Tools**: every non-hidden operation, the tool name being the operation id (for example `Post.Get`, `Posts.Query`, `User.Login`).
 - **Partial query results**: a Query tool takes a WebdaQL filter, or `SELECT title, status WHERE ...` to get only those fields plus the primary key. A field list keeps tool results small.
+- **Related objects in one call**: a Query tool also takes `HYDRATE owner, project.team` (`INNER` to drop the results without one): each listed relation holds the related object the caller may read instead of its key, `null` otherwise. See [Hydration](../ql/Statements.md#hydration).
 - **Resources**: models with a `{Model}.Get` operation, as `webda://{Model}/{pk...}` resource templates (for example `webda://Post/{slug}`).
 - **Progress**: `AsyncGenerator` operations stream their chunks as MCP progress notifications.
 - **Truncated outputs**: tool outputs larger than `maxOutputBytes` are truncated with a notice and returned with `isError: true`.

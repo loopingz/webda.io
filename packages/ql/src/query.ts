@@ -15,6 +15,7 @@ import {
   FieldItemContext,
   FieldListContext,
   FilterQueryContext,
+  HydrateClauseContext,
   InExpressionContext,
   IntegerLiteralContext,
   IsNotNullExpressionContext,
@@ -298,6 +299,32 @@ export interface OrderBy {
 }
 
 /**
+ * Join mode of a hydrated relation: `LEFT` keeps a result whose related object is missing (the relation is `null`),
+ * `INNER` drops it
+ */
+export type HydrateMode = "LEFT" | "INNER";
+
+/**
+ * One relation of a `HYDRATE rel, rel.sub INNER` clause
+ */
+export interface HydrateItem {
+  /** Relation path (dot-notation for the relations of a hydrated object) */
+  path: string;
+  /** Join mode, `LEFT` when not given */
+  mode: HydrateMode;
+}
+
+/**
+ * Print a HYDRATE clause without its keyword: `owner, project INNER, project.team` (`LEFT` is the default and is
+ * not printed)
+ * @param hydrate - the relations to hydrate
+ * @returns the clause
+ */
+export function stringifyHydrate(hydrate: readonly HydrateItem[]): string {
+  return hydrate.map(item => (item.mode === "INNER" ? `${item.path} INNER` : item.path)).join(", ");
+}
+
+/**
  * Prepend a condition to an existing query string using AND logic
  *
  * Parses both strings, merges them, and reconstructs the combined query.
@@ -477,6 +504,9 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
     if (!Object.keys(metrics).length && groupBy === undefined) {
       return query;
     }
+    if (query.hydrate !== undefined) {
+      throw new SyntaxError("HYDRATE is not supported with GROUP BY or aggregate functions");
+    }
     if (query.continuationToken !== undefined) {
       throw new WebdaQLError("OFFSET is not supported with GROUP BY or aggregate functions");
     }
@@ -583,6 +613,7 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
         this.visit(clause);
       }
     }
+    const hydrate = "hydrateClause" in ctx ? ctx.hydrateClause() : undefined;
     return {
       type,
       filter: normalizeFilter(
@@ -590,8 +621,21 @@ export class ExpressionBuilder extends AbstractParseTreeVisitor<Query> implement
       ),
       limit: this.limit,
       continuationToken: this.offset,
-      orderBy: this.orderBy
+      orderBy: this.orderBy,
+      ...(hydrate ? { hydrate: this.visitHydrateClause(hydrate) } : {})
     };
+  }
+
+  /**
+   * Read a `HYDRATE rel, rel.sub INNER` clause
+   * @param ctx - the hydrate clause context
+   * @returns the relations to hydrate, with their join mode (`LEFT` by default)
+   */
+  visitHydrateClause(ctx: HydrateClauseContext): HydrateItem[] {
+    return ctx.hydrateItem().map(item => ({
+      path: item.identifier().text,
+      mode: item.INNER() ? "INNER" : "LEFT"
+    }));
   }
 
   /**
@@ -861,6 +905,11 @@ export interface Query {
    * Aggregation of a `SELECT … GROUP BY` or a SELECT with aggregate functions
    */
   aggregation?: AggregationQuery;
+  /**
+   * Relations of a `HYDRATE rel, rel.sub INNER` clause: the related objects replace their keys in the results.
+   * Run by the Query operations exposed to clients only; repositories refuse it ({@link assertFilterQuery})
+   */
+  hydrate?: HydrateItem[];
   /**
    * Get the string representation of the query
    */
@@ -1517,7 +1566,7 @@ export class QueryValidator {
    */
   merge(query: string = "", type: "OR" | "AND" = "AND"): this {
     const adds = new QueryValidator(query);
-    if (adds.query.type !== "SELECT" || adds.query.fields) {
+    if (adds.query.type !== "SELECT" || adds.query.fields || adds.query.hydrate) {
       throw new SyntaxError(`Only a filter can be merged into a query, not a statement (Query: ${query})`);
     }
     if (
@@ -1890,8 +1939,8 @@ export function unsanitize(query: string): string {
 /**
  * Print a query in its canonical form, which parses back to the same query
  *
- * - plain filter: `<filter> [ORDER BY ...] [LIMIT n] [OFFSET "token"]`
- * - `SELECT f1, f2 [WHERE <filter>] [ORDER BY ...] [LIMIT n] [OFFSET "token"]`
+ * - plain filter: `<filter> [HYDRATE ...] [ORDER BY ...] [LIMIT n] [OFFSET "token"]`
+ * - `SELECT f1, f2 [WHERE <filter>] [HYDRATE ...] [ORDER BY ...] [LIMIT n] [OFFSET "token"]`
  * - `DELETE [WHERE <filter>] [LIMIT n]`
  * - `UPDATE SET a = v, ... [WHERE <filter>] [LIMIT n]`
  *
@@ -1919,6 +1968,9 @@ export function stringifyQuery(query: Omit<Query, "toString">): string {
   let res = head ? `${head}${filter ? ` WHERE ${filter}` : ""}` : filter;
   if (query.aggregation?.groupBy.length) {
     res += ` GROUP BY ${query.aggregation.groupBy.join(", ")}`;
+  }
+  if (query.hydrate?.length) {
+    res += ` HYDRATE ${stringifyHydrate(query.hydrate)}`;
   }
   if (query.orderBy?.length) {
     res += ` ORDER BY ${query.orderBy.map(o => `${o.field} ${o.direction}`).join(", ")}`;
@@ -2088,6 +2140,23 @@ export function normalizeQuery(query: Partial<Query>): Query {
     head = `SELECT ${fields.map(checkFieldPath).join(", ")}`;
   }
   let res = head ? `${head}${filter ? ` WHERE ${filter}` : ""}` : filter;
+  const hydrate: unknown = query.hydrate;
+  if (hydrate !== undefined) {
+    const items = Array.isArray(hydrate) ? snapshot(hydrate) : [];
+    if (items.length === 0 || type !== "SELECT") {
+      throw new WebdaQLError("Invalid HYDRATE in WebdaQL query");
+    }
+    res += ` HYDRATE ${items
+      .map(item => {
+        const path = item?.path;
+        const mode = item?.mode ?? "LEFT";
+        if (mode !== "LEFT" && mode !== "INNER") {
+          throw new WebdaQLError("Invalid HYDRATE mode in WebdaQL query");
+        }
+        return `${checkFieldPath(path)} ${mode}`;
+      })
+      .join(", ")}`;
+  }
   const orderBy: unknown = query.orderBy;
   if (orderBy !== undefined) {
     if (!Array.isArray(orderBy)) {
@@ -2183,20 +2252,23 @@ export function validateQueryFields(
 }
 
 /**
- * Refuse anything but a plain filter query: DELETE, UPDATE and SELECT with a field list
+ * Refuse anything but a plain filter query: DELETE, UPDATE, SELECT with a field list, and a HYDRATE clause
  *
- * Used where a query only selects objects, such as the Query operations exposed to clients. A query built by hand
- * without `type` is a filter.
+ * Used where a query only selects stored objects, such as the repositories. A query built by hand without `type` is
+ * a filter.
  *
  * @param query - the parsed query
- * @throws {WebdaQLError} for a DELETE or UPDATE statement, or a SELECT field list
+ * @throws {WebdaQLError} for a DELETE or UPDATE statement, a SELECT field list or a HYDRATE clause
  */
-export function assertFilterQuery(query: Partial<Pick<Query, "type" | "fields">>): void {
+export function assertFilterQuery(query: Partial<Pick<Query, "type" | "fields" | "hydrate">>): void {
   if (query.type !== undefined && query.type !== "SELECT") {
     throw new WebdaQLError(`${query.type} statements are not accepted here: only a filter query is`);
   }
   if (query.fields !== undefined) {
     throw new WebdaQLError("SELECT field lists are not accepted here: only a filter query is");
+  }
+  if (query.hydrate !== undefined) {
+    throw new WebdaQLError("HYDRATE is not accepted here: only a filter query is");
   }
 }
 
@@ -2211,7 +2283,10 @@ export function assertFilterQuery(query: Partial<Pick<Query, "type" | "fields">>
  * - `DELETE [WHERE <condition>] [LIMIT n]`
  * - `UPDATE SET a = v, b = v [WHERE <condition>] [LIMIT n]`
  *
- * Keywords are uppercase only: `select`, `delete`, `set`, `count`... remain field names.
+ * A filter query and a SELECT field list take a `HYDRATE rel, rel.sub INNER` clause before ORDER BY, returned in
+ * `hydrate` (join mode `LEFT` by default); it is refused with GROUP BY or aggregate functions.
+ *
+ * Keywords are uppercase only: `select`, `delete`, `set`, `count`, `hydrate`... remain field names.
  *
  * @param query - the query string to parse
  * @param allowedFields - when given, SELECT fields, aggregation metric fields and UPDATE SET targets must be in

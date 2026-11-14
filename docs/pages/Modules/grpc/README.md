@@ -1,6 +1,7 @@
 ---
 sidebar_label: "@webda/grpc"
 ---
+
 # grpc
 
 # @webda/grpc
@@ -33,11 +34,11 @@ pnpm add @webda/grpc
 }
 ```
 
-| Parameter | Type | Default | Required | Description |
-|---|---|---|---|---|
-| `protoFile` | string | `".webda/app.proto"` | No | Path where the generated `.proto` file is written and loaded from |
-| `packageName` | string | `"webda"` | No | Protobuf package name used in the generated `.proto` |
-| `maxQueuedMessages` | number | `1000` | No | Most unconsumed messages a client or bidirectional call may queue; above it the call fails with `RESOURCE_EXHAUSTED` |
+| Parameter           | Type   | Default              | Required | Description                                                                                                          |
+| ------------------- | ------ | -------------------- | -------- | -------------------------------------------------------------------------------------------------------------------- |
+| `protoFile`         | string | `".webda/app.proto"` | No       | Path where the generated `.proto` file is written and loaded from                                                    |
+| `packageName`       | string | `"webda"`            | No       | Protobuf package name used in the generated `.proto`                                                                 |
+| `maxQueuedMessages` | number | `1000`               | No       | Most unconsumed messages a client or bidirectional call may queue; above it the call fails with `RESOURCE_EXHAUSTED` |
 
 ## Usage
 
@@ -71,6 +72,10 @@ A Query RPC takes a WebdaQL filter, or `SELECT title, status WHERE ...` to get o
 key (see [Field selection](../ql/Statements.md#field-selection)). The message types do
 not change: a field that is not selected is not sent, so a required (non-`optional`) proto3 field decodes as its
 default value (`""`, `0`, `false`). Read only the fields you selected.
+
+`HYDRATE` is refused by a Query RPC (`INVALID_ARGUMENT`, `HYDRATE is not available over gRPC`): the messages type a
+relation as its key, so a hydrated object does not fit them. Read the related objects with their own RPCs, or use the
+REST or MCP Query operation (see [Hydration](../ql/Statements.md#hydration)).
 
 ## Reference
 

@@ -962,6 +962,16 @@
             "description": "Expose objects as operations too",
             "type": "boolean"
           },
+          "queryHydrateMaxDepth": {
+            "default": 2,
+            "description": "Deepest relation path a query can hydrate (`HYDRATE project.team` has a depth of two), between 1 and 5",
+            "type": "number"
+          },
+          "queryHydrateMaxObjects": {
+            "default": 1000,
+            "description": "Most distinct related objects one query can load with `HYDRATE`: a query loading more is refused (400)",
+            "type": "number"
+          },
           "queryMethod": {
             "default": "PUT",
             "description": "Method used for query objects",

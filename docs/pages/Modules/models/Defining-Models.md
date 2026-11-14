@@ -114,6 +114,45 @@ export class User extends UuidModel {
 
 Supported JSDoc tags: `@minLength`, `@maxLength`, `@pattern`, `@format`, `@minimum`, `@maximum`, `@readonly`, `@enum`, `@default`. See [@webda/content-mapper Validation](../content-mapper/README.md).
 
+### Plain text attributes — `@sanitize none`
+
+Every string a client sends is HTML-sanitized before it reaches a model: tags are removed and `&`, `<`, `>` are escaped. That is the right default for anything a page may render, and the wrong one for plain text that is never rendered as HTML (a name, a title, markdown, a diagram source): `R&D` is stored as `R&amp;D`, `Tom <3 Jerry` as `Tom `.
+
+Tag such an attribute `@sanitize none` to keep the text as the client sent it:
+
+```typescript
+export class Team extends UuidModel {
+  /**
+   * Shown as text, never as HTML
+   * @sanitize none
+   * @pattern ^[^\p{Cc}\p{Cf}]*$
+   */
+  displayName!: string;
+
+  /**
+   * Still sanitized (no tag)
+   */
+  description?: string;
+
+  /**
+   * Every label is kept as sent
+   * @sanitize none
+   */
+  labels?: string[];
+}
+```
+
+The compiler writes `"x-webda-sanitize": "none"` on the property in the model schemas. Rules:
+
+- it applies to a `string`, an array of strings or a record of strings (`Record<string, string>`). On any other type the tag is ignored: an object or a free-form value (`Record<string, unknown>`, `any`) is always sanitized. In a nested object or an array of objects, tag the attributes of that object;
+- the text is validated as it is stored: `@pattern`, `@maxLength`... see what the client sent, not a sanitized form of it. A text kept as sent can hold `<script>`: escape it wherever it is rendered, and constrain it with `@pattern` when it must not hold control characters;
+- private (`__`), server-managed (`_`), protected and `@readOnly` attributes are still removed from client input, tagged or not (see [Client input](./Permissions.md#client-input));
+- `@sanitize text` names the default. Other values are reserved for named profiles and are sanitized like `text` for now.
+
+The tag is honoured by the model operations (create, update, patch) on every transport that calls them (REST, gRPC, MCP), by any operation whose input schema carries the keyword (a service `@Operation` taking a typed object with tagged properties), and by the offline `Sync.Push`. The GraphQL endpoint sanitizes its whole request body: a tagged attribute is still sanitized there.
+
+Code that receives model data outside a model operation applies the same rule with `sanitizeModelText(Model, input)` (then `sanitizeModelInput` to drop the attributes a client cannot write).
+
 ## Plural form
 
 By default, the REST route collection is the plural of the class name (`Post` → `/posts`, `Tag` → `/tags`). Override with `[WEBDA_PLURAL]`:

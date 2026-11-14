@@ -12,7 +12,7 @@ import { emitCoreEvent, useCoreEvents } from "../events/events.js";
 import { useApplication, useParameters } from "../application/hooks.js";
 import { useCore, useModelMetadata } from "../core/hooks.js";
 import { runWithInstanceStorage, useInstanceStorage } from "../core/instancestorage.js";
-import { callOperation, canCallOperation, getOperationStreaming } from "../core/operations.js";
+import { callOperation, canCallOperation, getOperationStreaming, readOperationBody } from "../core/operations.js";
 import { isOperationEnabled } from "../services/featureflags.js";
 import { runOperation } from "./streaming.js";
 import { AsyncQueue } from "../core/asyncqueue.js";
@@ -884,7 +884,8 @@ export class RESTOperationsTransport<
       async (context: WebContext) => {
         // Inject the parent attribute
         if (injectAttribute) {
-          (await context.getInput())[injectAttribute] = context.parameter(`pid.${depth - 1}`);
+          // Read as the operation will, so the injected value is on the body it validates and stores
+          (await readOperationBody(context, operationId))[injectAttribute] = context.parameter(`pid.${depth - 1}`);
         }
         this.clearParentParameters(context);
         await callOperation(context, operationId);

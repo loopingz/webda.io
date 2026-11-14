@@ -121,7 +121,8 @@ export const NOTE_SCHEMA = {
     title: { type: "string" },
     owner: { type: "string" },
     status: { type: "string" },
-    body: { type: "string" },
+    // Plain text, never rendered as HTML: kept as the client sent it (`@sanitize none`)
+    body: { type: "string", "x-webda-sanitize": "none" },
     count: { type: "number" },
     tags: { type: "array", items: { type: "string" } },
     due: { type: "string", format: "date-time" },

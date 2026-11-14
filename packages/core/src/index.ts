@@ -10,6 +10,7 @@ export * from "./loggers/params.js";
 export * from "./loggers/hooks.js";
 export * from "./loggers/console.service.js";
 export * from "./contexts/operationcontext.js";
+export * from "./contexts/sanitize.js";
 export * from "./contexts/simplecontext.js";
 export * from "./contexts/icontext.js";
 export * from "./contexts/execution.js";

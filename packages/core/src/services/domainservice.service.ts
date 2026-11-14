@@ -6,6 +6,7 @@ import type { IOperationContext } from "../contexts/icontext.js";
 import { MFA, useLoginMfa } from "../models/mfa.model.js";
 import { useBehaviorParameters } from "../application/modelconfiguration.js";
 import { OperationContext } from "../contexts/operationcontext.js";
+import { getRawTextPaths, sanitizeInput } from "../contexts/sanitize.js";
 import { UuidModel, type Model, type ModelClass } from "@webda/models";
 import { runAsSystem, runWithContext, useContext } from "../contexts/execution.js";
 
@@ -31,7 +32,9 @@ import {
 } from "../models/permissions.js";
 
 /**
- * Sanitize client input before it reaches a model (REST, gRPC, MCP and GraphQL):
+ * Remove from client input the attributes a client cannot write, before it reaches a model (REST, gRPC, MCP and
+ * GraphQL). The HTML sanitization of the texts is done before, by the operation input (`context.getInput()`) or by
+ * {@link sanitizeModelText}:
  * - `__`-prefixed (private) keys are removed at any depth;
  * - `_`-prefixed attributes are removed, unless the model lists them in its static `getClientWritableAttributes()`:
  *   by convention they are server-managed (`_user`, `_roles`, `_groups`, `_creationDate`...);
@@ -62,6 +65,35 @@ export function sanitizeModelInput<T = any>(model: ModelClass<any>, input: T, co
   return Object.fromEntries(
     Object.entries(out).filter(([key]) => !removed.has(key) && (!key.startsWith("_") || writable.includes(key)))
   ) as T;
+}
+
+/**
+ * Dotted paths of the texts a model keeps as the client sent them: the attributes its Input schema marks
+ * `x-webda-sanitize: none` (`@sanitize none` on the property, see {@link getRawTextPaths})
+ * @param model - the model class
+ * @returns the paths, `*` standing for any array index or record key
+ */
+export function getModelRawTextPaths(model: any): string[] {
+  try {
+    return getRawTextPaths(useModelMetadata(model)?.Schemas?.Input);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * HTML-sanitize the texts of client input bound to a model, the way an operation on this model does: every string,
+ * except the attributes the model tags `@sanitize none`
+ *
+ * For an entry point that receives model data outside the input of a model operation (a sync push, a batch
+ * import...), so a model stores the same text on every transport. It only deals with the texts: follow it with
+ * {@link sanitizeModelInput} to remove the attributes a client cannot write.
+ * @param model - the model class
+ * @param input - the client input, as received (not sanitized yet); it is modified in place
+ * @returns the input, its texts sanitized
+ */
+export async function sanitizeModelText<T = any>(model: ModelClass<any>, input: T): Promise<T> {
+  return sanitizeInput(input, { rawText: getModelRawTextPaths(model) });
 }
 
 /**
@@ -397,6 +429,11 @@ export class DomainService<
    *
    * An empty body (undefined) is accepted as "no fields"; any other body that is not a plain object (array, string,
    * number, boolean or null) is refused.
+   *
+   * This is the body `callOperation` validated against the operation input schema and handed to the authorizers:
+   * HTML-sanitized, except for the attributes the model tags `@sanitize none`. Do not override this method to read
+   * the raw body (`context.getInput({ raw: true })`): the model would then receive values that were never
+   * validated. Tag the attributes instead.
    * @param context - the operation context
    * @returns the request body
    * @throws BadRequest when the body is not an object

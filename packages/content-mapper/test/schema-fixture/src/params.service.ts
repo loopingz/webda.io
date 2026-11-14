@@ -273,3 +273,38 @@ export class CoverageParameters extends ServiceParameters {
 
 /** Service for coverage parameters. */
 export class CoverageService extends Service<CoverageParameters> {}
+
+/** Parameters whose text opts out of the input HTML sanitization. */
+export class SanitizeParameters extends ServiceParameters {
+  /**
+   * Kept as sent.
+   * @sanitize none - never rendered as HTML
+   */
+  displayName?: string;
+  /**
+   * The default, named.
+   * @sanitize text
+   */
+  summary?: string;
+  /**
+   * A tag naming no mode is ignored.
+   * @sanitize
+   */
+  untagged?: string;
+  /**
+   * Every item is kept as sent.
+   * @sanitize none
+   */
+  labels?: string[];
+  /** A nested object declares its own attributes. */
+  profile?: {
+    /**
+     * @sanitize none
+     */
+    bio?: string;
+    age?: number;
+  };
+}
+
+/** Service whose parameters opt out of sanitization. */
+export class SanitizeService extends Service<SanitizeParameters> {}

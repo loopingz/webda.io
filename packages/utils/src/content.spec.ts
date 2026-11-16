@@ -563,7 +563,8 @@ class ContentStorageEdgeCasesTest {
     assert.strictEqual(head?.metadata, undefined);
   }
 
-  @test
+  // A folder cannot be made read-only through chmod on Windows
+  @test({ execution: process.platform === "win32" ? "skip" : "default" })
   async filePutFailsBeforeTemporaryFileExists() {
     const dir = join(tmpdir(), `webda-file-content-ro-${Date.now()}-${Math.random().toString(36).slice(2)}`);
     await fsPromises.mkdir(dir, { recursive: true });

@@ -537,8 +537,10 @@ plop: test
       const walk = (options: any) => {
         const res: string[] = [];
         FileUtils.walkSync(root, f => res.push(f), options);
+        // Compared with "/" whatever the platform separator is
         return res
           .map(f => (f.startsWith(realResolved) ? `real:${path.relative(realResolved, f)}` : path.relative(root, f)))
+          .map(f => f.split(path.sep).join("/"))
           .sort();
       };
       // No maximum depth, hidden files skipped, symlinks ignored
@@ -576,7 +578,7 @@ plop: test
     function walkAt(folder: string, depth: number) {
       const res: string[] = [];
       FileUtils.walkSync(folder, f => res.push(f), { followSymlinks: true, maxDepth: 1 }, depth);
-      return res.map(f => path.relative(folder, f)).sort();
+      return res.map(f => path.relative(folder, f).split(path.sep).join("/")).sort();
     }
   }
 

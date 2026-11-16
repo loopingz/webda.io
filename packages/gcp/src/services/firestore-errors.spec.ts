@@ -82,6 +82,8 @@ class FireStoreErrorsTest extends WebdaApplicationTest {
     const plainRepo = new FireStoreRepository(PlainModel as any, ["uuid"], {} as any, "unit");
     const inst = (plainRepo as any).fromFirestore({ a: 42 });
     assert.strictEqual(inst.a, 42);
+    // A repository built without a logger drops its warnings
+    assert.strictEqual((plainRepo as any).log("WARN", "Compound index not defined"), undefined);
     const selfJson: any = { x: 1 };
     selfJson.toJSON = () => selfJson;
     assert.deepStrictEqual(toFirestore(selfJson), { x: 1 });

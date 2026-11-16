@@ -12,7 +12,7 @@ import { ServicesPanel } from "./panels/ServicesPanel.js";
 import { ancestorsOf, buildGraph, fitScale, MIN_FIT_SCALE, visibleModels } from "./components/ModelGraph.js";
 import { highlightJS } from "./components/CodeBlock.js";
 import { resolveRef, SchemaForm } from "./components/SchemaForm.js";
-import { formatBytes } from "./components/ui.js";
+import { formatBytes, StateBadge } from "./components/ui.js";
 import {
   FakeWebSocket,
   healthyRoutes,
@@ -82,6 +82,51 @@ describe("ServicesPanel", () => {
     fireEvent.click(screen.getByRole("tab", { name: "Metrics" }));
     await screen.findByText("Total requests");
     screen.getByText("10");
+  });
+
+  it("colours the metric types and the lifecycle states", async () => {
+    const routes = healthyRoutes();
+    routes["/api/services"] = [
+      {
+        name: "Meter",
+        type: "Webda/Meter",
+        state: "initializing",
+        capabilities: {},
+        configuration: {},
+        metrics: [
+          { name: "queue_size", type: "gauge", help: "Queue size", values: [{ value: 3 }] },
+          { name: "latency", type: "histogram", help: "Latency", values: [{ value: 1 }, { value: 2 }] },
+          { name: "quantiles", type: "summary", values: [] }
+        ]
+      }
+    ];
+    await renderPanel(<ServicesPanel />, routes);
+    fireEvent.click(await screen.findByText("Meter"));
+    fireEvent.click(await screen.findByRole("tab", { name: "Metrics" }));
+    await screen.findByText("Queue size");
+    assert.ok(screen.getByText("gauge").className.includes("wdbg-badge-green"));
+    assert.ok(screen.getByText("histogram").className.includes("wdbg-badge-purple"));
+    assert.ok(screen.getByText("summary").className.includes("wdbg-badge-muted"));
+
+    const variants: [string | undefined, string, string][] = [
+      [undefined, "unknown", "muted"],
+      ["Running", "Running", "green"],
+      ["resolved", "resolved", "green"],
+      ["failed", "failed", "red"],
+      ["error", "error", "red"],
+      ["created", "created", "yellow"],
+      ["paused", "paused", "muted"]
+    ];
+    for (const [state, text, variant] of variants) {
+      const { container } = render(<StateBadge state={state} />);
+      const badge = container.querySelector(".wdbg-badge")!;
+      assert.strictEqual(badge.textContent, text);
+      assert.ok(badge.className.includes(`wdbg-badge-${variant}`), `${state}: ${badge.className}`);
+    }
+    assert.ok(
+      screen.getAllByText("initializing").every(badge => badge.className.includes("wdbg-badge-yellow")),
+      "initializing is yellow"
+    );
   });
 
   it("filters the list", async () => {
@@ -438,6 +483,24 @@ describe("RequestsPanel", () => {
     screen.getByText(/no longer in the server buffer/);
   });
 
+  it("shows the error of a failed request with its stack", async () => {
+    const routes = healthyRoutes();
+    routes["/api/requests/r1"] = {
+      id: "r1",
+      timestamp: 1700000000000,
+      method: "GET",
+      url: "/users",
+      statusCode: 500,
+      duration: 12,
+      error: { message: "Store unreachable", stack: "Error: Store unreachable\n    at Store.get (store.ts:12)" }
+    };
+    await renderPanel(<RequestsPanel />, routes);
+    fireEvent.click(await screen.findByText("200"));
+    await screen.findByText("Store unreachable");
+    const stack = screen.getByText(/at Store\.get/);
+    assert.strictEqual(stack.tagName, "PRE");
+  });
+
   it("merges live websocket events into the table", async () => {
     await renderPanel(<RequestsPanel />);
     await screen.findByText("2 requests recorded", { exact: false });
@@ -557,6 +620,21 @@ describe("ConfigPanel", () => {
     const toggle = container.querySelector(".wdbg-json-toggle")!;
     fireEvent.click(toggle);
     assert.ok(container.textContent?.includes("2 items"));
+  });
+
+  it("colours the leaves of the tree after their type", () => {
+    const leaves: [any, string, string][] = [
+      ["text", "wdbg-json-string", '"text"'],
+      [42, "wdbg-json-number", "42"],
+      [true, "wdbg-json-boolean", "true"],
+      [null, "wdbg-json-null", "null"],
+      [undefined, "wdbg-json-null", "undefined"]
+    ];
+    for (const [value, cls, text] of leaves) {
+      const { container } = render(<JsonTree value={value} name="leaf" />);
+      const leaf = container.querySelector(`.${cls}`);
+      assert.strictEqual(leaf?.textContent, text, `${String(value)} is rendered as ${cls}`);
+    }
   });
 
   it("is reported missing on servers without /api/config", async () => {

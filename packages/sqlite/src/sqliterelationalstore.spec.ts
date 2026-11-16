@@ -543,6 +543,22 @@ export class SQLiteRelationalStoreTest extends WebdaApplicationTest {
         assert.strictEqual(await rel.checkCommand("nonexistent-version", false, false), 2);
         assert.strictEqual(await rel.checkCommand(undefined, true, true), 0);
         assert.strictEqual(await rel.checkCommand(undefined, false, false), 0);
+        // --force-incompatible downgrades the blocking changes to forced warnings, and leaves the others alone
+        const origCompare = rel.versions.compare.bind(rel.versions);
+        const blocking = { category: "BLOCK", kind: "column-removed", table: "rel_user", column: "email" };
+        const safe = { category: "SAFE", kind: "column-added", table: "rel_user", column: "nickname" };
+        rel.versions.compare = () => [blocking, safe];
+        try {
+          assert.strictEqual(await rel.checkCommand(undefined, false, true), 1);
+          logLines.length = 0;
+          assert.strictEqual(await rel.checkCommand(undefined, true, true), 0);
+          assert.deepStrictEqual(JSON.parse(logLines.join("\n")).changes, [
+            { ...blocking, category: "WARN", forced: true },
+            safe
+          ]);
+        } finally {
+          rel.versions.compare = origCompare;
+        }
         const origContract = rel.manager.contract.bind(rel.manager);
         rel.manager.contract = async () => [];
         assert.strictEqual(

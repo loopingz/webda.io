@@ -105,6 +105,16 @@ class ReportersTest {
     assert.deepStrictEqual(output, []);
     new ConsoleReporter(text => output.push(text)).report([result()]);
     assert.strictEqual(output.length, 1);
+    // Without an output function the table goes to the console
+    const log = console.log;
+    console.log = (...args: any[]) => void output.push(args.join(" "));
+    try {
+      new ConsoleReporter().report([result()]);
+    } finally {
+      console.log = log;
+    }
+    assert.strictEqual(output.length, 2);
+    assert.strictEqual(output[1], output[0]);
   }
 
   @test

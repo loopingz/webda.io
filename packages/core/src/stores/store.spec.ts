@@ -819,6 +819,49 @@ class StoreFieldsMigrationTest extends WebdaApplicationTest {
   }
 
   @test
+  async hierarchyOfIncompleteModels() {
+    const models = useApplication().getModels() as any;
+    // A subclass without metadata, and one whose metadata lists no subclasses
+    class BareSub extends UuidModel {
+      static Metadata: any = undefined;
+    }
+    class LeafSub extends UuidModel {
+      static Metadata: any = { Identifier: "WebdaTest/LeafSub", PrimaryKey: ["uuid"] };
+    }
+    class Parent extends UuidModel {
+      static Metadata: any = {
+        Identifier: "WebdaTest/HierarchyParent",
+        PrimaryKey: ["uuid"],
+        Subclasses: ["WebdaTest/BareSub", LeafSub, "WebdaTest/NullSub"]
+      };
+    }
+    models["WebdaTest/BareSub"] = BareSub;
+    models["WebdaTest/LeafSub"] = LeafSub;
+    models["WebdaTest/NullSub"] = null;
+    models["WebdaTest/HierarchyParent"] = Parent;
+    try {
+      const store = new MemoryStore("incomplete", { models: ["WebdaTest/HierarchyParent", "WebdaTest/LeafSub"] });
+      store.resolve();
+      assert.deepStrictEqual((store as any)._modelsHierarchy, {
+        "WebdaTest/HierarchyParent": 0,
+        "WebdaTest/BareSub": 1,
+        "WebdaTest/LeafSub": 0
+      });
+      assert.deepStrictEqual(store.getModels(), [Parent, LeafSub]);
+      // A model the application could not load is not given a store
+      assert.doesNotThrow(() => Store.computeStores());
+      // Without models the store claims nothing
+      store.getParameters().models = undefined;
+      (store as any)._modelsHierarchy = {};
+      store.computeParameters();
+      assert.deepStrictEqual((store as any)._modelsHierarchy, {});
+    } finally {
+      for (const id of ["BareSub", "LeafSub", "NullSub", "HierarchyParent"]) delete models[`WebdaTest/${id}`];
+      Store.computeStores();
+    }
+  }
+
+  @test
   async setModelDefinitionHelperOverridesFirstModel() {
     const store = new MemoryStore("override", { models: ["Webda/User"] });
     store.resolve();

@@ -1,4 +1,4 @@
-import { describe, it, beforeEach, afterEach } from "vitest";
+import { describe, it, beforeEach, afterEach, vi } from "vitest";
 import * as assert from "assert";
 import * as sinon from "sinon";
 import { WorkerInput, WorkerInputType, WorkerMessage, WorkerOutput } from "../core.js";
@@ -328,5 +328,88 @@ describe("InteractiveConsoleLoggerTest", () => {
   it("testImportInquirer", async () => {
     const mod = await (logger as any).importInquirer();
     assert.ok(mod);
+  });
+
+  it("testLogLevelFromEnvironment", async () => {
+    const previous = process.env.LOG_LEVEL;
+    process.env.LOG_LEVEL = "ERROR";
+    const out = new WorkerOutput();
+    const lgr = new InteractiveConsoleLogger(out);
+    try {
+      assert.strictEqual(lgr.level(), "ERROR");
+      // INFO without a valid environment variable
+      process.env.LOG_LEVEL = "INVALID";
+      const fallback = new InteractiveConsoleLogger(out);
+      assert.strictEqual(fallback.level(), "INFO");
+      fallback.close();
+    } finally {
+      lgr.close();
+      if (previous === undefined) {
+        delete process.env.LOG_LEVEL;
+      } else {
+        process.env.LOG_LEVEL = previous;
+      }
+    }
+  });
+
+  it("testProgressMessagesWithoutCurrentProgress", async () => {
+    const write = stubs[0];
+    // No progress is known by the output: the spinner starts untitled
+    await logger.onProgress(new WorkerMessage("progress.start", output));
+    assert.ok(logger.spinner.interval);
+    assert.strictEqual(logger.spinner.title, undefined);
+    logger.spinner.title = "Spinner title";
+    // Elapsed time is measured up to now while running
+    logger.spinner.started = Date.now() - 5000;
+    assert.ok(logger.spinner.getElapsed() >= 5000);
+    // An update without progress changes nothing
+    await logger.onProgress(new WorkerMessage("progress.update", output));
+    assert.strictEqual(logger.spinner.title, "Spinner title");
+    assert.strictEqual(logger.spinner.current, undefined);
+    // Unknown status without title: no icon and the spinner title
+    write.resetHistory();
+    await logger.onProgress(new WorkerMessage("progress.stop", output, { status: "custom" }));
+    assert.ok(!logger.spinner.interval);
+    assert.ok(
+      write.getCalls().some(c => String(c.args[0]).includes(" Spinner title in 5s")),
+      `Got ${JSON.stringify(write.getCalls().map(c => c.args[0]))}`
+    );
+  });
+
+  it("testAsciiFallbackWithoutUnicode", async () => {
+    const platform = Object.getOwnPropertyDescriptor(process, "platform");
+    const session = process.env.WT_SESSION;
+    delete process.env.WT_SESSION;
+    Object.defineProperty(process, "platform", { ...platform, value: "win32" });
+    vi.resetModules();
+    try {
+      const core = await import("../core.js");
+      const { InteractiveConsoleLogger: AsciiLogger } = await import("./interactiveconsole.js");
+      const out = new core.WorkerOutput();
+      const lgr = new AsciiLogger(out, "INFO");
+      try {
+        out.startActivity("Ascii");
+        assert.strictEqual(lgr.spinner.empty, ".");
+        lgr.spinner.render();
+        const write = stubs[0];
+        const rendered = write
+          .getCalls()
+          .map(c => String(c.args[0]))
+          .join("");
+        assert.ok(/[-\\|/]/.test(rendered) && rendered.includes("Ascii"), `Got ${JSON.stringify(rendered)}`);
+        assert.ok(!rendered.includes("⠋"));
+        write.resetHistory();
+        out.stopActivity("success", "Done");
+        assert.ok(write.getCalls().some(c => /√.* Done in /.test(String(c.args[0]))));
+      } finally {
+        lgr.close();
+      }
+    } finally {
+      Object.defineProperty(process, "platform", platform);
+      if (session !== undefined) {
+        process.env.WT_SESSION = session;
+      }
+      vi.resetModules();
+    }
   });
 });

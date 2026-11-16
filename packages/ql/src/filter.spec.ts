@@ -66,4 +66,17 @@ class FilterTest {
     assert.throws(() => toWebdaQL({ $and: [] }), WebdaQLError);
     assert.strictEqual(toWebdaQL({ a: 'it\'s "safe"' }), 'a = "it\'s ""safe"""');
   }
+
+  @test
+  operatorBranches() {
+    assert.strictEqual(toWebdaQL({ $and: [{ a: 1 }, { b: 2 }] }), "a = 1 AND b = 2");
+    assert.strictEqual(toWebdaQL({ $and: [{ a: 1 }, { b: 2 }], c: 3 }), "a = 1 AND b = 2 AND c = 3");
+    assert.strictEqual(toWebdaQL({ a: { $exists: true } }), "a IS NOT NULL");
+    assert.strictEqual(toWebdaQL({ a: { $eq: null } }), "a IS NULL");
+    assert.throws(() => toWebdaQL({ $nor: [{ a: 1 }] } as any), /Unknown filter operator '\$nor'/);
+    assert.throws(() => toWebdaQL({ a: { $exists: "yes" } } as any), /\$exists must be a boolean/);
+    assert.throws(() => toWebdaQL({ a: { $gt: null } } as any), /null is only supported with/);
+    // A nested object whose fields are all undefined holds no condition
+    assert.throws(() => toWebdaQL({ a: { b: undefined } }), /Empty filter object for 'a'/);
+  }
 }

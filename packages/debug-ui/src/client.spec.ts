@@ -99,9 +99,48 @@ describe("DebugClientRequestTest", () => {
     assert.strictEqual(classifyNetworkError("https:", "https://localhost:1"), "unreachable");
     assert.strictEqual(classifyNetworkError(undefined, "http://localhost:1"), "unreachable");
   });
+
+  it("describesNetworkFailuresWithoutAMessage", async () => {
+    const down = (async () => {
+      throw undefined;
+    }) as unknown as typeof fetch;
+    // Outside of a browser there is no page protocol to classify the failure with
+    vi.stubGlobal("location", undefined);
+    const client = createDebugClient({ baseUrl: "http://localhost:18181", fetch: down });
+    await assert.rejects(
+      client.getInfo(),
+      (err: DebugClientError) => err.reason === "unreachable" && err.message === "Network error"
+    );
+  });
+
+  it("failsWithoutAFetchImplementation", async () => {
+    vi.stubGlobal("fetch", undefined);
+    const client = createDebugClient({ baseUrl: "http://localhost:18181" });
+    await assert.rejects(
+      client.getInfo(),
+      (err: DebugClientError) => err.reason === "unreachable" && err.message === "fetch is not available"
+    );
+  });
 });
 
 describe("DebugClientSocketTest", () => {
+  it("offersOnlyTheProtocolWithoutAToken", () => {
+    installWebSocket();
+    const socket = createDebugClient({ baseUrl: "http://localhost:18181" }).connect();
+    assert.deepStrictEqual(FakeWebSocket.instances[0].protocols, [WS_PROTOCOL]);
+    socket.disconnect();
+  });
+
+  it("staysDisconnectedWithoutWebSocketSupport", () => {
+    vi.stubGlobal("WebSocket", undefined);
+    const socket = createDebugClient({ baseUrl: "http://localhost:18181", token: TOKEN }).connect();
+    const statuses: boolean[] = [];
+    socket.onStatus(status => statuses.push(status));
+    assert.strictEqual(socket.connected, false);
+    socket.disconnect();
+    assert.deepStrictEqual(statuses, []);
+  });
+
   it("offersTheTokenAsSubProtocol", () => {
     installWebSocket();
     const client = createDebugClient({ baseUrl: "http://localhost:18181", token: TOKEN });
@@ -207,6 +246,26 @@ describe("exchangeBootstrapCode", () => {
     await assert.rejects(
       exchangeBootstrapCode("http://127.0.0.1:18181", "x", down as unknown as typeof fetch),
       (err: DebugClientError) => err.reason === "unreachable"
+    );
+  });
+
+  it("mapsServerErrorsAndIncompleteAnswers", async () => {
+    const broken = vi.fn(async () => new Response(JSON.stringify({ error: "boom" }), { status: 500 }));
+    await assert.rejects(
+      exchangeBootstrapCode("http://127.0.0.1:18181", "x", broken as unknown as typeof fetch),
+      (err: DebugClientError) => err.reason === "http" && err.status === 500
+    );
+    const empty = vi.fn(async () => new Response(JSON.stringify({ debugApiVersion: 1 }), { status: 200 }));
+    await assert.rejects(
+      exchangeBootstrapCode("http://127.0.0.1:18181", "x", empty as unknown as typeof fetch),
+      (err: DebugClientError) => err.reason === "http" && err.message === "session exchange returned no token"
+    );
+    const down = vi.fn(async () => {
+      throw undefined;
+    });
+    await assert.rejects(
+      exchangeBootstrapCode("http://127.0.0.1:18181", "x", down as unknown as typeof fetch),
+      (err: DebugClientError) => err.reason === "unreachable" && err.message === "Network error"
     );
   });
 });

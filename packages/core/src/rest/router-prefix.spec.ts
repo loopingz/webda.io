@@ -3,7 +3,8 @@ import * as assert from "assert";
 import { WebdaApplicationTest } from "../test/index.js";
 import { useApplication } from "../application/hooks.js";
 import { JSONUtils } from "@webda/utils";
-import { Router, RouterParameters } from "./router.service.js";
+import { RouteInfo, Router, RouterParameters } from "./router.service.js";
+import { MemoryLogger, useWorkerOutput } from "@webda/workout";
 import { runWithContext } from "../contexts/execution.js";
 import { WebContext } from "../contexts/webcontext.js";
 import { HttpContext, HttpMethodType } from "../contexts/httpcontext.js";
@@ -134,5 +135,95 @@ class RouterPrefixTest extends WebdaApplicationTest {
   async optionsWithPrefix() {
     const ctx = await this.request("OPTIONS", "/prod/unknown", "/prod");
     assert.strictEqual(ctx.statusCode, 404);
+  }
+
+  @test
+  async overridingRouteDoesNotWarn() {
+    const first: RouteInfo = { methods: ["GET"], executor: "Router" };
+    const second: RouteInfo = { methods: ["GET"], executor: "Router", override: true };
+    const memoryLogger = new MemoryLogger(useWorkerOutput(), "TRACE");
+    this.router.getParameters().overrideWarning = true;
+    try {
+      this.router.addRouteToRouter("/overridden", first);
+      this.router.addRouteToRouter("/overridden", second);
+    } finally {
+      this.router.getParameters().overrideWarning = undefined;
+      memoryLogger.close();
+    }
+    const logs = JSON.stringify(memoryLogger.getLogs());
+    assert.ok(logs.includes("Add route GET /overridden"), logs);
+    assert.ok(!logs.includes("overlap with another defined route"), logs);
+    // Removing a route that was never added keeps the others
+    this.router.removeRoute("/overridden", { methods: ["GET"], executor: "Router" });
+    this.router.removeRoute("/never-added", first);
+    // The overriding route comes first
+    assert.deepStrictEqual(this.router.getRoutes()["/overridden"], [second, first]);
+    this.router.removeRoute("/overridden", first);
+    assert.deepStrictEqual(this.router.getRoutes()["/overridden"], [second]);
+    this.router.removeRoute("/overridden");
+  }
+
+  @test
+  async executeRouteWithoutHandler() {
+    const called: string[] = [];
+    (<any>this.router).routeHandler = async (ctx: WebContext) => {
+      called.push(ctx.getHttpContext().getRelativeUri());
+    };
+    try {
+      // A handler by method name, an unknown method name, and no handler at all
+      this.router.addRouteToRouter("/handler/named", <any>{
+        methods: ["GET"],
+        executor: "Router",
+        _method: "routeHandler"
+      });
+      this.router.addRouteToRouter("/handler/unknown", <any>{
+        methods: ["GET"],
+        executor: "Router",
+        _method: "notAMethod"
+      });
+      this.router.addRouteToRouter("/handler/none", { methods: ["GET"], executor: "Router" });
+      for (const url of ["/handler/named", "/handler/unknown", "/handler/none"]) {
+        const ctx = await this.request("GET", url);
+        // Nothing is written when there is nothing to call: neither an error nor a 404
+        assert.ok(![403, 404].includes(ctx.statusCode), `${url}: ${ctx.statusCode}`);
+      }
+      assert.deepStrictEqual(called, ["/handler/named"]);
+    } finally {
+      delete (<any>this.router).routeHandler;
+      ["/handler/named", "/handler/unknown", "/handler/none"].forEach(url => this.router.removeRoute(url));
+    }
+  }
+
+  @test
+  exportOpenAPIPackageInformation() {
+    // A router with its own routes: this suite's routes have no executor for completeOpenAPI
+    const router = new Router("OpenAPIRouter", new RouterParameters().load({}));
+    const app = useApplication();
+    const description = this.stub(app, "getPackageDescription");
+    // Author and license as objects
+    description.returns(<any>{
+      version: "1.2.3",
+      author: { name: "Webda", email: "dev@webda.io" },
+      license: { name: "LGPL-3.0-only", url: "https://webda.io/license" }
+    });
+    let info = router.exportOpenAPI().info;
+    assert.strictEqual(info.version, "1.2.3");
+    assert.deepStrictEqual(info.contact, { name: "Webda", email: "dev@webda.io" });
+    assert.deepStrictEqual(info.license, { name: "LGPL-3.0-only", url: "https://webda.io/license" });
+    // Nothing declared in the package
+    description.returns(<any>{});
+    // A model class without name is named after its identifier, a route can have lost its openapi definition
+    const models = app.getModels();
+    this.stub(app, "getModels").returns({ ...models, "WebdaTest/Anonymous": <any>[class {}][0] });
+    const route: RouteInfo = { methods: ["GET"], executor: "Router" };
+    router.addRouteToRouter("/openapi/undocumented", route);
+    delete route.openapi;
+    const openapi = router.exportOpenAPI(false);
+    info = openapi.info;
+    assert.strictEqual(info.version, "0.0.0");
+    assert.strictEqual(info.contact, undefined);
+    assert.strictEqual(info.license, undefined);
+    assert.deepStrictEqual(openapi.components.schemas["Anonymous"], { type: "object" });
+    assert.ok(openapi.paths["/openapi/undocumented"]?.get, JSON.stringify(Object.keys(openapi.paths)));
   }
 }

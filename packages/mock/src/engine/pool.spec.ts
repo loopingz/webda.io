@@ -53,4 +53,16 @@ class SessionPoolTest {
     expect(pool.size(User)).toBe(2);
     expect(pool.size(Order)).toBe(0);
   }
+
+  @test({ name: "ignores non-objects and returns nothing for an unknown class" })
+  nonObjects() {
+    const pool = new SessionPool(() => 0.1);
+    pool.add(null);
+    pool.add(undefined);
+    pool.add("user");
+    pool.add(42);
+    expect(pool.size(String)).toBe(0);
+    expect(pool.size(Number)).toBe(0);
+    expect(pool.pickMany(User, 3)).toEqual([]);
+  }
 }

@@ -186,6 +186,58 @@ class StructuralSchemaTest {
   }
 
   @test
+  edgeCases() {
+    const schema = toStructuralSchema({
+      type: "object",
+      additionalProperties: false,
+      definitions: {
+        Port: { anyOf: [{ type: "integer" }, { type: "string" }] }
+      },
+      properties: {
+        // Only local references are inlined
+        external: { $ref: "https://example.com/schema.json#/definitions/Address", description: "Elsewhere" },
+        // A boolean schema accepts anything
+        flag: true,
+        // Boolean and unresolved branches of an allOf are ignored
+        partial: {
+          allOf: [true, { $ref: "#/definitions/Missing" }, { type: "object", properties: { a: { type: "string" } } }],
+          additionalProperties: false
+        },
+        // Types inferred from the values
+        list: { enum: [[1, 2]] },
+        ratio: { const: 1.5 },
+        // Type inferred from the properties or the items
+        untypedObject: { properties: { a: { type: "string" } }, additionalProperties: false },
+        untypedArray: { items: { type: "string" } },
+        nullablePort: { anyOf: [{ type: "integer" }, { type: "string" }, { type: "null" }] },
+        // The only non-null alternative cannot be resolved
+        unresolved: { anyOf: [{ $ref: "#/definitions/Missing" }, { type: "null" }], description: "Lost" },
+        // The only non-null alternative is an allOf
+        optionalMerge: {
+          anyOf: [
+            { allOf: [{ type: "object", properties: { a: { type: "string" } }, additionalProperties: false }] },
+            { type: "null" }
+          ]
+        },
+        port: { $ref: "#/definitions/Port" }
+      }
+    });
+    assert.deepStrictEqual(schema.properties, {
+      external: { description: "Elsewhere", "x-kubernetes-preserve-unknown-fields": true },
+      flag: { "x-kubernetes-preserve-unknown-fields": true },
+      partial: { type: "object", properties: { a: { type: "string" } } },
+      list: { type: "array", enum: [[1, 2]], items: { "x-kubernetes-preserve-unknown-fields": true } },
+      ratio: { type: "number", enum: [1.5] },
+      untypedObject: { type: "object", properties: { a: { type: "string" } } },
+      untypedArray: { type: "array", items: { type: "string" } },
+      nullablePort: { "x-kubernetes-int-or-string": true, nullable: true },
+      unresolved: { description: "Lost", "x-kubernetes-preserve-unknown-fields": true },
+      optionalMerge: { type: "object", properties: { a: { type: "string" } }, nullable: true },
+      port: { "x-kubernetes-int-or-string": true }
+    });
+  }
+
+  @test
   everyRepositoryModelIsStructural() {
     const models = Object.values(repositoryModels()).filter(m => m.Schemas?.Stored);
     assert.ok(models.length > 10, "the module files of the repository are built");
@@ -296,6 +348,15 @@ class BuildCrdTest {
       preserved.spec.versions[0].schema.openAPIV3Schema.properties!.spec["x-kubernetes-preserve-unknown-fields"],
       true
     );
+  }
+
+  @test
+  withoutStoredSchema() {
+    const crd = buildCrd({ ...this.tenant, Schemas: {} }, { group: "myapp.example.com" });
+    assert.deepStrictEqual(crd.spec.versions[0].schema.openAPIV3Schema, {
+      type: "object",
+      properties: { spec: { type: "object", properties: {}, "x-kubernetes-preserve-unknown-fields": true } }
+    });
   }
 
   @test

@@ -1,6 +1,6 @@
 import { describe, it, afterEach } from "vitest";
 import * as assert from "assert";
-import { WorkerMessage, WorkerOutput } from "./core.js";
+import { useWorkerOutput, WorkerMessage, WorkerOutput } from "./core.js";
 import { patchConsole } from "./consolepatch.js";
 
 describe("patchConsole", () => {
@@ -81,5 +81,18 @@ describe("patchConsole", () => {
     restore = patchConsole(output);
     console.log("outer");
     assert.strictEqual(calls, 1);
+  });
+
+  it("uses the global output by default", () => {
+    const previous = useWorkerOutput();
+    const output = useWorkerOutput(new WorkerOutput());
+    try {
+      const logs = collect(output);
+      restore = patchConsole();
+      console.warn("global");
+      assert.deepStrictEqual(logs, [["WARN", ["global"]]]);
+    } finally {
+      useWorkerOutput(previous);
+    }
   });
 });

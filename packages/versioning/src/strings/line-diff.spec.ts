@@ -44,4 +44,12 @@ class LineDiffTest {
     expect(lineApply(a, hunks)).toBe(b);
     expect(lineApply(b, lineReverse(hunks))).toBe(a);
   }
+
+  @test({ name: "applying an identity diff returns the source untouched" })
+  applyingAnIdentityDiffReturnsTheSourceUntouched() {
+    const a = "alpha\nbeta\n";
+    const hunks = lineDiff(a, a);
+    expect(hunks.hunks).toEqual([]);
+    expect(lineApply(a, hunks)).toBe(a);
+  }
 }

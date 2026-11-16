@@ -6,6 +6,7 @@ import { HttpContext } from "../contexts/httpcontext.js";
 import { UnpackedConfiguration } from "../application/iconfiguration.js";
 import { WebdaInternalTest } from "../test/internal.js";
 import { emitCoreEvent } from "../events/events.js";
+import { useRouter } from "../rest/hooks.js";
 
 @suite
 class PrometheusTest extends WebdaApplicationTest {
@@ -63,5 +64,37 @@ class EmbeddedPrometheusTest extends WebdaInternalTest {
     // this.webda.getGlobalParams().metrics = false;
     // Fake metrics should return 0 for timer
     // assert.strictEqual((<Histogram>this.webda.getMetric(Histogram, { name: "test", help: "fake" })).startTimer()(), 0);
+  }
+}
+
+@suite
+class PartitionedPrometheusTest extends WebdaInternalTest {
+  getTestConfiguration(): string | Partial<UnpackedConfiguration> | undefined {
+    return {
+      services: {
+        PrometheusService: { url: "", partitionHistogram: true }
+      }
+    };
+  }
+
+  @test
+  async histogramsArePartitionedByRequestAndServedOnTheDefaultUrl() {
+    const ctx = await this.newContext("toto");
+    ctx.setHttpContext(new HttpContext("localhost", "PUT", "/partitioned"));
+    await emitCoreEvent("Webda.Request", { context: ctx });
+    await emitCoreEvent("Webda.Result", { context: ctx });
+    // Without url the metrics are served on /metrics
+    const route = useRouter().getRoutes()["/metrics"];
+    assert.strictEqual(route?.[0].executor, "PrometheusService");
+    const scrape = await this.newContext("");
+    await route[0]._method(scrape);
+    const metrics = scrape.getOutput();
+    for (const name of ["http_request_duration_milliseconds", "http_request_sizes", "http_response_sizes"]) {
+      assert.match(
+        metrics,
+        new RegExp(`${name}_count\\{[^}]*handler="/partitioned"[^}]*method="PUT"[^}]*\\} 1`),
+        `${name} is partitioned`
+      );
+    }
   }
 }

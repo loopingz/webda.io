@@ -37,6 +37,17 @@ describe("webdaContentMapper", () => {
     }
   });
 
+  it("defaults to the tsconfig.json of the root", () => {
+    const plugin: any = webdaContentMapper();
+    plugin.configResolved({ root: fixture });
+    try {
+      const holderPath = join(fixture, "src", "holder.model.ts");
+      expect(plugin.transform(readFileSync(holderPath, "utf8"), holderPath).code).toContain("new MFA");
+    } finally {
+      plugin.buildEnd();
+    }
+  });
+
   it("handles generic and base-chain loadParameters cases and accessor import rollbacks", () => {
     const tmp = mkdtempSync(join(tmpdir(), "webda-loadparams-"));
     try {

@@ -101,4 +101,22 @@ class MemoryAtomicTest {
     // Without a condition a missing object is not an error
     await repo.delete("c");
   }
+
+  @test
+  async writesOnAMissingObjectFail() {
+    const repo = new MemoryRepository(Counter, ["uuid"]);
+    await assert.rejects(() => repo.patch("missing", { count: 1 }), /Not found: missing/);
+    await assert.rejects(() => repo.update({ uuid: "missing", count: 1 } as any), /Not found: missing/);
+    await assert.rejects(() => repo.incrementAttributes("missing", ["count"]), /Not found: missing/);
+    assert.ok(!(await repo.exists("missing")));
+  }
+
+  @test
+  async createWithoutSaving() {
+    const repo = new MemoryRepository(Counter, ["uuid"]);
+    const item = await repo.create({ uuid: "draft", count: 2 } as any, false);
+    assert.ok(item instanceof Counter);
+    assert.strictEqual(item.count, 2);
+    assert.ok(!(await repo.exists("draft")), "the instance is built but not stored");
+  }
 }

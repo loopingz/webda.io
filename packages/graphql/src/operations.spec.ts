@@ -607,8 +607,54 @@ class GraphQLOperationsTest extends WebdaApplicationTest {
       });
       accepted.send("not-json");
       assert.strictEqual(await closedByProtocol, 4400);
+      const calls: string[] = [];
+      const socket: any = {
+        end: (data: string) => calls.push(`end ${data.split("\r\n")[0]}`),
+        destroy: () => calls.push("destroy")
+      };
+      // Another URL is not a GraphQL socket: it is left alone
+      http.server.emit("upgrade", { url: "/other", headers: {} }, socket, Buffer.alloc(0));
+      await new Promise(r => setTimeout(r, 20));
+      assert.deepStrictEqual(calls, []);
+      // A request already carrying its Webda context is checked with that context
+      const webdaContext = new WebContext(
+        new HttpContext("localhost", "GET", "/graphql", "http", 80, { "x-block": "yes" })
+      );
+      http.server.emit("upgrade", { url: "/graphql", headers: {}, webdaContext }, socket, Buffer.alloc(0));
+      await until(() => calls.length > 0);
+      assert.deepStrictEqual(calls, ["end HTTP/1.1 403 Forbidden"]);
     } finally {
       await http.stop?.();
+    }
+  }
+
+  @test
+  async modelOutputsAreNotCopied() {
+    this.schema();
+    const operations = useInstanceStorage().operations;
+    const type = new GraphQLObjectType({ name: "Doc", fields: { project: { type: GraphQLString } } });
+    // An output that is an exposed model is resolved by the model type: the object is handed over as it is
+    this.service.modelsMap["Fixture.Summary.output"] = type;
+    this.service.modelsMap["Fixture.Tick"] = type;
+    try {
+      const result: any = await this.service.runOperation(
+        "Fixture.Summary",
+        operations["Fixture.Summary"],
+        { project: "p1" },
+        this.context()
+      );
+      assert.deepStrictEqual(result, { project: "p1", open: 2, done: 1, __internal: "never sent" });
+      const chunks = await this.service.subscribeOperation(
+        "Fixture.Broken",
+        operations["Fixture.Broken"],
+        {},
+        this.context()
+      );
+      assert.deepStrictEqual((await chunks.next()).value, { index: 1 });
+      await chunks.return!();
+    } finally {
+      delete this.service.modelsMap["Fixture.Summary.output"];
+      delete this.service.modelsMap["Fixture.Tick"];
     }
   }
 

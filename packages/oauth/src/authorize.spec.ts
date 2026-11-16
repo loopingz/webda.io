@@ -6,7 +6,8 @@ import {
   useApplication,
   useCrypto,
   useDynamicService,
-  useRouter
+  useRouter,
+  useService
 } from "@webda/core";
 import { OAuthTest, query, registerTestOperations, unregisterTestOperations } from "./test/oauthtest.js";
 import { readPending, writePending } from "./pending.js";
@@ -32,6 +33,15 @@ class AuthorizeTest extends OAuthTest {
     assert.strictEqual(res.headers.Vary, "Host");
     assert.ok(res.body.scopes_supported.includes("*"));
     assert.ok(res.body.scopes_supported.includes("offline_access"));
+    // Configured scopes replace the computed ones
+    const params = useService<any>("OAuthServer").getParameters();
+    params.scopesSupported = ["Task.*"];
+    try {
+      const configured = await this.get(await this.browser(), "/.well-known/oauth-authorization-server");
+      assert.deepStrictEqual(configured.body.scopes_supported, ["Task.*"]);
+    } finally {
+      delete params.scopesSupported;
+    }
   }
 
   @test
@@ -379,6 +389,11 @@ class AuthorizeTest extends OAuthTest {
     };
     await writePending(ctx, "p", "/oauth", pending);
     const set = (ctx.getResponseCookies() as any).p;
+    assert.strictEqual(set.options.path, "/oauth");
+    // Without a path the cookie is sent to the whole site
+    const rootCtx = await this.ctx();
+    await writePending(rootCtx, "p", "", pending);
+    assert.strictEqual((rootCtx.getResponseCookies() as any).p.options.path, "/");
     const read = async (value: string) => {
       const c = await this.ctx();
       c.getHttpContext().getCookies = () => ({ p: value });

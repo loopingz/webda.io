@@ -11,7 +11,14 @@ import { AuthenticatedEncryption, CryptoService, SecretString } from "./cryptose
 import { collectServiceCommands } from "./servicecommands.js";
 import { executeApplicationCommand } from "../bin/cli-phase.js";
 import { useApplication } from "../application/hooks.js";
-import { getPrivateKeyEnv, PKI_PRIVATE_KEYS_DIR_ENV, PkiEncrypter, pkiEncrypter, PkiKeyring } from "./pki.encrypter.js";
+import {
+  getPrivateKeyEnv,
+  parsePkiValue,
+  PKI_PRIVATE_KEYS_DIR_ENV,
+  PkiEncrypter,
+  pkiEncrypter,
+  PkiKeyring
+} from "./pki.encrypter.js";
 
 /**
  * Temporary directory of the test keys, never committed
@@ -350,6 +357,19 @@ class PkiEncrypterTest {
     assert.deepStrictEqual(keyring.listPrivateKids(), [KID_A, KID_B]);
     assert.strictEqual(keyring.activeKey, undefined);
     assert.deepStrictEqual(new PkiKeyring({ publicKeys: join(ROOT, "missing-dir") }).listKids(), []);
+    // Other files of the directories are ignored
+    const mixed = join(ROOT, "mixed");
+    const mixedPrivate = join(ROOT, "mixed-private");
+    for (const [dir, files] of <[string, string[]][]>[
+      [mixed, ["README.md", "bad kid.pub.pem", `${KID_A}.pub.pem`, `${KID_B}.pem`]],
+      [mixedPrivate, ["bad kid", `${KID_A}.pem.bak`, KID_B]]
+    ]) {
+      mkdirSync(dir);
+      files.forEach(file => writeFileSync(join(dir, file), ""));
+    }
+    assert.deepStrictEqual(new PkiKeyring({ publicKeys: mixed }).listKids(), [KID_A]);
+    assert.deepStrictEqual(new PkiKeyring({ privateKeys: mixedPrivate }).listPrivateKids(), [KID_B]);
+    assert.throws(() => parsePkiValue(<any>undefined), /Invalid pki encrypted data/);
     // Not configured: default options
     assert.ok(new PkiEncrypter().getKeyring() instanceof PkiKeyring);
     assert.ok(pkiEncrypter.getKeyring() instanceof PkiKeyring);
@@ -466,6 +486,16 @@ class PkiCommandsTest extends WebdaApplicationTest {
     assert.strictEqual(decrypted.services.db.password.getValue(), "p1");
     assert.strictEqual(decrypted.services.db.other.getValue(), "p2");
     assert.strictEqual(decrypted.services.db.user, "u1");
+
+    // Without a file the private key is written as <kid>.pem in the application folder
+    const getPath = this.stub(useApplication(), "getPath").returns(COMMAND_ROOT);
+    try {
+      const k0 = await crypto.pkiGenerate("k0", 3072);
+      assert.strictEqual(k0.privateKey, join(COMMAND_ROOT, "k0.pem"));
+      assert.ok(readFileSync(k0.privateKey, "utf-8").includes("PRIVATE KEY"));
+    } finally {
+      getPath.restore();
+    }
 
     // The CLI runs the commands statically, without Core
     const commands = collectServiceCommands(useApplication());

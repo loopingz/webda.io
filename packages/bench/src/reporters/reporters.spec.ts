@@ -105,6 +105,16 @@ class ReportersTest {
     assert.deepStrictEqual(output, []);
     new ConsoleReporter(text => output.push(text)).report([result()]);
     assert.strictEqual(output.length, 1);
+    // Without an output function the table goes to the console
+    const log = console.log;
+    console.log = (...args: any[]) => void output.push(args.join(" "));
+    try {
+      new ConsoleReporter().report([result()]);
+    } finally {
+      console.log = log;
+    }
+    assert.strictEqual(output.length, 2);
+    assert.strictEqual(output[1], output[0]);
   }
 
   @test
@@ -121,6 +131,9 @@ class ReportersTest {
       "backslashes are escaped"
     );
     assert.ok(markdown.includes("commit 01234567"));
+    const withoutCommit = result();
+    delete withoutCommit.env.commit;
+    assert.ok(toMarkdown([withoutCommit]).includes("4 × Test CPU, profile quick._"));
     assert.ok(markdown.includes("**Unstable results**"));
     const file = join(this.tmp, "summary.md");
     new MarkdownReporter(file, "Bench").report([result()]);
@@ -174,6 +187,8 @@ class ReportersTest {
     try {
       process.env.WEBDA_BENCH_OUTPUT = output;
       assert.strictEqual(defaultOutputDir(), output);
+      delete process.env.WEBDA_BENCH_OUTPUT;
+      assert.strictEqual(defaultOutputDir(), join(process.cwd(), "bench-results"));
     } finally {
       if (previous === undefined) delete process.env.WEBDA_BENCH_OUTPUT;
       else process.env.WEBDA_BENCH_OUTPUT = previous;

@@ -464,4 +464,21 @@ export class DebounceTest {
     // Should have been invoked at least once
     assert.ok(callCount >= 1);
   }
+
+  @test
+  async "should keep the pending timer when the system clock moves backwards"() {
+    let callCount = 0;
+    const debouncedFunc = debounce(() => {
+      callCount++;
+    }, 100);
+    debouncedFunc();
+    // The clock goes back in time: the call is seen as an invocation while the timer is still pending
+    this.clock.setSystemTime(500);
+    debouncedFunc();
+    assert.strictEqual(callCount, 0);
+    assert.strictEqual(debouncedFunc.pending(), true);
+    await this.wait(200);
+    assert.strictEqual(callCount, 1);
+    assert.strictEqual(debouncedFunc.pending(), false);
+  }
 }

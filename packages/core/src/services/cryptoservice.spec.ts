@@ -238,6 +238,49 @@ class CryptoServiceTest extends WebdaApplicationTest {
   }
 
   @test
+  async keysOfTheRegistry() {
+    const crypto = useCrypto();
+    // No keys file: the keys are in the registry
+    assert.strictEqual(crypto.getKeysFile(), undefined);
+    const registry = useRegistry();
+    const { keys, current, age } = crypto;
+    const stub = this.stub(registry, "get").callsFake(async () => ({ current: "init-another-instance" }) as any);
+    try {
+      // Another instance is creating the first keys: there is no current key yet
+      assert.strictEqual(await crypto.load(), true);
+      assert.strictEqual(crypto.current, undefined);
+      assert.deepStrictEqual(crypto.keys, {});
+      await assert.rejects(() => crypto.getCurrentKeys(), /No current key/);
+    } finally {
+      stub.restore();
+      Object.assign(crypto, { keys, current, age });
+    }
+  }
+
+  @test
+  async withoutAutoCreate() {
+    const self = CryptoService.getEncrypter("self");
+    const stub = this.stub(useRegistry(), "get").callsFake(() => {
+      throw new Error("Registry get called");
+    });
+    try {
+      const service = new CryptoService(
+        "ManualCrypto",
+        new CryptoServiceParameters().load({ type: "Webda/CryptoService", autoCreate: false })
+      );
+      await service.resolve();
+      // The keys are neither loaded nor created
+      await service.init();
+      assert.strictEqual(service.keys, undefined);
+      assert.deepStrictEqual(service.getJWKS(), { keys: [] });
+      await assert.rejects(() => service.getCurrentKeys(), /No keys/);
+    } finally {
+      stub.restore();
+      CryptoService.registerEncrypter("self", self);
+    }
+  }
+
+  @test
   async cov() {
     useCrypto().keys = undefined;
     await assert.rejects(() => useCrypto().getCurrentKeys(), /not initialized/);
@@ -444,6 +487,21 @@ class CryptoServiceKeysFileTest extends WebdaApplicationTest {
     const objJwt = await crypto.jwtSign({ sub: "x" });
     await assert.rejects(() => crypto.decrypt(objJwt), /Invalid encrypted payload/);
   }
+
+  @test
+  async generateKeysInMissingFolder() {
+    const out = join(this.dir, "missing", "keys.json");
+    // Only an existing file is reported as such
+    await assert.rejects(
+      () => CryptoService.cryptoGenerateKeys(out),
+      (err: any) => {
+        assert.strictEqual(err.code, "ENOENT");
+        assert.ok(!err.message.includes("already exists"));
+        return true;
+      }
+    );
+    assert.ok(!existsSync(out));
+  }
 }
 
 /**
@@ -647,6 +705,80 @@ class CryptoConfigurationTest {
     await CryptoService.encryptConfiguration(data, { migrate: "test" });
     assert.strictEqual(data.secret, "crypt:test:" + Buffer.from("legacy").toString("base64"));
     assert.strictEqual(data.other, "crypt:test:" + Buffer.from("t").toString("base64"));
+  }
+
+  @test
+  async fromWithoutPath() {
+    const memoryLogger = new MemoryLogger(useWorkerOutput());
+    try {
+      assert.strictEqual(SecretString.from("clearpassword"), "clearpassword");
+    } finally {
+      memoryLogger.close();
+    }
+    const logs = JSON.stringify(memoryLogger.getLogs());
+    assert.ok(logs.includes("A secret is not encrypted, use 'webda config encrypt'"), logs);
+    assert.ok(!logs.includes("clearpassword"));
+  }
+
+  @test
+  async objectsWithoutPrototype() {
+    const secret = new SecretString("mypassword", "test");
+    const bare = Object.assign(Object.create(null), { secret, other: 1 });
+    assert.deepStrictEqual(SecretString.unwrap(bare), { secret: "mypassword", other: 1 });
+    const encrypted = Object.assign(Object.create(null), {
+      secret: "crypt:test:" + Buffer.from("plop").toString("base64")
+    });
+    const decrypted = await CryptoService.decryptConfiguration(encrypted);
+    assert.strictEqual(decrypted.secret.getValue(), "plop");
+  }
+
+  @test
+  async singleValues() {
+    const encrypted = "crypt:test:" + Buffer.from("plop").toString("base64");
+    // A single value, at the root or at a path of the configuration
+    assert.strictEqual((await CryptoService.decryptConfiguration(encrypted)).getValue(), "plop");
+    assert.strictEqual((await CryptoService.decryptConfiguration(encrypted, ["services", "db"])).getValue(), "plop");
+    await assert.rejects(
+      () => CryptoService.decryptConfiguration("crypt:failing:secretdata"),
+      /Cannot decrypt the value at <root> with encrypter 'failing'/
+    );
+    await assert.rejects(
+      () => CryptoService.decryptConfiguration("crypt:failing:secretdata", ["services", "db", "password"]),
+      /Cannot decrypt the value at services\.db\.password with encrypter 'failing'/
+    );
+    // Outside of a pass the encrypter is used as registered
+    const decryptValue = (encrypter: string) =>
+      (<any>CryptoService).decryptValue(encrypter, Buffer.from("plop").toString("base64"), ["a"]);
+    assert.strictEqual(await decryptValue("test"), "plop");
+    await assert.rejects(() => decryptValue("unknown"), /Unknown encrypter 'unknown' at a/);
+  }
+
+  @test
+  async encrypterConfiguredOncePerPass() {
+    const configured: any[] = [];
+    CryptoService.registerEncrypter("configurable", {
+      configure: async (settings: any, context: any) => {
+        configured.push([settings, context.mode]);
+      },
+      encrypt: async (data: string) => data,
+      decrypt: async (data: string) => data
+    });
+    try {
+      // Without settings for the encrypter: configured with empty ones, once
+      const decrypted = await CryptoService.decryptConfiguration({
+        a: "crypt:configurable:one",
+        b: "crypt:configurable:two"
+      });
+      assert.strictEqual(decrypted.b.getValue(), "two");
+      assert.deepStrictEqual(configured, [[{}, "decrypt"]]);
+      await CryptoService.encryptConfiguration(
+        { a: "encrypt:configurable:one" },
+        { settings: { encrypters: { configurable: { option: true } } } as any }
+      );
+      assert.deepStrictEqual(configured[1], [{ option: true }, "encrypt"]);
+    } finally {
+      delete (<any>CryptoService).encrypters.configurable;
+    }
   }
 
   @test

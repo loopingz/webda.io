@@ -81,6 +81,36 @@ class GenerateSessionTypesTest {
   }
 
   @test
+  doesNothingWithoutConfiguration() {
+    generateSessionTypes(this.tmp);
+    assert.strictEqual(existsSync(join(this.tmp, ".webda")), false);
+  }
+
+  @test
+  throwsWhenModuleDeclaresNoModels() {
+    this.writeJson("webda.config.json", { version: 3, session: "Session" });
+    this.writeJson("webda.module.json", {});
+    assert.throws(() => generateSessionTypes(this.tmp), /Cannot resolve session model "Session".*not declared/);
+  }
+
+  @test
+  namespacelessModelIdSkipsOtherModels() {
+    this.writeJson("webda.config.json", { version: 3, session: "Session" });
+    this.writeJson("webda.module.json", {
+      models: {
+        list: { "MyApp/User": "src/models/user.ts:User", "MyApp/Session": "src/models/session.ts:Session" }
+      }
+    });
+    generateSessionTypes(this.tmp);
+    const out = readFileSync(join(this.tmp, ".webda/session-types.d.ts"), "utf-8");
+    assert.match(out, /import type \{ Session as __ResolvedSession \} from ".*src\/models\/session/);
+
+    // No model with that class name at all
+    this.writeJson("webda.config.json", { version: 3, session: "Missing" });
+    assert.throws(() => generateSessionTypes(this.tmp), /Cannot resolve session model "Missing"/);
+  }
+
+  @test
   throwsWhenModuleJsonIsMissing() {
     this.writeJson("webda.config.json", { version: 3, session: "MyApp/Session" });
     assert.throws(() => generateSessionTypes(this.tmp), /webda\.module\.json is missing/);

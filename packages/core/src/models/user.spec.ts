@@ -101,6 +101,26 @@ class UserTest extends WebdaApplicationTest {
   }
 
   @test
+  async aclGroupEntriesAndRegistryHelper() {
+    // A GROUP entry matches the groups of the caller: a caller without groups matches none
+    const acl = new ResourceAcl();
+    acl.fromDto([{ action: "get", type: "GROUP", principal: "admins", allow: true }]);
+    const caller = (user: any): any => ({ getCurrentUserId: () => "u-acl", getCurrentUser: async () => user });
+    assert.strictEqual(await acl.canAct(caller({ getGroups: () => ["admins"] }), "get"), true);
+    assert.strictEqual(
+      await acl.canAct(caller({ getGroups: () => ["users"] }), "get"),
+      "no matching ACE in resource ACL"
+    );
+    assert.strictEqual(await acl.canAct(caller({}), "get"), "no matching ACE in resource ACL");
+    assert.strictEqual(await acl.canAct(caller(undefined), "get"), "no matching ACE in resource ACL");
+
+    // RegistryEntry.get creates or updates the entry when given data
+    const created = await RegistryEntry.get("registry-helper", { anyData: "plop" });
+    assert.strictEqual(created.anyData, "plop");
+    assert.strictEqual((await RegistryEntry.get<any>("registry-helper")).anyData, "plop");
+  }
+
+  @test
   async additionalModelsCoverage() {
     // 1. User methods & behaviors storage toJSON
     const u = await User.create({ uuid: "u-cov" }, false);

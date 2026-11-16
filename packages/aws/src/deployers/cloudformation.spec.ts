@@ -10,7 +10,7 @@ import {
   ExecuteChangeSetCommand,
   ListStackResourcesCommand
 } from "@aws-sdk/client-cloudformation";
-import { Service } from "@webda/core";
+import { Service, useApplication } from "@webda/core";
 import { WebdaApplicationTest } from "@webda/core/lib/test/index.js";
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
@@ -392,6 +392,140 @@ class CloudFormationDeployerTest extends WebdaApplicationTest {
   }
 
   @test
+  async explicitResources() {
+    // Everything the defaults would generate is given
+    const deployer = await this.getDeployer({
+      AssetsBucket: "b",
+      Lambda: { Role: "arn:aws:iam::666111333:role/custom" },
+      Role: { Policies: [{ PolicyName: "inline" }] },
+      APIGatewayBasePathMapping: { DomainName: "api.webda.io" },
+      Statics: [
+        { DomainName: "assets.webda.io", Source: "public", AssetsPath: "custom/" },
+        {
+          DomainName: "s.webda.io",
+          Source: "site/",
+          CloudFront: {
+            DistributionConfig: { Aliases: ["s.webda.io"], ViewerCertificate: { AcmCertificateArn: "arn:own" } }
+          }
+        }
+      ]
+    });
+    const resources = deployer.resources;
+    assert.strictEqual(resources.Lambda.Role, "arn:aws:iam::666111333:role/custom");
+    // A Role with its own policies does not need the generated Policy
+    assert.strictEqual(resources.Policy, undefined);
+    assert.strictEqual(resources.Role.RoleName, "WebdaSampleApplicationRole");
+    assert.strictEqual(resources.APIGatewayBasePathMapping.DomainName, "api.webda.io");
+    assert.strictEqual(resources.Statics[0].AssetsPath, "custom/");
+    assert.strictEqual(resources.Statics[1].AssetsPath, "site/");
+    assert.deepStrictEqual(resources.Statics[1].CloudFront.DistributionConfig.Aliases, ["s.webda.io"]);
+    // The given certificate is kept
+    const mocks = this.mockAWS(deployer);
+    deployer.template = { Resources: {} };
+    await deployer.createStatic(resources.Statics[1]);
+    assert.deepStrictEqual(
+      deployer.template.Resources.StaticswebdaioCloudFront.Properties.DistributionConfig.ViewerCertificate,
+      { AcmCertificateArn: "arn:own" }
+    );
+    assert.strictEqual(mocks.getCertificate.mock.calls.length, 0);
+
+    // A Policy without Role is not attached, a Lambda with its own Role adds no assume statement
+    const dir = mkdtempSync(join(tmpdir(), "webda-cf-"));
+    try {
+      const lambda = await this.getDeployer({
+        AssetsBucket: "b",
+        Policy: {},
+        Lambda: { Role: "arn:aws:iam::666111333:role/custom" },
+        LambdaPackager: { zipPath: join(dir, "lambda.zip") },
+        KeepPackage: true
+      });
+      assert.deepStrictEqual(lambda.resources.Policy.Roles, []);
+      this.mockAWS(lambda);
+      const template = await lambda.generateTemplate();
+      assert.strictEqual(template.Resources.Role, undefined);
+      assert.strictEqual(template.Resources.LambdaFunction.Properties.Role, "arn:aws:iam::666111333:role/custom");
+      // The package is kept
+      assert.ok(existsSync(join(dir, "lambda.zip")));
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+
+    // Regional domain: the certificate of the region, unless given
+    this.deployer.template = { Resources: {} };
+    const { getCertificate } = this.mockAWS();
+    this.deployer.resources.APIGatewayDomain = {
+      DomainName: "regional.webda.io",
+      EndpointConfiguration: { Types: ["REGIONAL"] }
+    };
+    await this.deployer.APIGatewayDomain();
+    assert.deepStrictEqual(getCertificate.mock.calls, [["regional.webda.io", undefined]]);
+    this.deployer.resources.APIGatewayDomain = { DomainName: "regional.webda.io", CertificateArn: "arn:given" };
+    await this.deployer.APIGatewayDomain();
+    assert.strictEqual(getCertificate.mock.calls.length, 1);
+    assert.strictEqual(this.deployer.template.Resources.APIGatewayDomain.Properties.CertificateArn, "arn:given");
+  }
+
+  @test
+  async withoutPackageDescription() {
+    vi.spyOn(useApplication(), "getPackageDescription").mockReturnValue(undefined);
+    await assert.rejects(
+      () => this.getDeployer({ type: "Webda/CloudFormationDeployer" }),
+      /AssetsBucket must be defined/
+    );
+  }
+
+  @test
+  async createCloudFormationFinalStatuses() {
+    this.deployer.result = { CloudFormation: { Bucket: "b", Key: "k" } };
+    const sleep = vi.spyOn(this.deployer, "sleep").mockResolvedValue();
+    const createDeployment = vi.fn().mockResolvedValue({});
+    this.mock(APIGateway).on(CreateDeploymentCommand).callsFake(createDeployment);
+    let status: string;
+    let described = 0;
+    const listed = vi.fn().mockResolvedValue({
+      // No API Gateway deployed in the stack
+      StackResourceSummaries: [<any>{ ResourceType: "AWS::Lambda::Function", PhysicalResourceId: "fn" }]
+    });
+    this.mock(CloudFormation)
+      .on(CreateChangeSetCommand)
+      .resolves({})
+      .on(DescribeChangeSetCommand)
+      .resolves({ Status: "CREATE_COMPLETE", Changes: [] })
+      .on(ExecuteChangeSetCommand)
+      .resolves({})
+      .on(DescribeStackEventsCommand)
+      .callsFake(async () => ({
+        // Only the previous event before the execution
+        StackEvents: [
+          ...(described++ % 2
+            ? [
+                {
+                  EventId: "final",
+                  ResourceStatus: status,
+                  ResourceType: "AWS::CloudFormation::Stack",
+                  LogicalResourceId: "WebdaSampleApplication"
+                }
+              ]
+            : []),
+          { EventId: "old" }
+        ]
+      }))
+      .on(ListStackResourcesCommand)
+      .callsFake(listed);
+    // Every final status of the stack ends the wait
+    for (status of ["CREATE_COMPLETE", "ROLLBACK_COMPLETE", "UPDATE_ROLLBACK_COMPLETE"]) {
+      await this.deployer.createCloudFormation();
+    }
+    assert.strictEqual(sleep.mock.calls.length, 0);
+    assert.strictEqual(listed.mock.calls.length, 3);
+    assert.strictEqual(createDeployment.mock.calls.length, 0);
+    // Without API Gateway the stack resources are not listed
+    delete this.deployer.resources.APIGateway;
+    await this.deployer.createCloudFormation();
+    assert.strictEqual(listed.mock.calls.length, 3);
+  }
+
+  @test
   async createCloudFormationNoChanges() {
     this.deployer.result = { CloudFormation: { Bucket: "b", Key: "k" } };
     const execute = vi.fn();
@@ -481,6 +615,10 @@ class CloudFormationDeployerTest extends WebdaApplicationTest {
     // Any other error
     failure = new Error("Unknown");
     await assert.rejects(() => this.deployer.createCloudFormationChangeSet(cloudformation), /Unknown/);
+    // Resources to import: an IMPORT changeset
+    const importer = await this.getDeployer({ AssetsBucket: "b", ResourcesToImport: [{}] });
+    importer.result = this.deployer.result;
+    assert.deepStrictEqual(await importer.createCloudFormationChangeSet(cloudformation), { Id: "IMPORT" });
   }
 
   @test

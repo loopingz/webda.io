@@ -468,6 +468,65 @@ class ConsentTest extends OAuthTest {
   }
 
   @test
+  async rememberedConsentWithoutOfflineAccessAsksAgain() {
+    const b = await this.browser();
+    await this.login(b, "u1");
+    await this.authorize(b, { scope: "Task.Get" });
+    const { csrf } = await this.op(b, "OAuth.Consent.Get");
+    await this.op(b, "OAuth.Consent.Decide", { allow: true, operations: ["Task.Get"], csrf, remember: true });
+    assert.ok(query((await this.authorize(b, { scope: "Task.Get" })).headers.Location).code);
+    // A refresh token was never consented to
+    const offline = await this.authorize(b, { scope: "Task.Get offline_access" });
+    assert.strictEqual(offline.headers.Location, "http://test.webda.io/oauth/consent");
+  }
+
+  @test
+  async clientRemovedWhileConsenting() {
+    const client = await this.registered("dcr_gone", "http://127.0.0.1/cb");
+    const b = await this.browser();
+    await this.login(b, "u1");
+    const params = { client_id: "dcr_gone", redirect_uri: "http://127.0.0.1/cb", scope: "Task.*" };
+    await this.authorize(b, params);
+    const { csrf } = await this.op(b, "OAuth.Consent.Get");
+    await client.ref().delete();
+    await assert.rejects(
+      () => this.op(b, "OAuth.Consent.Decide", { allow: true, operations: ["Task.Get"], csrf }),
+      /400 Unknown client/
+    );
+    await assert.rejects(() => this.op(b, "OAuth.Consent.Get"), /400 Unknown client/);
+  }
+
+  @test
+  async redirectUriKeepsItsOwnQuery() {
+    await this.registered("dcr_query", "https://client.example.com/cb?tenant=acme");
+    const b = await this.browser();
+    await this.login(b, "u1");
+    const params = { client_id: "dcr_query", redirect_uri: "https://client.example.com/cb?tenant=acme" };
+    // An error reported to the client
+    const none = await this.authorize(b, { ...params, scope: "Task.*", prompt: "none" });
+    assert.match(none.headers.Location, /^https:\/\/client\.example\.com\/cb\?tenant=acme&error=consent_required/);
+    // A refusal of the user
+    await this.authorize(b, { ...params, scope: "Task.*" });
+    const { csrf } = await this.op(b, "OAuth.Consent.Get");
+    const { redirect } = await this.op(b, "OAuth.Consent.Decide", { allow: false, operations: [], csrf });
+    assert.strictEqual(redirect, "https://client.example.com/cb?tenant=acme&error=access_denied&state=s");
+    await OAuthRegisteredClient.ref("dcr_query").delete();
+  }
+
+  @test
+  async sessionWithoutAuthenticationDetails() {
+    // A session stored before amr and the MFA state existed still gets a code
+    const b = await this.browser();
+    b.ctx.getSession().userId = "u1";
+    await this.authorize(b, { scope: "Task.Get" });
+    const { csrf } = await this.op(b, "OAuth.Consent.Get");
+    const { redirect } = await this.op(b, "OAuth.Consent.Decide", { allow: true, operations: ["Task.Get"], csrf });
+    const identity = (await OAuthCode.ref(sha256(query(redirect).code)).get()).identity;
+    assert.deepStrictEqual(identity.amr, []);
+    assert.strictEqual(identity.mfa, "none");
+  }
+
+  @test
   async allowWithoutOperation() {
     const b = await this.browser();
     await this.login(b, "u1");

@@ -62,6 +62,7 @@ class LayoutTest {
       rmSync(join(folder, "blobs", "sha256"), { recursive: true });
       assert.throws(() => layout.writeBlob(data, MediaTypes.OCI_CONFIG), { code: "ENOENT" });
       assert.throws(() => layout.blobPath("md5:1234"), /Unsupported digest/);
+      assert.throws(() => layout.blobPath("sha256"), /Unsupported digest 'sha256'/);
       await assert.rejects(
         () => layout.writeStream(Readable.from([Buffer.from("abc")]), sha256("other")),
         /Digest mismatch/

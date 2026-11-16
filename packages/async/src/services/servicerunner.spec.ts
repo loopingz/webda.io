@@ -4,11 +4,13 @@ import {
   OperationContext,
   registerOperation,
   SimpleOperationContext,
+  useApplication,
   useContext,
   useSystem
 } from "@webda/core";
 import { suite, test } from "@webda/test";
 import assert from "assert";
+import { stub } from "sinon";
 import { AsyncTest } from "../../test/fixture.js";
 import { AsyncOperationAction, AsyncWebdaAction } from "../asyncaction.model.js";
 import { Runner, RunnerParameters } from "./runner.service.js";
@@ -218,5 +220,31 @@ class ServiceRunnerTest extends AsyncTest {
     assert.strictEqual(opAction.status, "SUCCESS");
     assert.strictEqual(opAction.logs?.length, 1);
     assert.ok(opAction.logs[0].endsWith(" [ INFO] [calledRunner] Logging test"));
+  }
+
+  @test
+  async fallsBackToTheGlobalWorkerOutput() {
+    const app = useApplication();
+    const output = app.getWorkerOutput();
+    const getWorkerOutput = stub(app, "getWorkerOutput").returns(undefined);
+    try {
+      const action = new AsyncWebdaAction("calledRunner", "test", "fallback");
+      await action.save();
+      const launched = await this.runner.launchAction(action, {
+        JOB_HOOK: "",
+        JOB_ID: action.uuid,
+        JOB_ORCHESTRATOR: "test",
+        JOB_SECRET_KEY: ""
+      });
+      await launched.promise;
+      await action.refresh();
+      assert.strictEqual(action.status, "SUCCESS", action.errorMessage);
+      assert.ok(getWorkerOutput.called);
+      assert.strictEqual(action.logs?.length, 1);
+      assert.ok(action.logs[0].endsWith(" [ INFO] [calledRunner] FakeRunner test fallback"));
+    } finally {
+      getWorkerOutput.restore();
+      assert.strictEqual(app.getWorkerOutput(), output);
+    }
   }
 }

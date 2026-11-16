@@ -9,7 +9,7 @@ import * as WebdaError from "../errors/errors.js";
 import { WebContext } from "../contexts/webcontext.js";
 import { HttpContext, HttpMethodType } from "../contexts/httpcontext.js";
 import { Router, RouterParameters } from "./router.service.js";
-import { runWithContext } from "../contexts/execution.js";
+import { runWithContext, useContext } from "../contexts/execution.js";
 import { randomUUID } from "node:crypto";
 import { useApplication, useModel } from "../application/hooks.js";
 import { MemoryRepository, registerRepository } from "@webda/models";
@@ -43,6 +43,17 @@ class RestBindingService extends Service {
   @Operation({ input: "RestBinding.Whole", rest: { method: "post", path: "binding/body/{id}", body: "payload" } })
   whole(id: string, payload: { count: number }) {
     return { id, payload };
+  }
+}
+
+/** What the next call of RouteFixtureService.run answers */
+const routeFixture: { result?: any; status?: number; calls: number } = { calls: 0 };
+
+class RouteFixtureService extends Service {
+  run() {
+    routeFixture.calls++;
+    if (routeFixture.status) useContext<WebContext>().writeHead(routeFixture.status);
+    return routeFixture.result;
   }
 }
 
@@ -1348,5 +1359,161 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
     await new Promise(resolve => setImmediate(resolve));
     assert.strictEqual(closedCode, 1011);
     delete useInstanceStorage().operations!["Ws.Fail"];
+  }
+
+  /**
+   * Routes over hand-registered operations that declare neither a REST path nor primary key fields
+   * @returns the transport
+   */
+  private async fixtureTransport() {
+    const service = new RouteFixtureService("RouteFixture", new ServiceParameters().load({}));
+    this.registerService(service);
+    const operations: any = {};
+    for (const name of ["Create", "Delete", "Get", "Update", "Patch"]) {
+      operations[`Fixture.${name}`] = {
+        id: `Fixture.${name}`,
+        service: "RouteFixture",
+        method: "run",
+        input: "void",
+        output: "void"
+      };
+    }
+    Object.assign(useInstanceStorage().operations!, operations);
+    const transport: any = new RESTOperationsTransport(
+      "FixtureTransport",
+      new RESTOperationsTransportParameters().load({ url: "/fx/", exposeOpenAPI: false })
+    );
+    this.registerService(transport);
+    transport.resolve();
+    await transport.init();
+    return { transport, operations };
+  }
+
+  /**
+   * Run a request and return its context, whatever the status
+   * @param method - HTTP method
+   * @param url - the URL
+   * @returns the context
+   */
+  private async fixtureCall(method: HttpMethodType, url: string): Promise<WebContext> {
+    const ctx = new WebContext(new HttpContext("test.webda.io", method, url, "http", 80, {}));
+    ctx.newSession();
+    await runWithContext(ctx, () => useRouter().execute(ctx));
+    return ctx;
+  }
+
+  @test
+  async createRouteOnlySetsLocationForACreatedObjectWithItsKey() {
+    const { transport, operations } = await this.fixtureTransport();
+    transport.exposeCreateRoute("/fx/fixture", "Fixture", "Test/Fixture", 0, undefined, operations);
+    routeFixture.status = undefined;
+
+    // Without pkFields on the operation, the key is the uuid
+    routeFixture.result = { uuid: "abc" };
+    let ctx = await this.fixtureCall("POST", "/fx/fixture");
+    assert.strictEqual(ctx.getResponseHeaders()["Location"], "http://test.webda.io/fx/fixture/abc");
+
+    // The created object does not hold its key
+    routeFixture.result = { name: "no key" };
+    ctx = await this.fixtureCall("POST", "/fx/fixture");
+    assert.strictEqual(ctx.getResponseHeaders()["Location"], undefined);
+
+    // Nothing is returned
+    routeFixture.result = undefined;
+    ctx = await this.fixtureCall("POST", "/fx/fixture");
+    assert.strictEqual(ctx.getResponseHeaders()["Location"], undefined);
+
+    // The operation answered something else than a success
+    routeFixture.result = { uuid: "abc" };
+    routeFixture.status = 302;
+    ctx = await this.fixtureCall("POST", "/fx/fixture");
+    assert.strictEqual(ctx.statusCode, 302);
+    assert.strictEqual(ctx.getResponseHeaders()["Location"], undefined);
+    routeFixture.status = undefined;
+  }
+
+  @test
+  async deleteAndGetRoutesFallBackToTheUuidPath() {
+    const { transport, operations } = await this.fixtureTransport();
+    transport.exposeDeleteRoute("/fx/legacy", "Fixture", "Test/Fixture", operations);
+    transport.exposeGetRoute("/fx/legacy", "Fixture", "Test/Fixture", operations);
+    routeFixture.status = undefined;
+    routeFixture.result = { uuid: "abc" };
+
+    let ctx = await this.fixtureCall("GET", "/fx/legacy/abc");
+    assert.deepStrictEqual(JSON.parse(<string>ctx.getResponseBody()), { uuid: "abc" });
+
+    routeFixture.result = undefined;
+    ctx = await this.fixtureCall("DELETE", "/fx/legacy/abc");
+    assert.strictEqual(ctx.statusCode, 204);
+
+    // A status set by the operation is kept
+    routeFixture.status = 302;
+    ctx = await this.fixtureCall("DELETE", "/fx/legacy/abc");
+    assert.strictEqual(ctx.statusCode, 302);
+    routeFixture.status = undefined;
+  }
+
+  @test
+  async putAndPatchAreServedByTheOnlyDeclaredOperation() {
+    const { transport, operations } = await this.fixtureTransport();
+    transport.exposeUpdateRoute("/fx/only-update", "Fixture", "Test/Fixture", {
+      "Fixture.Update": operations["Fixture.Update"]
+    });
+    transport.exposeUpdateRoute("/fx/only-patch", "Fixture", "Test/Fixture", {
+      "Fixture.Patch": operations["Fixture.Patch"]
+    });
+    routeFixture.status = undefined;
+    routeFixture.result = { served: true };
+    for (const [method, url] of [
+      ["PATCH", "/fx/only-update/abc"],
+      ["PUT", "/fx/only-update/abc"],
+      ["PUT", "/fx/only-patch/abc"],
+      ["PATCH", "/fx/only-patch/abc"]
+    ] as [HttpMethodType, string][]) {
+      const calls = routeFixture.calls;
+      const ctx = await this.fixtureCall(method, url);
+      assert.strictEqual(routeFixture.calls, calls + 1, `${method} ${url} reaches the operation`);
+      assert.deepStrictEqual(JSON.parse(<string>ctx.getResponseBody()), { served: true });
+    }
+  }
+
+  @test
+  async behaviorWithoutActionsAddsNoRoute() {
+    const { transport } = await this.fixtureTransport();
+    const stub = sinon.stub(useApplication(), "getBehaviorMetadata").returns({} as any);
+    const addRoute = sinon.spy(transport, "addRoute");
+    try {
+      transport.exposeBehaviorRoutes("/fx/behavior", "Fixture", "Test/Fixture", "file", {
+        behavior: "Test/NoActions",
+        attribute: "file"
+      });
+      assert.strictEqual(addRoute.callCount, 0);
+    } finally {
+      stub.restore();
+      addRoute.restore();
+    }
+  }
+
+  @test
+  async modelTreeWalkSkipsMissingModels() {
+    const models: any = useApplication().getModels();
+    // A model whose class could not be loaded stays undefined in the map
+    models["Test/Missing"] = undefined;
+    try {
+      const transport: any = new RESTOperationsTransport(
+        "MissingModelTransport",
+        new RESTOperationsTransportParameters().load({ url: "/mm/", exposeOpenAPI: false })
+      );
+      this.registerService(transport);
+      transport.resolve();
+      // A second resolve does not listen for the HTTP servers again
+      assert.strictEqual(transport.resolve(), transport);
+      await transport.init();
+      const ctx = await this.fixtureCall("GET", "/mm/companies");
+      assert.ok(ctx.statusCode < 500);
+    } finally {
+      delete models["Test/Missing"];
+    }
   }
 }

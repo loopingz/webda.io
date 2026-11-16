@@ -3,8 +3,11 @@ import { promises as fsPromises } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, suite, test } from "@webda/test";
+import { Readable } from "node:stream";
 import {
   ContentCredentialNotFoundError,
+  ContentExistsError,
+  type ContentStorage,
   ContentStorageNotFoundError,
   ContentStorages,
   FileContentStorage,
@@ -481,5 +484,100 @@ class FileContentStorageContractTest {
     await corruptedContract.setup();
     await assert.rejects(() => corruptedContract.roundTripStreamWithoutLength(), /Received bytes did not match/);
     await corruptedContract.teardown();
+  }
+}
+
+/**
+ * A storage behaving like a cloud provider SDK: no `headContent`, provider error names
+ * instead of the Content*Error classes, and plain `Uint8Array` chunks on read
+ */
+@suite
+class ProviderStyleContentStorageContractTest {
+  private contract = ContentStorageContract(async () => {
+    const memory = new MemoryContentStorage();
+    const providerError = (name: string) => Object.assign(new Error(name), { code: name });
+    const storage: ContentStorage = {
+      getContent: async (url, options) => {
+        let buffer: Buffer;
+        try {
+          buffer = await toBuffer(await memory.getContent(url, options));
+        } catch {
+          throw providerError("NoSuchKey");
+        }
+        const chunks: Uint8Array[] = [];
+        for (let i = 0; i < buffer.length; i += 1024 * 1024) {
+          chunks.push(new Uint8Array(buffer.subarray(i, i + 1024 * 1024)));
+        }
+        return Readable.from(chunks, { objectMode: true });
+      },
+      putContent: async (url, body, options) => {
+        try {
+          return await memory.putContent(url, body, options);
+        } catch (err) {
+          throw err instanceof ContentExistsError ? providerError("PreconditionFailed") : err;
+        }
+      },
+      deleteContent: url => memory.deleteContent(url),
+      getWriteStream: url => memory.getWriteStream(url)
+    };
+    // The trailing slash of the base url is kept as is
+    return { storage, baseUrl: "memory://provider-bucket/" };
+  })();
+
+  @beforeEach
+  async before() {
+    await this.contract.setup();
+  }
+
+  @afterEach
+  async after() {
+    await this.contract.teardown();
+  }
+
+  @test
+  async roundTripStreamOfUint8Array() {
+    await this.contract.roundTripStreamWithoutLength();
+  }
+
+  @test
+  async providerErrorsAreAccepted() {
+    await this.contract.missingKeyThrowsNotFoundError();
+    await this.contract.ifNotExistsRejectsExistingKey();
+  }
+
+  @test
+  async headContentIsOptional() {
+    await this.contract.metadataAndHeadContent();
+    await this.contract.streamErrorDoesNotLeaveCorruptedFile();
+  }
+}
+
+@suite
+class ContentStorageEdgeCasesTest {
+  @test
+  async memoryHeadWithoutMetadata() {
+    const storage = new MemoryContentStorage();
+    await storage.putContent("memory://bucket/plain.txt", "plain");
+    const head = await storage.headContent("memory://bucket/plain.txt");
+    assert.strictEqual(head?.size, 5);
+    assert.strictEqual(head?.metadata, undefined);
+  }
+
+  // A folder cannot be made read-only through chmod on Windows
+  @test({ execution: process.platform === "win32" ? "skip" : "default" })
+  async filePutFailsBeforeTemporaryFileExists() {
+    const dir = join(tmpdir(), `webda-file-content-ro-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    await fsPromises.mkdir(dir, { recursive: true });
+    await fsPromises.chmod(dir, 0o555);
+    try {
+      // The temporary file cannot be created in a read-only folder: nothing to clean up
+      await assert.rejects(() => new FileContentStorage().putContent(`file://${join(dir, "file.txt")}`, "data"), {
+        code: "EACCES"
+      });
+      assert.deepStrictEqual(await fsPromises.readdir(dir), []);
+    } finally {
+      await fsPromises.chmod(dir, 0o755);
+      await fsPromises.rm(dir, { recursive: true, force: true });
+    }
   }
 }

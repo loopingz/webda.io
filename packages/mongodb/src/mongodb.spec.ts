@@ -155,6 +155,108 @@ export class MongoParametersTest {
 }
 
 /**
+ * Repository tests against a recording collection: no MongoDB server required
+ */
+@suite
+export class MongoRepositoryOfflineTest {
+  /**
+   * Build a repository over a fake collection
+   * @param model - the model class
+   * @param answers - what the collection answers
+   * @param answers.matchedCount - documents matched by updateOne
+   * @param answers.deletedCount - documents removed by deleteOne
+   * @param answers.docs - documents returned by find and aggregate
+   * @returns the repository and the calls received by the collection
+   */
+  fake(model: any, answers: { matchedCount?: number; deletedCount?: number; docs?: any[] } = {}) {
+    const calls: Record<string, any[]> = {};
+    const record = (name: string, args: any[]) => (calls[name] ??= []).push(args);
+    const cursor: any = {
+      sort: (...args: any[]) => (record("sort", args), cursor),
+      skip: (...args: any[]) => (record("skip", args), cursor),
+      limit: (...args: any[]) => (record("limit", args), cursor),
+      toArray: async () => answers.docs ?? []
+    };
+    const collection: any = {
+      updateOne: async (...args: any[]) => (record("updateOne", args), { matchedCount: answers.matchedCount ?? 1 }),
+      deleteOne: async (...args: any[]) => (record("deleteOne", args), { deletedCount: answers.deletedCount ?? 1 }),
+      find: (...args: any[]) => (record("find", args), cursor),
+      aggregate: (...args: any[]) => (record("aggregate", args), cursor)
+    };
+    const repo: any = new MongoRepository(model, ["uuid"], async () => collection);
+    return { repo, calls };
+  }
+
+  @test
+  async dateConditionIsComparedAsIsoString() {
+    const date = new Date("2026-01-02T03:04:05.000Z");
+    const { repo, calls } = this.fake(Item);
+    await repo.delete("k", "updated", date);
+    assert.deepStrictEqual(calls.deleteOne[0][0], { _id: "k", updated: { $eq: "2026-01-02T03:04:05.000Z" } });
+    await repo.delete("k", "counter", 3);
+    assert.deepStrictEqual(calls.deleteOne[1][0], { _id: "k", counter: { $eq: 3 } });
+    const none = this.fake(Item, { deletedCount: 0 });
+    await assert.rejects(() => none.repo.delete("k", "updated", date), UpdateConditionFailError);
+  }
+
+  @test
+  async incrementDefaultsToOne() {
+    const { repo, calls } = this.fake(Item);
+    await repo.incrementAttributes("k", ["a", { property: "b" }, { property: "c", value: 5 }]);
+    assert.deepStrictEqual(calls.updateOne[0][0], { _id: "k" });
+    assert.deepStrictEqual(calls.updateOne[0][1].$inc, { a: 1, b: 1, c: 5 });
+  }
+
+  @test
+  async missingObjectNamesTheCollection() {
+    const check = (name: string) => (err: any) => err instanceof StoreNotFoundError && err.message.includes(name);
+    await assert.rejects(
+      () => this.fake(Item, { matchedCount: 0 }).repo.incrementAttributes("k", ["a"]),
+      check("Test/Item")
+    );
+    // A model without metadata falls back to a generic name
+    await assert.rejects(
+      () => this.fake(Row, { matchedCount: 0 }).repo.incrementAttributes("k", ["a"]),
+      check("MongoDB")
+    );
+  }
+
+  @test
+  async aggregationFillsMissingGroupsAndMetrics() {
+    const query = WebdaQL.toAggregationQuery({
+      groupBy: ["team"],
+      metrics: { n: { count: "*" }, total: { sum: "points" }, mean: { avg: "points" } }
+    });
+    const { repo } = this.fake(Item, {
+      docs: [{ _id: { g0: "red" }, n: 2, total: 7, mean: 3.5 }, { _id: null }, { _id: {} }]
+    });
+    const result = await repo.executeAggregation(query);
+    assert.strictEqual(result.native, true);
+    assert.deepStrictEqual(result.rows, [
+      { team: "red", n: 2, total: 7, mean: 3.5 },
+      { team: null, n: 0, total: 0, mean: null },
+      { team: null, n: 0, total: 0, mean: null }
+    ]);
+  }
+
+  @test
+  async queryWithoutOrderIsUnsorted() {
+    const { repo, calls } = this.fake(Item, { docs: [{ _id: "a", uuid: "a", __type: "Test/Item" }] });
+    const res = await repo.query("");
+    assert.deepStrictEqual(
+      res.results.map((r: any) => r.uuid),
+      ["a"]
+    );
+    assert.strictEqual(res.continuationToken, undefined);
+    assert.deepStrictEqual(calls.sort[0], [{}]);
+    assert.deepStrictEqual(calls.skip[0], [0]);
+    assert.deepStrictEqual(calls.limit[0], [1000]);
+    await repo.query("ORDER BY name ASC, age DESC LIMIT 1 OFFSET '1'");
+    assert.deepStrictEqual(calls.sort[1], [{ name: 1, age: -1 }]);
+  }
+}
+
+/**
  * Tests against a live MongoDB (localhost:37017, as in CI)
  */
 @suite

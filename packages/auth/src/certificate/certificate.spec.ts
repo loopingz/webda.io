@@ -2,7 +2,14 @@ import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { X509Certificate } from "node:crypto";
 import { afterAll } from "vitest";
-import { type ClientCertificate, Ident, toClientCertificate, useCertificateResolver, useService } from "@webda/core";
+import {
+  type ClientCertificate,
+  Ident,
+  registerCertificateResolver,
+  toClientCertificate,
+  useCertificateResolver,
+  useService
+} from "@webda/core";
 import { TestApplication } from "@webda/core/lib/test/objects.js";
 import { createTestCertificates } from "@webda/core/lib/test/certificates.js";
 import { AuthTest } from "../test/authtest.js";
@@ -245,6 +252,14 @@ class CertificateProviderTest extends AuthTest {
     await this.auth.getIdentModel().ref(identId).delete();
     this.provider.getParameters().autoRegister = false;
     assert.strictEqual((await this.provider.resolveCertificate(this.alice, ctx))?.userId, userId);
+    // The unlinking of another provider's ident changes nothing
+    await this.auth.emit(
+      "Authentication.Unlinked" as any,
+      {
+        ident: { provider: "google", providerUid: this.provider.getIdentity(this.alice)!.providerUid }
+      } as any
+    );
+    assert.strictEqual((await this.provider.resolveCertificate(this.alice, ctx))?.userId, userId);
     // Unlinked through Authentication: forgotten at once
     const providerUid = this.provider.getIdentity(this.alice)!.providerUid;
     await this.auth.emit("Authentication.Unlinked" as any, { ident: { provider: "certificate", providerUid } } as any);
@@ -312,6 +327,28 @@ class CertificateProviderTest extends AuthTest {
     await this.provider.stop();
     assert.strictEqual(useCertificateResolver(), undefined);
     this.provider.resolve();
+    assert.strictEqual(useCertificateResolver(), this.provider);
+    // Without the Authentication service there is no unlinking to listen to
+    const getService = this.webda.getService.bind(this.webda);
+    (this.webda as any).getService = (name: string) => (name === "Authentication" ? undefined : getService(name));
+    try {
+      await this.provider.init();
+      assert.strictEqual((this.provider as any).unsubscribers.length, 0);
+    } finally {
+      (this.webda as any).getService = getService;
+    }
+    await this.provider.init();
+    assert.strictEqual((this.provider as any).unsubscribers.length, 1);
+    // A resolver registered since is left in place
+    const other: any = { resolveCertificate: async () => undefined };
+    registerCertificateResolver(other);
+    try {
+      await this.provider.stop();
+      assert.strictEqual(useCertificateResolver(), other);
+    } finally {
+      this.provider.resolve();
+      await this.provider.init();
+    }
     assert.strictEqual(useCertificateResolver(), this.provider);
   }
 }

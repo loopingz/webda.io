@@ -486,4 +486,81 @@ class RecoveryTest extends EmailTest {
       (UserModel as any).ref = origRef;
     }
   }
+
+  @test
+  async mailFailureWithoutCodeIsLoggedByName() {
+    const send = this.mailer.send.bind(this.mailer);
+    this.mailer.send = async () => {
+      throw new TypeError("smtp://user:secret@host refused");
+    };
+    const log = vi.spyOn(this.email as any, "log");
+    try {
+      // The answer does not depend on the mail
+      assert.strictEqual(await this.op("Auth.Email.StartVerification", { email: "mf@x.com" }), undefined);
+      await this.flush();
+      assert.ok(
+        log.mock.calls.some(
+          c => c[0] === "ERROR" && c[1] === "Cannot send EMAIL_REGISTER mail" && c[2] === "TypeError"
+        ),
+        JSON.stringify(log.mock.calls)
+      );
+      assert.ok(!JSON.stringify(log.mock.calls).includes("secret"));
+    } finally {
+      log.mockRestore();
+      this.mailer.send = send;
+    }
+  }
+
+  @test
+  async recoveryKeepsTheVerificationDateAndToleratesAMissingIdent() {
+    const key = (email: string) => Ident.ref(Ident.key(email, "email"));
+    // Already verified: the date is kept
+    const ctx = await this.ctx();
+    await this.op("Auth.Email.Register", { email: "kv@x.com", password: "longenough" }, ctx);
+    await this.op("Auth.Email.Verify", { token: this.tokenOf(this.lastMailUrl()) }, ctx);
+    const verifiedAt = new Date("2020-01-01T00:00:00.000Z");
+    await runAsSystem(() => key("kv@x.com").patch({ verifiedAt } as any));
+    await this.op("Auth.Password.StartRecovery", { email: "kv@x.com" });
+    await this.flush();
+    await this.op("Auth.Password.Recover", { token: this.tokenOf(this.lastMailUrl()), password: "brandnewpass" });
+    assert.strictEqual(new Date((await key("kv@x.com").get()).verifiedAt).toISOString(), verifiedAt.toISOString());
+    // The email was removed from the account since the mail was sent: the password is still set
+    await this.op("Auth.Email.Register", { email: "gone@x.com", password: "longenough" });
+    await this.op("Auth.Password.StartRecovery", { email: "gone@x.com" });
+    await this.flush();
+    const token = this.tokenOf(this.lastMailUrl());
+    const userId = (await key("gone@x.com").get()).getUser().toString();
+    await runAsSystem(() => key("gone@x.com").delete());
+    await this.op("Auth.Password.Recover", { token, password: "brandnewpass" });
+    assert.ok(!(await key("gone@x.com").exists()));
+    const user: any = await runAsSystem(() => this.auth.getUserModel().ref(userId).get());
+    assert.ok(await user.password.verify("brandnewpass"));
+  }
+
+  @test
+  async verifyRedirectWithoutConfirmPageOrOnAnUnexpectedFailure() {
+    const ctx = await this.ctx();
+    await this.op("Auth.Email.Register", { email: "nc@x.com", password: "longenough" }, ctx);
+    const token = this.tokenOf(this.lastMailUrl());
+    const redirects = this.email.getParameters().redirects;
+    const confirm = redirects.confirm;
+    redirects.confirm = undefined;
+    try {
+      // Without a confirmation page the failure page asks to log in
+      assert.strictEqual(
+        await this.redirectOf(token),
+        `https://app/ko?reason=LOGIN_REQUIRED&token=${encodeURIComponent(token)}`
+      );
+    } finally {
+      redirects.confirm = confirm;
+    }
+    // A failure without code is reported as an invalid token
+    const complete = vi.spyOn(this.email as any, "completeVerify").mockRejectedValue(new Error("store down"));
+    try {
+      assert.strictEqual(await this.redirectOf(token, ctx), "https://app/ko?reason=TOKEN_INVALID");
+    } finally {
+      complete.mockRestore();
+    }
+    assert.strictEqual(await this.redirectOf(token, ctx), "https://app/ok?validation=email");
+  }
 }

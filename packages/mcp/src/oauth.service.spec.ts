@@ -578,6 +578,53 @@ class McpBearerSessionTest extends McpOAuthBase {
   }
 
   @test
+  async challengeWithoutResourceMetadata() {
+    // The Webda session authenticator publishes no protected resource metadata
+    const token = await this.bearer(["Fixture.Echo"], null);
+    const res = await this.rawCall(token, this.callRequest("Fixture.Version"));
+    assert.strictEqual(res.status, 403);
+    assert.strictEqual(
+      res.headers.get("www-authenticate"),
+      'Bearer error="insufficient_scope", scope="Fixture.Echo Fixture.Version"'
+    );
+    await res.text();
+    // A call that names no tool is left to the transport
+    const unnamed = await this.rawCall(token, {
+      jsonrpc: "2.0",
+      id: 2,
+      method: "tools/call",
+      params: { name: 5, arguments: {} }
+    });
+    assert.strictEqual(unnamed.headers.get("www-authenticate"), null);
+    assert.notStrictEqual(unnamed.status, 403);
+    await unnamed.text();
+  }
+
+  @test
+  async resourceMetadataOfSeveralEndpoints() {
+    const auth = new McpOAuthAuthenticator(
+      "Standalone",
+      McpOAuthAuthenticator.createConfiguration({ publicUrl: "https://mcp.example" })
+    );
+    const ctx = (uri: string): any => ({
+      getHttpContext: () => new HttpContext("localhost", "POST", uri, "http", 8080, {})
+    });
+    const metadata = "https://mcp.example/.well-known/oauth-protected-resource";
+    // Not bound to any endpoint yet
+    assert.strictEqual(auth.resourceMetadataUrl(ctx("/mcp")), metadata);
+    assert.strictEqual((auth as any).resourceFor(ctx("/mcp")), "/mcp");
+    // Binding the same endpoint twice registers it once
+    auth.bindResource("/mcp");
+    auth.bindResource("/mcp");
+    assert.deepStrictEqual((auth as any).resources, ["/mcp"]);
+    assert.strictEqual(auth.resourceMetadataUrl(ctx("/mcp")), metadata);
+    // With several endpoints each one has its own metadata document
+    auth.bindResource("/admin/mcp");
+    assert.strictEqual(auth.resourceMetadataUrl(ctx("/admin/mcp")), `${metadata}/admin/mcp`);
+    assert.strictEqual(auth.resourceMetadataUrl(ctx("/mcp")), `${metadata}/mcp`);
+  }
+
+  @test
   async coversParametersPublicUrlAndFallbacks() {
     const auth = useService("McpAuth") as McpOAuthAuthenticator;
     const params = McpOAuthAuthenticator.createConfiguration({ publicUrl: "https://mcp.example.com/" });
@@ -595,5 +642,34 @@ class McpBearerSessionTest extends McpOAuthBase {
     };
     await auth.metadata(ctx);
     assert.strictEqual(JSON.parse(body).resource, "http://localhost:8080/api/mcp");
+    // Same fallback without a Host header, or with one smuggling credentials
+    for (const headers of [{}, { host: "localhost@evil.example" }]) {
+      const fallback = new HttpContext("localhost", "GET", "/mcp", "http", 8080, headers);
+      assert.strictEqual(
+        (auth as any).absolute({ getHttpContext: () => fallback }, "/mcp"),
+        "http://localhost:8080/mcp",
+        JSON.stringify(headers)
+      );
+    }
+  }
+}
+
+@suite
+class McpOAuthPublicUrlTest extends McpOAuthBase {
+  /**
+   * @returns configuration with the public url of the deployment
+   */
+  getTestConfiguration(): any {
+    const config = super.getTestConfiguration();
+    config.services.McpAuth.publicUrl = "https://mcp.example/";
+    return config;
+  }
+
+  @test
+  async registersResourceWithItsPublicUri() {
+    assert.ok(listProtectedResources().some(r => r.path === "/mcp" && r.uri === "https://mcp.example/mcp"));
+    const base = await this.base();
+    const meta = await (await fetch(`${base}/.well-known/oauth-protected-resource`)).json();
+    assert.strictEqual(meta.resource, "https://mcp.example/mcp");
   }
 }

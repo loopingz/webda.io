@@ -91,6 +91,7 @@ class WorkQueueTest {
     gate.resolve();
     await stopped;
     queue.add("d");
+    queue.addAfter("e", 1);
     await new Promise(resolve => setTimeout(resolve, 10));
     assert.deepStrictEqual(processed, ["a"]);
   }

@@ -67,6 +67,22 @@ class RequestLogTest {
   }
 
   @test
+  zeroSizedLogKeepsOnlyTheLatestEntry() {
+    const tiny = new RequestLog(0);
+    tiny.startRequest("req-1", "GET", "/one");
+    assert.deepStrictEqual(
+      tiny.getEntries().map(e => e.id),
+      ["req-1"]
+    );
+    tiny.startRequest("req-2", "GET", "/two");
+    assert.deepStrictEqual(
+      tiny.getEntries().map(e => e.id),
+      ["req-2"]
+    );
+    assert.strictEqual(tiny.getEntry("req-1"), undefined);
+  }
+
+  @test
   notifiesSubscribersOnStartRequest() {
     const events: RequestLogEvent[] = [];
     this.log.onEvent(e => events.push(e));

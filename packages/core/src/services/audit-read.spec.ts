@@ -10,6 +10,8 @@ import { useApplication, useModel } from "../application/hooks.js";
 import { callOperation, registerOperation } from "../core/operations.js";
 import * as WebdaError from "../errors/errors.js";
 import { useInstanceStorage } from "../core/instancestorage.js";
+import { runWithContext } from "../contexts/execution.js";
+import { emitCoreEvent } from "../events/events.js";
 import { AuditEntry, AuditService, AuditServiceParameters } from "./audit.model.js";
 
 /**
@@ -489,5 +491,67 @@ class AuditReadTest extends WebdaApplicationTest {
     assert.strictEqual(res.results.length, 1, "a negative limit becomes 1");
     const big = await this.call("Audit.Subject", { model: "Webda/User", key: alice, limit: 100000 }, { id: alice });
     assert.strictEqual(big.results.length, 2);
+  }
+
+  @test
+  async readsWithoutSessionNorFilter() {
+    const audit = await this.setupAudit({ level: "write", readPermission: "roles CONTAINS 'admin'" });
+    // A context without session matches no readPermission
+    await assert.rejects(
+      () => runWithContext(new JsonOpContext(), () => audit.queryEntries()),
+      this.isError(WebdaError.Forbidden)
+    );
+    // Without filter, every entry is returned
+    const op = `Seed.${this.unique("All").replace(/[^A-Za-z0-9]/g, "")}`;
+    await this.seed({ operationId: op });
+    const res = await this.call("Audit.Query", {}, { id: "root", roles: ["admin"] });
+    assert.ok(res.results.some((e: any) => e.operationId === op));
+  }
+
+  @test
+  async subjectOfAModelWithoutPrimaryKeyMetadata() {
+    await this.setupAudit({ level: "write", readPermission: "roles CONTAINS 'admin'" });
+    class AuditNoPk extends (useModel("Webda/User") as any) {}
+    useApplication().addModel("Webda/AuditNoPk", AuditNoPk, { Identifier: "Webda/AuditNoPk" } as any);
+    const key = this.unique("nopk");
+    await this.seed({ subjectModel: "Webda/AuditNoPk", subjectKey: key, operationId: "AuditNoPk.Delete" });
+    // The uuid is the key of a model that declares none
+    const res = await this.call(
+      "Audit.Subject",
+      { model: "Webda/AuditNoPk", key: { uuid: key } },
+      { id: "root", roles: ["admin"] }
+    );
+    assert.deepStrictEqual(
+      res.results.map((e: any) => e.operationId),
+      ["AuditNoPk.Delete"]
+    );
+  }
+
+  @test
+  async dryRunFailuresAreNotRecorded() {
+    const audit = await this.setupAudit();
+    const context = new JsonOpContext();
+    await emitCoreEvent("Webda.OperationFailure", {
+      context,
+      operationId: "AuditRec.Fail",
+      error: new Error("refused"),
+      dryRun: true
+    } as any);
+    assert.strictEqual(audit.getEntries().length, 0);
+    await emitCoreEvent("Webda.OperationFailure", {
+      context,
+      operationId: "AuditRec.Fail",
+      error: new Error("refused")
+    } as any);
+    assert.strictEqual(audit.getEntries().length, 1);
+    // Parameters built without their defaults audit everything
+    (audit as any).parameters.level = undefined;
+    assert.strictEqual(audit.shouldAudit("AuditRec.Get", true), true);
+    // A cleared timestamp is not turned into a date
+    const entry = new AuditEntry();
+    entry.timestamp = undefined as any;
+    assert.strictEqual(entry.timestamp, undefined);
+    entry.timestamp = "2026-01-02T03:04:05.000Z" as any;
+    assert.strictEqual(entry.timestamp.getTime(), Date.UTC(2026, 0, 2, 3, 4, 5));
   }
 }

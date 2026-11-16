@@ -169,6 +169,18 @@ describe("ClientRegistry", () => {
     expect(ok).toMatchObject({ id: url });
     expect(ok.logo).toBeUndefined();
     expect(ok.client_uri).toBeUndefined();
+    // https urls are kept
+    const branded = (await mk({
+      client_id: url,
+      redirect_uris: ["https://a.example.com/cb"],
+      logo_uri: "https://a.example.com/logo.png",
+      client_uri: "https://a.example.com/"
+    }).get(url))!;
+    expect(branded.logo).toBe("https://a.example.com/logo.png");
+    expect(branded.client_uri).toBe("https://a.example.com/");
+    // A response without any body is not a document
+    const empty = new ClientRegistry(params(), (async () => new Response(null)) as any, async () => ["93.184.216.34"]);
+    expect(await empty.get(url)).toBeUndefined();
   });
 
   it("rejects metadata URLs with credentials, fragments or private literal addresses without fetching", async () => {
@@ -465,7 +477,16 @@ describe("isPrivateAddress", () => {
       "::ffff:8.8.8.8",
       "::127.0.0.1",
       "64:ff9b::a00:1",
-      "not an ip"
+      "192.0.0.1",
+      "192.0.2.1",
+      "198.18.0.1",
+      "198.19.255.255",
+      "198.51.100.7",
+      "203.0.113.7",
+      "100::1",
+      "2001:db8::1",
+      "not an ip",
+      undefined as any
     ]) {
       expect(isPrivateAddress(ip), ip).toBe(true);
     }
@@ -474,6 +495,20 @@ describe("isPrivateAddress", () => {
       "93.184.216.34",
       "172.32.0.1",
       "100.128.0.1",
+      "100.63.0.1",
+      "169.253.0.1",
+      "172.15.0.1",
+      "192.0.1.1",
+      "192.1.0.1",
+      "198.17.0.1",
+      "198.20.0.1",
+      "198.51.99.1",
+      "198.52.100.1",
+      "203.0.112.1",
+      "203.1.113.1",
+      "100:1::1",
+      "100:0:1::1",
+      "100:0:0:1::1",
       "2606:4700::1111",
       "2001:4860::8888",
       "64:ff9b::808:808"

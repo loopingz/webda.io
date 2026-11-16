@@ -427,6 +427,56 @@ class ExecuteServiceCommandTest {
   }
 
   @test
+  async missingMethodIsReportedWithTheInstanceName() {
+    const memory = new MemoryLogger(useWorkerOutput(), "ERROR");
+    const services = { Unit: { getName: () => "Unit" } } as any;
+    const cmdInfo = {
+      description: "Test",
+      services: [{ name: "Unit", method: "doIt", type: "MyApp/A" }],
+      args: {}
+    };
+    try {
+      assert.strictEqual(await executeServiceCommand("test", cmdInfo, {}, services), 1);
+      assert.ok(
+        memory.getLogs().some(log => log.log?.args.join(" ").includes("Method 'doIt' not found on service 'Unit'"))
+      );
+    } finally {
+      memory.close();
+    }
+  }
+
+  @test
+  async anonymousSubclassInheritsTheCommand() {
+    const calls: string[] = [];
+    class Migrator {
+      async migrate() {
+        calls.push("migrated");
+      }
+    }
+    // A class without name (a mixin) between the instance and the class providing the command
+    const services = { custom: new (class extends Migrator {})() } as any;
+    const cmdInfo = {
+      description: "Migrate",
+      services: [{ name: "MyApp/Migrator", method: "migrate", type: "MyApp/Migrator" }],
+      args: {}
+    };
+    assert.strictEqual(await executeServiceCommand("migrate", cmdInfo, {}, services), 0);
+    assert.deepStrictEqual(calls, ["migrated"]);
+  }
+
+  @test
+  commandsOfModulesWithoutEverySection() {
+    // An operation without group is its own group
+    assert.strictEqual(operationCommandName("Version"), "version version");
+    const app = {
+      getModules: () => ({
+        moddas: { "MyApp/Server": { commands: { serve: { description: "Start server", method: "serve" } } } }
+      })
+    } as any;
+    assert.deepStrictEqual(Object.keys(collectServiceCommands(app)), ["serve"]);
+  }
+
+  @test
   async noMatchingFilterReturns1() {
     const services = {} as any;
     const cmdInfo = {

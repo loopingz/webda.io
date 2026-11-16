@@ -5,7 +5,7 @@ import { TestApplication } from "../test/objects.js";
 import { OperationContext } from "../contexts/operationcontext.js";
 import { Service } from "../services/service.js";
 import { ServiceParameters } from "../services/serviceparameters.js";
-import { useModel } from "../application/hooks.js";
+import { useApplication, useModel } from "../application/hooks.js";
 import { useCoreEvents } from "../events/events.js";
 import {
   callOperation,
@@ -25,6 +25,9 @@ class EmptyOpContext extends OperationContext {
     return Buffer.from("");
   }
 }
+
+/** The subject SubjectTargetService.declareChosen declares */
+let chosenSubject: { model: any; key: unknown };
 
 /**
  * Target service: `create` returns a User instance like DomainService.modelCreate
@@ -62,6 +65,11 @@ class SubjectTargetService extends Service {
     user.uuid = "declared-instance";
     setOperationSubject(user);
     return "ok";
+  }
+
+  /** Declares the subject chosen by the test */
+  async declareChosen(): Promise<void> {
+    setOperationSubject(chosenSubject);
   }
 
   /** Declares its subject, then fails */
@@ -109,6 +117,78 @@ class OperationSubjectTest extends WebdaApplicationTest {
     // Round trip: the canonical string parses back to the same key
     const key = parseSubjectKey(["a", "b"], { a: "x", b: "y" });
     assert.deepStrictEqual(parseSubjectKey(["a", "b"], serializeSubjectKey(["a", "b"], key)), key);
+  }
+
+  @test
+  keysWithoutDeclaredPrimaryKeyUseTheUuid() {
+    assert.strictEqual(serializeSubjectKey([], { uuid: "u1" }), "u1");
+    assert.strictEqual(serializeSubjectKey(["id"], {}), undefined);
+    assert.strictEqual(parseSubjectKey([], { uuid: "u1" }), "u1");
+    assert.strictEqual(parseSubjectKey(["id"], {}), undefined);
+    assert.strictEqual(parseSubjectKey(["id"], { id: "" }), undefined);
+  }
+
+  @test
+  async subjectWithoutParametersIsUnknown() {
+    const User: any = useModel("Webda/User");
+    const ctx = new EmptyOpContext();
+    ctx.setParameters(undefined as any);
+    const subject = resolveOperationSubject(
+      ctx,
+      this.operation({ service: "SubjectTarget", method: "create", context: { model: User, pkFields: ["uuid"] } }),
+      []
+    );
+    assert.strictEqual(subject, undefined);
+  }
+
+  @test
+  async subjectOfAModelWithoutPrimaryKeyMetadata() {
+    class NoPrimaryKey extends (useModel("Webda/User") as any) {}
+    useApplication().addModel("Webda/NoPrimaryKey", NoPrimaryKey, { Identifier: "Webda/NoPrimaryKey" } as any);
+    const ctx = new EmptyOpContext();
+    ctx.setParameters({ uuid: "u5" });
+    // Neither the operation nor the model tells the key fields: the uuid is the key
+    assert.deepStrictEqual(
+      resolveOperationSubject(
+        ctx,
+        this.operation({ service: "SubjectTarget", method: "create", context: { model: NoPrimaryKey } }),
+        []
+      ),
+      { model: "Webda/NoPrimaryKey", key: "u5" }
+    );
+    // Same when an operation declares it
+    this.registerChosen();
+    chosenSubject = { model: NoPrimaryKey, key: { uuid: "u6" } };
+    let subject: OperationSubject | undefined;
+    const off = useCoreEvents("Webda.OperationSuccess", (evt: any) => {
+      subject = evt.subject;
+    });
+    try {
+      await callOperation(new EmptyOpContext(), "Declared.Chosen");
+    } finally {
+      off();
+    }
+    assert.deepStrictEqual(subject, { model: "Webda/NoPrimaryKey", key: "u6" });
+  }
+
+  registerChosen() {
+    try {
+      registerOperation("Declared.Chosen", { service: "SubjectTarget", method: "declareChosen" });
+    } catch {
+      // Already registered by a previous test
+    }
+  }
+
+  @test
+  async declaringASubjectOfAnUnknownModelFails() {
+    this.registerChosen();
+    // A model class the application did not register
+    class Unregistered extends (useModel("Webda/User") as any) {}
+    chosenSubject = { model: Unregistered, key: "some-key" };
+    await assert.rejects(
+      () => callOperation(new EmptyOpContext(), "Declared.Chosen"),
+      /Invalid operation subject class Unregistered.*"some-key"/s
+    );
   }
 
   @test

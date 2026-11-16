@@ -3,7 +3,8 @@ import { hasSchema, registerSchema, validateSchema, validateModelSchema, Validat
 import * as assert from "assert";
 import { WebdaApplicationTest } from "../test/index.js";
 import { TestApplication } from "../test/objects.js";
-import { useApplication } from "../application/hooks.js";
+import { useApplication, useModelId } from "../application/hooks.js";
+import { Model } from "@webda/models";
 import { Application } from "../application/application.js";
 
 @suite
@@ -163,6 +164,27 @@ class LazySchemaRegistration extends WebdaApplicationTest {
     assert.ok(validateModelSchema("TestModelForSchema", { name: "test", age: 10 }));
     // Should throw for invalid data
     assert.throws(() => validateModelSchema("TestModelForSchema", { age: "not-a-number" }));
+  }
+
+  @test
+  async validateModelSchemaWithModelClass() {
+    // The schema of a model class is the one of its identifier
+    const app = useApplication<Application>();
+    class SchemaModel extends Model {}
+    app.getModels()["WebdaTest/SchemaModel"] = <any>SchemaModel;
+    app.getSchemas()["WebdaTest/SchemaModel"] = {
+      type: "object",
+      properties: { name: { type: "string" } },
+      required: ["name"]
+    };
+    try {
+      assert.strictEqual(useModelId(SchemaModel), "WebdaTest/SchemaModel");
+      assert.ok(validateModelSchema(<any>SchemaModel, { name: "test" }));
+      assert.throws(() => validateModelSchema(<any>SchemaModel, { name: 12 }), ValidationError);
+    } finally {
+      delete app.getModels()["WebdaTest/SchemaModel"];
+      delete app.getSchemas()["WebdaTest/SchemaModel"];
+    }
   }
 
   @test

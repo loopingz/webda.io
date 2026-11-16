@@ -156,4 +156,45 @@ describe("ConsoleLoggerTest", () => {
       ['{"raw": true}\n']
     );
   });
+
+  it("defaults", () => {
+    const previous = process.env.LOG_LEVEL;
+    const stdout = sinon.stub(process.stdout, "write");
+    try {
+      // The level comes from the environment when valid
+      process.env.LOG_LEVEL = "DEBUG";
+      output = new WorkerOutput();
+      let logger = new ConsoleLogger(output);
+      output.log("DEBUG", "debug from env");
+      output.log("TRACE", "filtered");
+      logger.close();
+      assert.strictEqual(stdout.callCount, 1);
+      assert.ok(String(stdout.getCall(0).args[0]).includes("[DEBUG] debug from env"));
+      stdout.resetHistory();
+
+      // The default format includes the producer line when the output captures it
+      output = new WorkerOutput();
+      output.addLogProducerLine = true;
+      logger = new ConsoleLogger(output, "INFO");
+      assert.strictEqual(logger.format, ConsoleLogger.defaultFormatWithLine);
+      output.log("INFO", "with line");
+      logger.close();
+      assert.strictEqual(stdout.callCount, 1);
+      assert.ok(String(stdout.getCall(0).args[0]).includes("with line"));
+      stdout.resetHistory();
+
+      // An output message without data is an empty line, a message without log an empty INFO line
+      ConsoleLogger.writeOutput(new WorkerMessage("output", output));
+      assert.deepStrictEqual(stdout.lastCall.args, ["\n"]);
+      ConsoleLogger.display(new WorkerMessage("title.set", output, { title: "ignored" }));
+      assert.strictEqual(String(stdout.lastCall.args[0]).replace(/\u001b\[\d+m/g, ""), "\n");
+    } finally {
+      stdout.restore();
+      if (previous === undefined) {
+        delete process.env.LOG_LEVEL;
+      } else {
+        process.env.LOG_LEVEL = previous;
+      }
+    }
+  });
 });

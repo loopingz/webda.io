@@ -61,4 +61,17 @@ class FromGitMarkersTest {
     expect(final.clean).toBe(true);
     expect(final.merged).toEqual({ a: 99 });
   }
+
+  @test({ name: "keeps a trailing newline only when one side has one" })
+  keepsATrailingNewlineOnlyWhenOneSideHasOne() {
+    const conflict = (ours: string, theirs: string) =>
+      toGitMarkers({
+        merged: { body: ours },
+        clean: false,
+        conflicts: [{ path: "/body", kind: "line", base: "base", ours, theirs }]
+      }).body;
+    expect(conflict("ours", "theirs")).toBe("<<<<<<< ours\nours\n=======\ntheirs\n>>>>>>> theirs");
+    expect(conflict("ours", "theirs\n")).toBe("<<<<<<< ours\nours\n=======\ntheirs\n>>>>>>> theirs\n");
+    expect(conflict("ours\n", "theirs")).toBe("<<<<<<< ours\nours\n=======\ntheirs\n>>>>>>> theirs\n");
+  }
 }

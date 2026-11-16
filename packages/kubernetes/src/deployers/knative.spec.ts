@@ -324,6 +324,8 @@ class KnativeDeployerTest extends WebdaApplicationTest {
       []
     );
     assert.deepStrictEqual(warnings, ["Cloud Run has no Knative Eventing: 'triggers' are dropped, use Eventarc"]);
+    // The warning is optional
+    assert.deepStrictEqual(buildKnativeTriggers(cloudRun, buildKnativeService(cloudRun)), []);
     const [trigger] = buildKnativeTriggers(params({ triggers: [{}] }), { ...service, metadata: { name: "app" } });
     assert.strictEqual(trigger.metadata.namespace, undefined);
   }

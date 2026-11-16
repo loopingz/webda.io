@@ -81,6 +81,11 @@ class OtelTest extends WebdaApplicationTest {
     const patched = fake.myRecursiveMethod;
     service.patch();
     assert.strictEqual(fake.myRecursiveMethod, patched);
+    // Only methods are wrapped
+    const target = { value: 1 };
+    // @ts-ignore protected
+    service._wrap(target, "value", () => () => 2);
+    assert.strictEqual(target.value, 1);
 
     service.getParameters().traceExporter.enable = false;
     service.updatePatch();

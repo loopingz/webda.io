@@ -1,5 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
+import { vi } from "vitest";
 import { getMetadata } from "@webda/decorators";
 import * as nodeFs from "node:fs";
 import * as nodeOs from "node:os";
@@ -205,6 +206,57 @@ class ResourceUnitTest {
     } finally {
       nodeFs.rmSync(tmpDir, { recursive: true, force: true });
       nodeFs.rmSync(outsideDir, { recursive: true, force: true });
+    }
+  }
+
+  @test
+  async rootUrlUnknownTypeAndNoApplication() {
+    const mod = await import("./resource.service.js");
+    // A url already ending with a slash is kept
+    assert.strictEqual(new ResourceServiceParameters().load({ url: "/assets/" }).url, "/assets/");
+    const tmpDir = nodeFs.realpathSync(nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), "webda-resource-root-")));
+    const cwd = process.cwd();
+    try {
+      nodeFs.writeFileSync(nodePath.join(tmpDir, "data.webdaunknown"), "raw");
+      // Served at the root: there is no bare URL to redirect to the folder
+      const adds: string[] = [];
+      const svc: any = new (mod.ResourceService as any)(
+        "ResourceRoot",
+        new ResourceServiceParameters().load({ url: "/", folder: tmpDir })
+      );
+      svc.addRoute = (url: string) => adds.push(url);
+      svc.resolve();
+      await svc.init();
+      assert.deepStrictEqual(adds, []);
+      // A file of unknown type is served as binary
+      let head: any;
+      await svc._serve({
+        parameter: (k: string) => (k === "resource" ? "data.webdaunknown" : undefined),
+        writeHead: (_code: number, headers: any) => (head = headers),
+        // Read the file to its end: the folder is removed right after, a pending open would fail unhandled
+        pipeline: async (stream: any) => {
+          for await (const chunk of stream) {
+            assert.strictEqual(chunk.toString(), "raw");
+          }
+        }
+      });
+      assert.strictEqual(head["content-type"], "application/octet-stream");
+      assert.strictEqual(head["content-length"], 3);
+
+      // Without application a relative folder resolves from the current directory
+      nodeFs.mkdirSync(nodePath.join(tmpDir, "webui"));
+      vi.mocked(process.cwd).mockReturnValue(tmpDir);
+      await runWithInstanceStorage({ application: undefined }, async () => {
+        const relative: any = new (mod.ResourceService as any)(
+          "ResourceCwd",
+          new ResourceServiceParameters().load({ url: "/ui", folder: "./webui" })
+        );
+        relative.resolve();
+        assert.strictEqual(relative._resolved, nodePath.join(tmpDir, "webui"));
+      });
+    } finally {
+      vi.mocked(process.cwd).mockReturnValue(cwd);
+      nodeFs.rmSync(tmpDir, { recursive: true, force: true });
     }
   }
 }

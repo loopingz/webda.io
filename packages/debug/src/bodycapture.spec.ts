@@ -47,6 +47,8 @@ class IsTextContentTypeTest {
   rejectsUndefinedAndEmpty() {
     assert.strictEqual(isTextContentType(undefined), false);
     assert.strictEqual(isTextContentType(""), false);
+    // Parameters without a media type
+    assert.strictEqual(isTextContentType("; charset=utf-8"), false);
   }
 }
 
@@ -81,6 +83,24 @@ class LooksLikeTextTest {
   @test
   utf8MultibyteIsText() {
     assert.strictEqual(looksLikeText(Buffer.from("héllo", "utf8")), true);
+  }
+
+  @test
+  longerUtf8SequencesAreText() {
+    // 3-byte and 4-byte sequences
+    assert.strictEqual(looksLikeText(Buffer.from("10 \u20ac", "utf8")), true);
+    assert.strictEqual(looksLikeText(Buffer.from("smile \u{1F600}", "utf8")), true);
+    // A sequence cut by the end of the buffer is accepted as a text prefix
+    assert.strictEqual(looksLikeText(Buffer.from([0x68, 0xe2, 0x82])), true);
+  }
+
+  @test
+  invalidContinuationByteIsBinary() {
+    // 0xc3 starts a 2-byte sequence, 0x28 cannot continue it
+    assert.strictEqual(looksLikeText(Buffer.from([0xc3, 0x28])), false);
+    assert.strictEqual(looksLikeText(Buffer.from([0xe2, 0x82, 0xff])), false);
+    // 0xf5 and above never start a sequence
+    assert.strictEqual(looksLikeText(Buffer.from([0xf5, 0x80, 0x80, 0x80])), false);
   }
 }
 

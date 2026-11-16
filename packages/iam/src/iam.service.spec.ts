@@ -525,4 +525,105 @@ class IAMServiceTest extends IAMTest {
       unregisterOperationAuthorizer((service as any).authorizer);
     }
   }
+
+  @test
+  async requestOfAMinimalCaller() {
+    // An application session without groups nor claims
+    const appCtx = new IAMContext(undefined, {});
+    const session = new Session();
+    session.loginApplication({ principal: "bare", issuer: "https://bare.example.com", subject: "app:bare" } as any);
+    (appCtx as any).session = session;
+    const appRequest = await (this.service as any).buildRequest(appCtx, "Tasks.Update", { probe: true });
+    assert.deepStrictEqual(appRequest.principals, [
+      "app:bare",
+      "app-issuer:https://bare.example.com",
+      "authenticated-app"
+    ]);
+    assert.deepStrictEqual(appRequest.ctx.application.groups, []);
+    assert.deepStrictEqual(appRequest.ctx.application.claims, {});
+    // A user model without groups nor roles
+    const userCtx = new IAMContext({ uuid: "u7" });
+    userCtx.getCurrentUser = async () => ({});
+    const userRequest = await (this.service as any).buildRequest(userCtx, "Tasks.Update", { probe: true });
+    assert.deepStrictEqual(userRequest.principals, ["user:u7", "authenticated"]);
+    assert.deepStrictEqual(userRequest.ctx.user, { uuid: "u7", groups: [], roles: [] });
+    // A web context that has no HTTP request yet
+    const webCtx = new WebContext(new HttpContext("test.webda.io", "GET", "/tasks", "http", 80, {}));
+    sinon.stub(webCtx, "getHttpContext").returns(undefined as any);
+    const webRequest = await (this.service as any).buildRequest(webCtx, "Tasks.Update", { probe: true });
+    assert.deepStrictEqual(webRequest.principals, ["anonymous"]);
+    assert.strictEqual(webRequest.ctx.http, undefined);
+  }
+
+  @test
+  async concurrentFailedUserLoadsAreAllRefused() {
+    // Both calls share the in-flight load: the first one drops the cache entry, the second finds it gone
+    const broken = { uuid: "u4", missing: true, loads: 0 };
+    const ctx = new IAMContext(broken);
+    await ctx.init();
+    assert.deepStrictEqual(await Promise.all(["Tasks.Update", "Tasks.Note"].map(id => canCallOperation(ctx, id))), [
+      false,
+      false
+    ]);
+    assert.strictEqual(broken.loads, 1);
+    assert.strictEqual(ctx.getExtension("iamUser"), undefined);
+  }
+
+  @test
+  async initDoesNotOverrideAStopOrANewerRebuild() {
+    const create = () => {
+      const service = new IAMService(
+        "Racing",
+        new IAMServiceParameters().load({
+          reloadDelay: 0,
+          reloadInterval: 0,
+          scope: ["Tasks.*"],
+          policies: POLICIES as any
+        })
+      );
+      service.resolve();
+      let release: () => void;
+      const gate = new Promise<void>(resolve => (release = resolve));
+      const build = (service as any).build.bind(service);
+      const stub = sinon.stub(service as any, "build");
+      stub.onFirstCall().callsFake(async () => {
+        await gate;
+        return build();
+      });
+      stub.callThrough();
+      return { service, stub, release: release! };
+    };
+    const started = async (stub: sinon.SinonStub) => {
+      while (!stub.called) {
+        await new Promise(resolve => setTimeout(resolve, 1));
+      }
+    };
+    // Stopped while the first build runs: the engine is discarded
+    const stopped = create();
+    try {
+      const init = stopped.service.init();
+      await started(stopped.stub);
+      await stopped.service.stop();
+      stopped.release();
+      await init;
+      assert.strictEqual((stopped.service as any).engine, undefined);
+    } finally {
+      unregisterOperationAuthorizer((stopped.service as any).authorizer);
+    }
+    // A rebuild that finished while the first build runs wins
+    const reloaded = create();
+    try {
+      const init = reloaded.service.init();
+      await started(reloaded.stub);
+      await reloaded.service.reload();
+      const engine = (reloaded.service as any).engine;
+      assert.ok(engine, "the rebuild installed its engine");
+      reloaded.release();
+      await init;
+      assert.strictEqual((reloaded.service as any).engine, engine);
+    } finally {
+      await reloaded.service.stop();
+      unregisterOperationAuthorizer((reloaded.service as any).authorizer);
+    }
+  }
 }

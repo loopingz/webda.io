@@ -366,4 +366,34 @@ class ConfigurationSchemaTest {
     assert.ok(configSchema.definitions.NestedOption);
     assert.deepStrictEqual(configSchema.definitions["ServiceType$Test$MyService"].required, ["type", "apiKey"]);
   }
+
+  @test
+  handlesSchemasWithoutTypePropertyOrRequiredAndNoConfiguredServices() {
+    const app: ConfigSchemaApplication = {
+      ...createMockApp(),
+      // Schemas declaring neither a `type` property nor required fields
+      getSchema: () => ({ type: "object" }),
+      getConfiguration: () => ({}) as any
+    };
+    const configSchemaPath = path.join(this.tempDir, "bare-config.schema.json");
+    const deploymentSchemaPath = path.join(this.tempDir, "bare-deployment.schema.json");
+    generateConfigurationSchemas(app, configSchemaPath, deploymentSchemaPath, true);
+
+    const configSchema = FileUtils.load(configSchemaPath);
+    assert.deepStrictEqual(configSchema.definitions["ServiceType$Test$MyService"], {
+      type: "object",
+      title: "Test/MyService"
+    });
+    // Beans are predefined under their type and never require `type`
+    assert.deepStrictEqual(configSchema.definitions["BeanType$Test$MyBean"].required, []);
+    assert.deepStrictEqual(configSchema.properties.services.properties, {
+      "Test/MyBean": { $ref: "#/definitions/BeanType$Test$MyBean" }
+    });
+
+    const deploymentSchema = FileUtils.load(deploymentSchemaPath);
+    assert.strictEqual(deploymentSchema.definitions["DeployerType$Test$MyDeployer"].properties, undefined);
+    assert.deepStrictEqual(deploymentSchema.properties.units.items.oneOf, [
+      { $ref: "#/definitions/DeployerType$Test$MyDeployer" }
+    ]);
+  }
 }

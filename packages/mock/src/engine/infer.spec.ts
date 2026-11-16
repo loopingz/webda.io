@@ -70,4 +70,11 @@ class InferTypeTest {
   unknown() {
     expect(inferKind(ctx("weirdField", "SomeClass"))).toBeNull();
   }
+
+  @test({ name: "*At suffix → pastDate only for Date fields" })
+  atSuffix() {
+    expect(inferKind(ctx("shippedAt", "Date"))).toBe("pastDate");
+    expect(inferKind(ctx("format", "string"))).toBe("lorem");
+    expect(inferKind(ctx("shippedAt"))).toBeNull();
+  }
 }

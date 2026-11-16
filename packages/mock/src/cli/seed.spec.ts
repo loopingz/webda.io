@@ -30,4 +30,12 @@ class ParseSeedArgsTest {
     const { specPath } = parseSeedArgs(["--spec", "./seed.json"]);
     expect(specPath).toBe("./seed.json");
   }
+
+  @test({ name: "ignores positional arguments and non-numeric model counts" })
+  ignored() {
+    const { spec, options, specPath } = parseSeedArgs(["positional", "--User", "many", "--Task", "3"]);
+    expect(spec).toEqual({ Task: 3 });
+    expect(options).toEqual({});
+    expect(specPath).toBeUndefined();
+  }
 }

@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { RefreshToken, useService } from "@webda/core";
+import { RefreshToken, Session, useService } from "@webda/core";
 import { OAuthTest, registerTestOperations, unregisterTestOperations } from "./test/oauthtest.js";
 import { OAuthCode } from "./models.model.js";
 import { sha256 } from "./devicecode.js";
@@ -76,7 +76,8 @@ class TokenEndpointTest extends OAuthTest {
   @test
   async jsonBodyAccepted() {
     const flow = await this.consentFlow({ scope: "Task.*", operations: ["Task.Get"] });
-    const res = await this.tokenRequest(this.codeBody(flow), true);
+    // Values that are not strings are not parameters
+    const res = await this.tokenRequest({ ...this.codeBody(flow), expires_in: 60 as any, extra: null as any }, true);
     assert.strictEqual(res.status, 200);
     assert.ok(res.body.access_token);
   }
@@ -447,5 +448,21 @@ class TokenEndpointTest extends OAuthTest {
     } finally {
       server.exchangeCode = original;
     }
+  }
+
+  @test
+  async refreshOfAFamilyWithoutScope() {
+    // A client bound family issued without any scope: nothing is granted, and no refresh token without offline_access
+    const session = new Session();
+    session.login("u1", "u1@email", { provider: "email", amr: ["pwd"] });
+    const tokens = await useService<any>("TokenService").issue(session, undefined, { clientId: "app" });
+    const res = await this.tokenRequest({
+      grant_type: "refresh_token",
+      refresh_token: tokens.refreshToken,
+      client_id: "app"
+    });
+    assert.strictEqual(res.status, 200, JSON.stringify(res.body));
+    assert.strictEqual(res.body.scope, "");
+    assert.strictEqual(res.body.refresh_token, undefined);
   }
 }

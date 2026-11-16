@@ -589,4 +589,66 @@ class FileBinaryChallengeTest extends WebdaApplicationTest {
     upload.setParameters({ hash, token });
     await assert.rejects(() => this.binary.storeBinary(upload), WebdaError.PreconditionFailed);
   }
+
+  @test
+  async uploadWithoutTargetOrForARemovedObject() {
+    // A token without target (plain upload url): the content is stored, nothing is attached
+    const content = "untargeted content";
+    const { hash, challenge } = await this.hashes(content);
+    fs.mkdirSync(this.binary._getPath(hash));
+    const upload = await this.newContext(content);
+    upload.setParameters({ hash, token: await this.binary.getToken(hash, "PUT") });
+    await this.binary.storeBinary(upload);
+    assert.strictEqual(fs.readFileSync(this.binary._getPath(hash, "data")).toString(), content);
+    assert.ok(this.binary.challenge(hash, challenge));
+    assert.strictEqual(await this.binary.getUsageCount(hash), 0);
+
+    // The object is deleted between the challenge and the upload: stored, not attached
+    const user = await ImageUser.create({ displayName: "leaver" } as any);
+    const other = "content of a leaver";
+    const otherHashes = await this.hashes(other);
+    const res = await this.binary.putRedirectUrl(
+      user,
+      "images",
+      { ...otherHashes, size: other.length, name: "o.txt", mimetype: "text/plain" } as any,
+      await this.newContext()
+    );
+    await ImageUser.ref(user.getUUID()).delete();
+    const late = await this.newContext(other);
+    late.setParameters({ hash: otherHashes.hash, token: res!.url.split("token=")[1] });
+    await this.binary.storeBinary(late);
+    assert.ok(fs.existsSync(this.binary._getPath(otherHashes.hash, "data")));
+    assert.strictEqual(await this.binary.getUsageCount(otherHashes.hash), 0);
+  }
+
+  @test
+  async storeAndDeleteNeedAnIdentifiedModel() {
+    const file = () => new MemoryBinaryFile(Buffer.from("identified content"), { name: "i.txt" });
+    const { hash } = await this.hashes("identified content");
+    // No identifier
+    const noUuid: any = Object.create(ImageUser.prototype);
+    noUuid.getUUID = () => undefined;
+    noUuid.profile = { hash };
+    await assert.rejects(() => this.binary.store(noUuid, "profile", file()), /Missing object identifier/);
+    await assert.rejects(() => this.binary._store(file(), noUuid, "profile"), /Missing object identifier/);
+    await assert.rejects(() => this.binary.delete(noUuid, "profile"), /Missing object identifier/);
+    // Not a registered model
+    const noModel: any = { getUUID: () => "plain", profile: { hash } };
+    await assert.rejects(() => this.binary.store(noModel, "profile", file()), /Missing model identifier/);
+    await assert.rejects(() => this.binary._store(file(), noModel, "profile"), /Missing model identifier/);
+    await assert.rejects(() => this.binary.delete(noModel, "profile"), /Missing model identifier/);
+    assert.ok(!fs.existsSync(this.binary._getPath(hash)), "nothing stored");
+  }
+
+  @test
+  async deleteSingleBinary() {
+    const user = await ImageUser.create({ displayName: "single" } as any);
+    await this.binary.store(user, "profile", new MemoryBinaryFile(Buffer.from("profile content"), { name: "p.txt" }));
+    const { hash } = await this.hashes("profile content");
+    assert.strictEqual(await this.binary.getUsageCount(hash), 1);
+    const stored: any = await ImageUser.ref(user.getUUID()).get();
+    await this.binary.delete(stored, "profile");
+    assert.strictEqual(await this.binary.getUsageCount(hash), 0);
+    assert.ok(!fs.existsSync(this.binary._getPath(hash)));
+  }
 }

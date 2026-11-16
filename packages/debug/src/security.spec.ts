@@ -50,6 +50,8 @@ class TokenTest {
     assert.strictEqual(extractWsToken(`${WS_PROTOCOL}, ${WS_TOKEN_PREFIX}abc`), "abc");
     assert.strictEqual(extractWsToken(`${WS_TOKEN_PREFIX}abc`), "abc");
     assert.strictEqual(extractWsToken(WS_PROTOCOL), undefined);
+    // The prefix alone carries no token
+    assert.strictEqual(extractWsToken(`${WS_PROTOCOL}, ${WS_TOKEN_PREFIX}`), undefined);
     assert.strictEqual(extractWsToken(undefined), undefined);
   }
 

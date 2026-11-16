@@ -251,4 +251,43 @@ class WaiterTest {
     // cov only
     await nextTick();
   }
+
+  @test
+  async waitForWithLoggerWithoutTitle() {
+    const logger: Logger = {
+      log: sinon.stub(),
+      logProgressStart: sinon.stub(),
+      logProgressUpdate: sinon.stub(),
+      logGroupClose: () => {},
+      logGroupOpen: () => {},
+      logProgressIncrement: () => {}
+    };
+    let calls = 0;
+    const res = await WaitFor(
+      async resolve => {
+        if (++calls < 2) return false;
+        resolve("done");
+        return true;
+      },
+      3,
+      undefined,
+      logger,
+      WaitLinearDelay(1)
+    );
+    assert.strictEqual(res, "done");
+    // Without title, no debug line is emitted and the progress has an empty title
+    assert.strictEqual((<sinon.SinonStub>logger.log).callCount, 0);
+    const start = <sinon.SinonStub>logger.logProgressStart;
+    assert.strictEqual(start.callCount, 1);
+    assert.deepStrictEqual(start.firstCall.args.slice(1), [3, ""]);
+    const update = <sinon.SinonStub>logger.logProgressUpdate;
+    assert.deepStrictEqual(
+      update.args.map(a => [a[0], a[2]]),
+      [
+        [1, ""],
+        [2, ""],
+        [3, ""]
+      ]
+    );
+  }
 }

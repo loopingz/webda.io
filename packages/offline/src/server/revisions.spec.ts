@@ -22,6 +22,12 @@ class RevisionsTest extends SyncTest {
   @test
   objectsWithoutPrimaryKeysCannotBeSynced() {
     assert.throws(() => (this.sync as any).toSynced("Test/Note", { title: "missing key" }), /complete primary key/);
+    // A plain object (not a model instance) is sent as it is
+    assert.deepStrictEqual((this.sync as any).toSynced("Test/Note", { uuid: "plain", title: "t" }), {
+      ref: { model: "Test/Note", key: "plain" },
+      rev: 0,
+      object: { uuid: "plain", title: "t" }
+    });
   }
 
   @test
@@ -82,6 +88,56 @@ class RevisionsTest extends SyncTest {
     } finally {
       repo.get = origGet;
     }
+  }
+
+  @test
+  async payloadsAlreadyRevvedKeepTheirRevision() {
+    const repo: any = useRepository(Note);
+    for (const event of ["Create", "Update"]) {
+      const object: any = { title: "a", _rev: 7 };
+      (this.sync as any).revved.add(object);
+      await repo.emit(event, { object_id: "any", object });
+      assert.strictEqual(object._rev, 7, `${event} keeps the revision the service set`);
+    }
+  }
+
+  @test
+  async loadAnswersUndefinedForBadKeysAndMissingObjects() {
+    const service: any = this.sync;
+    // Not a composite key
+    assert.strictEqual(await service.load("Test/Member", "not-json"), undefined);
+    // A repository answering null for a missing object, instead of throwing
+    const repo: any = useRepository(Note);
+    const get = vi.spyOn(repo, "get").mockResolvedValue(null);
+    try {
+      assert.strictEqual(await service.load("Test/Note", "missing"), undefined);
+      assert.ok(get.mock.calls.length > 0);
+    } finally {
+      get.mockRestore();
+    }
+  }
+
+  @test
+  async repositoriesWithoutBulkMethodsAreHooked() {
+    const service: any = this.sync;
+    const repo: any = useRepository(Note);
+    await service.stop();
+    const updateMany = Object.getOwnPropertyDescriptor(repo, "updateMany");
+    repo.updateMany = undefined;
+    try {
+      await service.init();
+      assert.strictEqual(repo.updateMany, undefined, "nothing to wrap");
+      await Note.create({ title: "a" } as any);
+      assert.strictEqual((await this.changes()).length, 1, "writes are still logged");
+    } finally {
+      await service.stop();
+      if (updateMany) Object.defineProperty(repo, "updateMany", updateMany);
+      else delete repo.updateMany;
+      await service.init();
+    }
+    assert.strictEqual(typeof repo.updateMany, "function");
+    await Note.create({ title: "b" } as any);
+    assert.strictEqual((await this.changes()).length, 2);
   }
 
   @test

@@ -533,4 +533,18 @@ class TrackFunctionTest {
     assert.strictEqual(obj.dirty.valueOf(), true);
     assert.deepStrictEqual(obj.dirty.getProperties(), ["newProp"]);
   }
+
+  /** track should notify the change listener with the tracked object and its dirty state */
+  @test
+  onChangeCallback() {
+    const source = { name: "Alice", age: 30 };
+    const calls: { object: any; properties: string[] }[] = [];
+    const obj = track(source, (object, state) => calls.push({ object, properties: state.getProperties() }));
+    obj.name = "Bob";
+    obj.age = 31;
+    assert.strictEqual(calls.length, 2);
+    assert.strictEqual(calls[0].object, source);
+    assert.deepStrictEqual(calls[0].properties, ["name"]);
+    assert.deepStrictEqual(calls[1].properties, ["name", "age"]);
+  }
 }

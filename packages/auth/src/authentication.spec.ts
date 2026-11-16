@@ -55,6 +55,10 @@ class AuthenticationSkeletonTest extends AuthTest {
     const me = await this.op("Auth.Me", undefined, ctx);
     assert.strictEqual(me.displayName, "Bob");
     assert.strictEqual(me.__hidden, undefined);
+    // The session of a user deleted since resolves to no user
+    const gone = await this.ctx();
+    gone.getSession().login("deleted-user", "bob:fake");
+    assert.strictEqual(await gone.getCurrentUser(), undefined);
   }
 
   @test

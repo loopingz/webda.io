@@ -1,4 +1,5 @@
-import { readFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -53,6 +54,15 @@ describe("WebdaQL validation", () => {
     expect(diagnostics.some(d => d.messageText.includes("'title '"))).toBe(false);
   });
 
+  it("reports a parser failure that is not an Error", () => {
+    const { diagnostics } = run(() => {
+      throw "unexpected token";
+    });
+    expect(diagnostics.length).toBeGreaterThan(0);
+    expect(diagnostics[0].code).toBe(WQL_CODES.GRAMMAR_ERROR);
+    expect(diagnostics[0].messageText).toBe("WebdaQL grammar error: unexpected token");
+  });
+
   it("reports a grammar error through the parser, without an attribute check", () => {
     const { diagnostics } = run(() => {
       throw new Error("mismatched input");
@@ -79,6 +89,11 @@ describe("WebdaQL referenced attributes", () => {
     ]);
     // Keywords are not attributes, and IS needs surrounding whitespace
     expect(referencedAttributes("this = 1 AND notes IS NOT NULL")).toEqual(["this", "notes"]);
+  });
+
+  it("never takes a keyword for an attribute, nor an empty SELECT field", () => {
+    expect(referencedAttributes("TRUE = FALSE OR title = 'x'")).toEqual(["title"]);
+    expect(referencedAttributes("SELECT title, , author.name,")).toEqual(["title", "author"]);
   });
 
   it("ignores ? and :name placeholders, which are values", () => {
@@ -217,5 +232,77 @@ describe("WebdaQL sealed fields", () => {
   it("does not warn on models without sealed fields", () => {
     const { diagnostics } = run();
     expect(diagnostics.some(d => d.code === WQL_CODES.SEALED_ATTRIBUTE)).toBe(false);
+  });
+});
+
+describe("WebdaQL call sites on a hand-written project", () => {
+  /**
+   * Run the generator over a single-file project.
+   * @param source - the file content
+   * @returns the edits and diagnostics of the file, undefined when it has none
+   */
+  function analyze(source: string) {
+    const tmpDir = realpathSync(mkdtempSync(join(tmpdir(), "content-mapper-ql-")));
+    try {
+      mkdirSync(join(tmpDir, "src"), { recursive: true });
+      writeFileSync(
+        join(tmpDir, "tsconfig.json"),
+        JSON.stringify({ compilerOptions: { strict: false, types: [], noEmit: true }, include: ["src/**/*"] })
+      );
+      writeFileSync(join(tmpDir, "src", "calls.ts"), source);
+      const session = openSession(join(tmpDir, "tsconfig.json"), tmpDir);
+      try {
+        const [file] = qlValidatorGenerator({ qlModule: "./runtime.js" }).analyze(session.ctx);
+        return file && { edits: file.edits, diagnostics: file.diagnostics ?? [] };
+      } finally {
+        session.dispose();
+      }
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  const doc = `class Doc {\n  title: string;\n  createdAt: string;\n}\n`;
+
+  it("reads the brand off the type when the alias carries no type argument", () => {
+    const result = analyze(
+      doc +
+        `type WebdaQLString = string & { __webdaQL?: Doc };\n` +
+        `declare function find(query: WebdaQLString): void;\n` +
+        `declare function inline(query: string & { __webdaQL?: Doc }): void;\n` +
+        `find("titel = 'x'");\n` +
+        `inline("craetedAt = 'x'");\n` +
+        `find("title = 'x'");\n`
+    )!;
+    expect(result.diagnostics.map(d => d.messageText)).toEqual([
+      "Unknown attribute 'titel' in WebdaQL query. Did you mean 'title'?",
+      "Unknown attribute 'craetedAt' in WebdaQL query. Did you mean 'createdAt'?"
+    ]);
+    expect(result.edits).toEqual([]);
+  });
+
+  it("makes no suggestion when no attribute is close", () => {
+    const result = analyze(
+      doc +
+        `type WebdaQLString<T> = string & { __webdaQL?: T };\n` +
+        `declare function find(query: WebdaQLString<Doc>): void;\n` +
+        `find("unrelated = 'x'");\n`
+    )!;
+    expect(result.diagnostics.map(d => d.messageText)).toEqual(["Unknown attribute 'unrelated' in WebdaQL query."]);
+  });
+
+  it("leaves a query it cannot read, or a target without attributes, alone", () => {
+    const result = analyze(
+      doc +
+        `type WebdaQLString<T> = string & { __webdaQL?: T };\n` +
+        `declare function find(query: WebdaQLString<Doc>): void;\n` +
+        `declare function findAny(query: WebdaQLString<{}>): void;\n` +
+        `declare const built: WebdaQLString<Doc>;\n` +
+        // Built elsewhere: not followed
+        `find(built);\n` +
+        // Nothing to check the attribute against
+        `findAny("anything = 'x'");\n`
+    );
+    expect(result).toBeUndefined();
   });
 });

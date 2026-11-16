@@ -515,6 +515,34 @@ class GrpcStreamTest {
     reqSync.emit("data", createGrpcFrame(Buffer.from("{}")));
     assert.strictEqual(stateSync.trailers!["grpc-status"], "13");
   }
+
+  @test
+  async secondFailureDoesNotEndTheResponseAgain() {
+    const req = createMockRequest();
+    const state = createMockResponse();
+    let ends = 0;
+    const end = state.res.end;
+    state.res.end = () => {
+      ends++;
+      end();
+    };
+    const stream = new GrpcStream(req as any, state.res, createJsonMethodDef());
+    let cancels = 0;
+    stream.onCancel(() => cancels++);
+    let handled = 0;
+    stream.onMessage(async () => {
+      handled++;
+      throw new Error("boom");
+    });
+    // Two frames in one chunk: both handlers are started, both reject
+    const frame = createGrpcFrame(Buffer.from("{}"));
+    req.emit("data", Buffer.concat([frame, frame]));
+    await new Promise(resolve => setImmediate(resolve));
+    assert.strictEqual(handled, 2);
+    assert.strictEqual(state.trailers!["grpc-status"], "13");
+    assert.strictEqual(ends, 1, "the response ends once");
+    assert.strictEqual(cancels, 1, "the feeder is told once");
+  }
 }
 
 @suite

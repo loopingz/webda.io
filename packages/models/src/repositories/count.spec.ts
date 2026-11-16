@@ -196,4 +196,34 @@ class ModelCountTest {
       Repositories.delete(Row);
     }
   }
+
+  @test
+  async skippedCases() {
+    // A backend that cannot count without filter still passes the other cases
+    class FilterOnlyRepository<T extends ModelClass> extends MemoryRepository<T> {
+      /** @override */
+      async count(filter?: any, params?: any, options?: any): Promise<any> {
+        if (!filter && options?.max === undefined) {
+          throw new Error("count needs a filter");
+        }
+        return super.count(filter, params, options);
+      }
+    }
+    await assert.rejects(
+      () => checkCount(new FilterOnlyRepository(Row, ["uuid"]), { native: false }),
+      /needs a filter/
+    );
+    await checkCount(new FilterOnlyRepository(Row, ["uuid"]), { native: false, skip: ["empty filter"] });
+  }
+
+  @test
+  async fallbackWarningNamesAModelWithoutMetadata() {
+    class PlainRow extends UuidModel {}
+    PlainRow.registerSerializer();
+    const repo = new RemoteRepository(PlainRow, ["uuid"]);
+    const warnings: string[] = [];
+    repo.configureAggregation({ warn: message => warnings.push(message) });
+    assert.deepStrictEqual(await repo.count(), { value: 0, relation: "eq", native: false });
+    assert.match(warnings[0], /^Count on PlainRow runs in memory/);
+  }
 }

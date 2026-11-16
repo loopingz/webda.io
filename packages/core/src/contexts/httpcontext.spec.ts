@@ -20,6 +20,21 @@ class HttpContextTest {
     assert.strictEqual(ctx.getHeader("X-Test"), ctx.getHeader("x-test"));
     assert.strictEqual(ctx.getPort(), "");
     assert.strictEqual(ctx.getUniqueHeader("other"), "head2");
+    // An empty last value falls back to the default
+    assert.strictEqual(ctx.getUniqueHeader("cookie", "none"), "none");
+  }
+
+  @test
+  async bodyErrorAfterTimeoutIsIgnored() {
+    const ctx = new HttpContext("test.webda.io", "POST", "/test", "http", 80, {});
+    const body = new FakeReadable();
+    ctx.setBody(body);
+    await assert.rejects(
+      () => ctx.getRawBody(1024, 10),
+      (err: any) => err.message === "Request timeout" && err.statusCode === 408
+    );
+    // The request already failed: a late error of its stream is not reported again
+    assert.doesNotThrow(() => body.emit("error", new Error("socket closed")));
   }
 
   @test

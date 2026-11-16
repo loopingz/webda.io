@@ -181,4 +181,27 @@ class EmailPolicyTest extends AuthTest {
       );
     }
   }
+
+  @test
+  async policyOfTheProviderItself() {
+    // A provider exposing getEmailPolicy() is asked, whatever its parameters
+    this.setPolicy({ allowedEmailDomains: ["ignored.com"] });
+    this.provider.getEmailPolicy = () => ({ allowedEmailDomains: ["company.com"] });
+    try {
+      await this.login(google("p1", "bob@company.com"));
+      await rejectsWith(() => this.login(google("p2", "bob@ignored.com")), EmailDomainNotAllowed);
+    } finally {
+      delete this.provider.getEmailPolicy;
+    }
+    // A provider without parameters has no policy
+    this.provider.getParameters = undefined;
+    try {
+      await this.login(google("p3", "bob@anywhere.com"));
+      assert.ok((await Ident.ref(Ident.key("p3", "google")).get()).isVerified());
+    } finally {
+      delete this.provider.getParameters;
+    }
+    // Nor an unknown provider
+    assert.strictEqual((this.auth as any).emailPolicyFor("unknown"), undefined);
+  }
 }

@@ -97,6 +97,7 @@ class BindTest {
     assert.throws(() => bind("x = ?"), WebdaQLError);
     assert.throws(() => bind("x = :x", {}), /Missing named parameter ':x'/);
     assert.throws(() => bind("x = :x", { x: 1, y: 2 }), /Unused named parameter 'y'/);
+    assert.throws(() => bind("x = :x", { x: 1, y: 2, z: 3 }), /Unused named parameters 'y', 'z'/);
     assert.throws(() => bind("x = :constructor", {}), /Missing named parameter ':constructor'/);
     assert.throws(() => bind("x = 1", [1]), WebdaQLError);
     assert.throws(() => bind("x = 1", { a: 1 }), WebdaQLError);

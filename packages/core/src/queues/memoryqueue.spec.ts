@@ -261,6 +261,23 @@ class MemoryQueueTest extends QueueTest {
   }
 
   @test
+  async additionalConsumerStaysWhileMessagesArrive() {
+    // The first message starts a second consumer: it keeps receiving until a receive comes back empty
+    const received: number[] = [];
+    const { calls } = await this.consumeFor(
+      { idleDelayer: { type: "linear", interval: 20 }, maxConsumers: 2 },
+      async call => {
+        if (call > 6) return [];
+        received.push(call);
+        return [{ ReceiptHandle: `m${call}`, Message: {} }];
+      },
+      150
+    );
+    assert.deepStrictEqual(received, [1, 2, 3, 4, 5, 6]);
+    assert.ok(calls > 6, `${calls} receives`);
+  }
+
+  @test
   async idleDelayResetsAfterAMessage() {
     // Empty receives wait 20ms, 40ms; the third receive gets a message; the fourth starts the backoff again at 20ms
     const times: number[] = [];
@@ -292,6 +309,29 @@ class MemoryQueueTest extends QueueTest {
     assert.strictEqual((await queue.receiveMessage()).length, 0);
     // Nothing is eventually consistent in memory: no need for the 1s pauses made for the remote queues
     return this.simple(queue, false, 10);
+  }
+
+  @test
+  async receiveWithoutTimeoutWaitsForAMessage() {
+    const queue: MemoryQueue = <MemoryQueue>this.queue;
+    queue.__clean();
+    // An expiration of 0 falls back to the default
+    assert.strictEqual(new MemoryQueueParameters().load({ expire: 0 }).expireMs, 30000);
+    // No timeout: the read is only ended by a message
+    assert.strictEqual(queue.getParameters().timeoutMs, 0);
+    let received: any[] | undefined;
+    const reading = queue.receiveMessage().then(items => (received = items));
+    await new Promise(resolve => setTimeout(resolve, 20));
+    assert.strictEqual(received, undefined, "still waiting");
+    await queue.sendMessage({ title: "wake up" });
+    await reading;
+    assert.deepStrictEqual(
+      received!.map(item => item.Message),
+      [{ title: "wake up" }]
+    );
+    // A claimed message is not handed out again before it expires
+    assert.deepStrictEqual(queue.getItem(), []);
+    await queue.deleteMessage(received![0].ReceiptHandle);
   }
 
   @test

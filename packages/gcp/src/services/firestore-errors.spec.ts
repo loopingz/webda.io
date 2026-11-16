@@ -4,6 +4,8 @@ import { suite, test } from "@webda/test";
 import * as assert from "node:assert";
 import { EventEmitter } from "node:events";
 import { vi } from "vitest";
+import { FieldValue } from "@google-cloud/firestore";
+import * as WebdaQL from "@webda/ql";
 import FireStore, { FireStoreParameters, FireStoreRepository, toFirestore } from "./firestore.service.js";
 import { GCPQueue, GCPQueueParameters } from "./queue.service.js";
 import { GCSFinder } from "./storage.service.js";
@@ -74,6 +76,86 @@ class FireStoreErrorsTest extends WebdaApplicationTest {
   }
 
   @test
+  async repositoryOptionalArguments() {
+    const repository: any = new FireStoreRepository(User, ["uuid"], {} as any, "unit", [{ name: "asc", age: "desc" }]);
+    // The declared orders of a compound index, keyed by its sorted fields
+    assert.deepStrictEqual(repository.compoundIndexes, {
+      "age/name": { name: new Set(["asc"]), age: new Set(["desc"]) }
+    });
+    const update = vi.fn();
+    const ref = vi.spyOn(repository, "getDocumentRef").mockReturnValue({ id: "unit", update });
+    try {
+      // An object built without saving it
+      const user = await repository.create({ uuid: "unsaved" }, false);
+      assert.strictEqual(user.uuid, "unsaved");
+      assert.strictEqual(ref.mock.calls.length, 0);
+
+      // Increments as names, as properties with or without value, or as a map
+      await repository.incrementAttributes("unit", ["a", { property: "b" }, { property: "c", value: 3 }]);
+      let args = update.mock.calls[0][0];
+      assert.deepStrictEqual(Object.keys(args), ["_lastUpdate", "a", "b", "c"]);
+      assert.ok(args.a.isEqual(FieldValue.increment(1)));
+      assert.ok(args.b.isEqual(FieldValue.increment(1)));
+      assert.ok(args.c.isEqual(FieldValue.increment(3)));
+      await repository.incrementAttributes("unit", { d: 2 });
+      args = update.mock.calls[1][0];
+      assert.ok(args.d.isEqual(FieldValue.increment(2)));
+
+      // Deleting an item of a collection
+      const data: any = { items: "not a list" };
+      const written = vi.fn();
+      repository.firestore.runTransaction = async (callback: any) =>
+        callback({ get: async () => ({ exists: true, data: () => data }), update: written });
+      await repository.deleteItemFromCollection("unit", "items", 0);
+      assert.strictEqual(written.mock.calls.length, 0, "Nothing to delete in something else than a list");
+      data.items = [{ name: "first" }, { name: "second" }];
+      await repository.deleteItemFromCollection("unit", "items", 0);
+      assert.deepStrictEqual(written.mock.calls[0][1].items, [{ name: "second" }]);
+      await assert.rejects(() => repository.deleteItemFromCollection("unit", "items", 0, "name", "other"));
+      await repository.deleteItemFromCollection("unit", "items", 0, "name", "second");
+      assert.deepStrictEqual(written.mock.calls[1][1].items, []);
+
+      // A query object goes back through the grammar
+      const find = vi.spyOn(repository, "find").mockResolvedValue({ results: [], continuationToken: "next" });
+      assert.deepStrictEqual(await repository.query(WebdaQL.parse("name = 'a' LIMIT 10")), {
+        results: [],
+        continuationToken: "next"
+      });
+      assert.strictEqual(find.mock.calls[0][0].limit, 10);
+      assert.throws(() => WebdaQL.assertFilterQuery(WebdaQL.parse("DELETE WHERE name = 'a'")));
+      await assert.rejects(() => repository.query(WebdaQL.parse("DELETE WHERE name = 'a'")));
+    } finally {
+      ref.mockRestore();
+    }
+  }
+
+  @test
+  async collectionsOfTheStore() {
+    const store = (params: any) => new FireStore("fs-collections", new FireStoreParameters().load(params));
+    class Other extends User {}
+    (Other as any).Metadata = { ...(User as any).Metadata, Identifier: "Test/Other" };
+    // Named after the model without collection
+    assert.strictEqual(store({}).resolveCollection(User), "webda_user");
+    // A single collection for the only (or the first) model of the store
+    assert.strictEqual(store({ collection: "shared" }).resolveCollection(User), "shared");
+    const several = store({ collection: "shared", models: ["Webda/User", "Test/Other"] });
+    assert.strictEqual(several.resolveCollection(User), "shared");
+    assert.strictEqual(several.resolveCollection(Other as any), "test_other");
+    // No repository before the models are resolved
+    (several as any)._modelsHierarchy = undefined;
+    assert.deepStrictEqual(several.getRepositories(), []);
+    // A repository that is not wrapped is returned as is
+    (several as any)._modelsHierarchy = { "Webda/User": 0 };
+    const bare = new FireStoreRepository(User, ["uuid"], {} as any, "unit");
+    const getRepository = vi.spyOn(several, "getRepository").mockReturnValue(bare as any);
+    try {
+      assert.deepStrictEqual(several.getRepositories(), [bare]);
+    } finally {
+      getRepository.mockRestore();
+    }
+  }
+
+  @test
   async additionalGcpUnitCoverage() {
     // 1. fromFirestore without .load(), deleteMany, updateMany
     class PlainModel {
@@ -82,6 +164,8 @@ class FireStoreErrorsTest extends WebdaApplicationTest {
     const plainRepo = new FireStoreRepository(PlainModel as any, ["uuid"], {} as any, "unit");
     const inst = (plainRepo as any).fromFirestore({ a: 42 });
     assert.strictEqual(inst.a, 42);
+    // A repository built without a logger drops its warnings
+    assert.strictEqual((plainRepo as any).log("WARN", "Compound index not defined"), undefined);
     const selfJson: any = { x: 1 };
     selfJson.toJSON = () => selfJson;
     assert.deepStrictEqual(toFirestore(selfJson), { x: 1 });

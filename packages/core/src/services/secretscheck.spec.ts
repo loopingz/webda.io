@@ -183,6 +183,53 @@ class FindUnencryptedSecretsTest {
       ]
     );
   }
+
+  @test
+  unusualStructures() {
+    // An object without prototype is checked like any plain object
+    const bare = Object.assign(Object.create(null), { apiKey: "hunter2-plain" });
+    assert.deepStrictEqual(findUnencryptedSecrets(bare, SCHEMA), [{ path: "apiKey", reason: "plain" }]);
+    // A reference to a missing or non-object definition is ignored
+    const broken = {
+      definitions: { Flag: true },
+      properties: { a: { $ref: "#/definitions/Missing" }, b: { $ref: "#/definitions/Flag" } }
+    } as JSONSchema7;
+    assert.deepStrictEqual(findUnencryptedSecrets({ a: "plain", b: "plain" }, broken), []);
+    // Tuple: each item has its own schema
+    const tuple = {
+      properties: {
+        pair: { type: "array", items: [{ type: "string" }, { type: "string", "x-webda-secret": true } as JSONSchema7] }
+      }
+    } as JSONSchema7;
+    assert.deepStrictEqual(findUnencryptedSecrets({ pair: ["public", "plain", "extra"] }, tuple), [
+      { path: "pair[1]", reason: "plain" }
+    ]);
+  }
+
+  @test
+  configurationDefaults() {
+    const getSchema = (type: string) => (type === "Secret" ? SCHEMA : undefined);
+    // Without services in the file: the parameters still reach the services of the application
+    let res = findConfigurationSecrets(
+      { parameters: { apiKey: "global-plain-token" } },
+      // A service without type is named after it
+      { getSchema, inheritingServices: { Secret: {}, typed: { type: "Secret" }, invalid: "not a service" } }
+    );
+    assert.deepStrictEqual(res.unknownTypes, []);
+    assert.deepStrictEqual(
+      res.findings.map(f => `${f.path} ${f.service} ${f.type}`),
+      ["parameters.apiKey Secret Secret"]
+    );
+    // A service that is not an object is skipped
+    res = findConfigurationSecrets(
+      { services: { disabled: null, text: "plain", Secret: { apiKey: "hunter2-plain" } } },
+      { getSchema }
+    );
+    assert.deepStrictEqual(
+      res.findings.map(f => `${f.path} ${f.service} ${f.type}`),
+      ["services.Secret.apiKey Secret Secret"]
+    );
+  }
 }
 
 const FILE = __dirname + "/../../test/check-secrets.yaml";
@@ -460,6 +507,22 @@ class EncryptCheckCommandTest extends WebdaApplicationTest {
     // Not secrets
     assert.ok(content.includes("user: me") && content.includes("host: smtp.example.com"));
     assert.strictEqual((await this.run(FILE, undefined, undefined, true)).code, 0);
+  }
+
+  @test
+  async fileSecretsWithoutApplicationServices() {
+    const stub = this.stub(useApplication(), "getConfiguration").returns(<any>{});
+    try {
+      const findings = CryptoService.findFileSecrets({
+        services: { SecretPath: { type: "WebdaTest/SecretPathService", auth: { pass: "smtp-plain-pass" } } }
+      });
+      assert.deepStrictEqual(
+        findings.map(f => `${f.path} ${f.reason}`),
+        ["services.SecretPath.auth.pass plain"]
+      );
+    } finally {
+      stub.restore();
+    }
   }
 
   @test

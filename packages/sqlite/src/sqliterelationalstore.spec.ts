@@ -107,6 +107,9 @@ export class SQLiteRelationalStoreTest extends WebdaApplicationTest {
       () => new SQLiteRelationalParameters().load({ tables: { "Rel/Post": "Posts" } }),
       (err: any) => err instanceof WebdaError.CodeError && err.code === "RELATIONAL_TABLE_NAME"
     );
+    assert.deepStrictEqual(new SQLiteRelationalParameters().load({ tables: { "Rel/Post": "blog_posts" } }).tables, {
+      "Rel/Post": "blog_posts"
+    });
     const defaults = new SQLiteRelationalParameters().load({});
     assert.strictEqual(defaults.schemaSync, "create");
     assert.strictEqual(defaults.extraColumn, "_extra");
@@ -504,6 +507,10 @@ export class SQLiteRelationalStoreTest extends WebdaApplicationTest {
       await new Promise(r => setTimeout(r, 25));
       rel.stop();
       rel.versions.heartbeat = origHb;
+      // No heartbeat when it is disabled
+      apart.getParameters().versionHeartbeat = 0;
+      await rel.registerVersion();
+      assert.strictEqual(rel.heartbeat, undefined);
 
       // getSchemaPlan when SCHEMA_VERSION_MODEL is in _modelsHierarchy
       const savedPlan = rel.manager.plan;
@@ -543,6 +550,22 @@ export class SQLiteRelationalStoreTest extends WebdaApplicationTest {
         assert.strictEqual(await rel.checkCommand("nonexistent-version", false, false), 2);
         assert.strictEqual(await rel.checkCommand(undefined, true, true), 0);
         assert.strictEqual(await rel.checkCommand(undefined, false, false), 0);
+        // --force-incompatible downgrades the blocking changes to forced warnings, and leaves the others alone
+        const origCompare = rel.versions.compare.bind(rel.versions);
+        const blocking = { category: "BLOCK", kind: "column-removed", table: "rel_user", column: "email" };
+        const safe = { category: "SAFE", kind: "column-added", table: "rel_user", column: "nickname" };
+        rel.versions.compare = () => [blocking, safe];
+        try {
+          assert.strictEqual(await rel.checkCommand(undefined, false, true), 1);
+          logLines.length = 0;
+          assert.strictEqual(await rel.checkCommand(undefined, true, true), 0);
+          assert.deepStrictEqual(JSON.parse(logLines.join("\n")).changes, [
+            { ...blocking, category: "WARN", forced: true },
+            safe
+          ]);
+        } finally {
+          rel.versions.compare = origCompare;
+        }
         const origContract = rel.manager.contract.bind(rel.manager);
         rel.manager.contract = async () => [];
         assert.strictEqual(
@@ -551,6 +574,11 @@ export class SQLiteRelationalStoreTest extends WebdaApplicationTest {
         );
         rel.manager.contract = origContract;
         assert.strictEqual(await rel.retireCommand("nonexistent-version"), 1);
+        // Once its versions are retired, the check compares the plan with nothing
+        assert.strictEqual(await rel.retireCommand(rel.version.appVersion), 0);
+        logLines.length = 0;
+        assert.strictEqual(await rel.checkCommand(undefined, false, false), 0);
+        assert.ok(logLines[0].endsWith("against no live version"), logLines[0]);
       } finally {
         console.log = origLog;
       }

@@ -86,6 +86,7 @@ class GitInformationTest {
     assert.strictEqual(nextSnapshotVersion("1.2.3", date), "1.2.4+20261004130507009");
     assert.strictEqual(nextSnapshotVersion("1.2.3-beta.1", date), "1.2.3+20261004130507009");
     assert.strictEqual(nextSnapshotVersion("", date), "");
+    assert.strictEqual(nextSnapshotVersion(undefined, date), undefined);
   }
 
   @test
@@ -113,6 +114,11 @@ class GitInformationTest {
       assert.strictEqual(info.version, "1.0.0");
       git(dir, "tag", "v1.1.0");
       assert.strictEqual(getGitInformation(dir, "other", "1.1.0").tag, "v1.1.0");
+      // Without a package version there is nothing to mark as dirty
+      writeFileSync(join(dir, "uncommitted.txt"), "content");
+      info = getGitInformation(dir);
+      assert.strictEqual(info.version, "");
+      assert.strictEqual(info.commit, commit);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

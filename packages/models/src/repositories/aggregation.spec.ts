@@ -4,7 +4,7 @@ import { UuidModel } from "../model.model.js";
 import type { ModelClass } from "../storable.js";
 import { MemoryRepository } from "./memory.js";
 import { EventRepository } from "./event.js";
-import { checkAggregation } from "./conformance.js";
+import { AGGREGATION_CASES, checkAggregation } from "./conformance.js";
 import { registerRepository, Repositories } from "./hooks.js";
 import type { AggregatedRow } from "../aggregation.js";
 
@@ -241,5 +241,30 @@ class ModelAggregateTest {
     } finally {
       Repositories.delete(Task);
     }
+  }
+}
+
+@suite
+class AggregationConformanceSkipTest {
+  @test
+  async skippedCases() {
+    // A backend without global aggregation still passes the other cases
+    class GroupedOnlyRepository<T extends ModelClass> extends MemoryRepository<T> {
+      /** @override */
+      async aggregate(spec: any, ...args: any[]): Promise<any> {
+        if (!spec.groupBy?.length) {
+          throw new Error("aggregate needs a groupBy");
+        }
+        return (super.aggregate as any)(spec, ...args);
+      }
+    }
+    await assert.rejects(
+      () => checkAggregation(new GroupedOnlyRepository(Row, ["uuid"]), { native: false }),
+      /needs a groupBy/
+    );
+    await checkAggregation(new GroupedOnlyRepository(Row, ["uuid"]), {
+      native: false,
+      skip: AGGREGATION_CASES.filter(c => !c.spec.groupBy?.length).map(c => c.name)
+    });
   }
 }

@@ -299,6 +299,41 @@ class PackagerTest {
   }
 
   @test
+  async importsWithoutExportNameAreRewritten() {
+    const app = this.getApp();
+    const cfg = app.getConfiguration();
+    cfg.cachedModules.moddas["App/Default"] = { Import: "lib/app" };
+    cfg.cachedModules.moddas["B/Default"] = { Import: "../node_modules/.pnpm/b@1.0.0/node_modules/b/lib/b" };
+    app.getConfiguration = () => cfg;
+    const { configuration } = await packageApplication(app);
+    assert.strictEqual(configuration.cachedModules.moddas["App/Default"].Import, "lib/app");
+    assert.strictEqual(configuration.cachedModules.moddas["B/Default"].Import, "node_modules/b/lib/b");
+  }
+
+  @test
+  deployedConfigurationWithoutDeploymentNorCachedModules() {
+    const app = this.getApp();
+    app.getCurrentDeployment = () => undefined;
+    // No deployment: the name is empty, in the project and in the marker
+    const configuration = getDeployedConfiguration(app, { marker: true });
+    assert.strictEqual(configuration.cachedModules.project.deployment.name, "");
+    assert.strictEqual(configuration.$packaged.deployment, "");
+    // An application that is not cached has no project to complete
+    app.getConfiguration = () => ({ version: 4, parameters: {}, services: {} });
+    const bare = getDeployedConfiguration(app, { marker: true, rewriteImport: value => value });
+    assert.strictEqual(bare.cachedModules, undefined);
+    assert.strictEqual(bare.$packaged.git, undefined);
+    assert.deepStrictEqual(bare.$packaged.package, { name: "app", version: "1.0.0" });
+  }
+
+  @test
+  writePackageCreatesEmptyFiles() {
+    const output = join(this.root, "dist-empty");
+    writeApplicationPackage({ files: [{ target: "nested/empty.txt" }] } as any, output);
+    assert.strictEqual(readFileSync(join(output, "nested/empty.txt"), "utf-8"), "");
+  }
+
+  @test
   async additionalPackagerAndServiceCoverage() {
     const { ApplicationPackager } = await import("./packager.service.js");
     const { runWithInstanceStorage, useInstanceStorage } = await import("../core/instancestorage.js");

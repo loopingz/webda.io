@@ -239,6 +239,44 @@ class ContextAppTest extends WebdaAsyncStorageTest {
   }
 
   @test
+  async webContextDefaults() {
+    const { PassThrough } = await import("node:stream");
+    let ctx = new WebContext(new HttpContext("test.webda.io", "GET", "/"));
+    // Nothing written yet
+    assert.strictEqual(ctx.getResponseSize(), undefined);
+    ctx.statusCode = undefined;
+    assert.strictEqual(ctx.getResponseCode(), 200);
+    // An error status is kept when its body is streamed
+    ctx.writeHead(404, {});
+    (await ctx.getOutputStream()).write("Not here");
+    await ctx.end();
+    assert.strictEqual(ctx.statusCode, 404);
+    assert.strictEqual(ctx.getResponseBody().toString(), "Not here");
+
+    // A response without status is a 200
+    const heads: number[] = [];
+    const response: any = new PassThrough();
+    response.writeHead = (code: number) => heads.push(code);
+    ctx = new WebContext(new HttpContext("test.webda.io", "GET", "/"), response);
+    ctx.statusCode = undefined;
+    await ctx.flushHeaders();
+    assert.deepStrictEqual(heads, [200]);
+
+    // Without http context there is no session to load
+    ctx = new WebContext(undefined);
+    await ctx.init();
+    assert.strictEqual(ctx.getHttpContext(), undefined);
+    assert.strictEqual(ctx.getSession(), undefined);
+
+    // Without SessionManager the session is just not saved
+    setCore({ getService: () => undefined } as any);
+    ctx = new WebContext(new HttpContext("test.webda.io", "GET", "/"));
+    ctx.newSession();
+    await ctx.saveSession();
+    assert.strictEqual(ctx["_sessionSaved"], true);
+  }
+
+  @test
   getAbsoluteUrl() {
     let ctx = new HttpContext("test.webda.io", "GET", "/uritemplate/plop", "http", 80, {
       cookie: "PHPSESSID=298zf09hf012fh2; csrftoken=u32t4o3tb3gg43; _gat=1"
@@ -892,5 +930,39 @@ class GlobalContextTest {
     failStreamOut.startKeepAlive();
     await new Promise(r => setTimeout(r, 15));
     failStreamOut.stopKeepAlive();
+  }
+}
+
+@suite
+class OperationContextStreamsTest {
+  @test
+  async rawInputOfAnEmptyBodyIsTheDefaultValue() {
+    const ctx = new OperationContextMock();
+    ctx.getRawInputAsString = async () => "";
+    assert.deepStrictEqual(await ctx.getInput({ raw: true, defaultValue: '{"empty":true}' } as any), { empty: true });
+  }
+
+  @test
+  async resetResponseKeepsAStreamItDoesNotOwn() {
+    const { PassThrough } = await import("node:stream");
+    const stream = new PassThrough();
+    const ctx: any = new OperationContextMock(stream);
+    ctx.write("discarded");
+    ctx.resetResponse();
+    assert.strictEqual(ctx._stream, stream);
+    assert.strictEqual(ctx.getOutput(), undefined);
+  }
+
+  @test
+  async pipelineThroughATransformWithoutOptions() {
+    const { Transform } = await import("node:stream");
+    const ctx = new OperationContextMock();
+    const upper = new Transform({
+      transform(chunk, _enc, cb) {
+        cb(null, Buffer.from(chunk.toString().toUpperCase()));
+      }
+    });
+    await ctx.pipeline(Readable.from(["hello"]), upper);
+    assert.strictEqual(ctx.getOutput(), "HELLO");
   }
 }

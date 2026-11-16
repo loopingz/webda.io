@@ -28,6 +28,7 @@ import {
   runAsSystem
 } from "../index.js";
 import type { OperationTransactionParticipant } from "../index.js";
+import { getOperationStreaming, validateOperationInput } from "./operations.js";
 import * as WebdaError from "../errors/errors.js";
 import type { OperationDefinition } from "../index.js";
 import { WebdaApplicationTest } from "../test/index.js";
@@ -92,6 +93,11 @@ class OperationTestService extends Service {
 
   async doFail(_ctx: OperationContext) {
     throw new Error("Operation failed");
+  }
+
+  async writeAndReturn(ctx: OperationContext) {
+    ctx.write("written");
+    return "returned";
   }
 }
 
@@ -304,6 +310,102 @@ class RegisterOperationTest extends WebdaApplicationTest {
     assert.strictEqual(ctx.getExtension("operation"), "OpService.TestExt");
     // The event extension should be cleared in finally
     assert.strictEqual(ctx.getExtension("event"), undefined);
+  }
+
+  @test
+  async authorizersRefusingWithoutAReason() {
+    registerOperation("OpService.Authorized", {
+      service: "OpService",
+      method: "doSomething",
+      input: "void",
+      output: "void"
+    });
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    ctx.setSession(new Session());
+    const refuses = async () => false as const;
+    const fails = async () => {
+      throw "not an error";
+    };
+    registerOperationAuthorizer(refuses);
+    try {
+      assert.strictEqual(await probeOperation(ctx, "OpService.Authorized"), "refused");
+      assert.strictEqual(await canCallOperation(ctx, "OpService.Authorized"), false);
+    } finally {
+      unregisterOperationAuthorizer(refuses);
+    }
+    registerOperationAuthorizer(fails as any);
+    try {
+      assert.strictEqual(await probeOperation(ctx, "OpService.Authorized"), "authorizer error");
+    } finally {
+      unregisterOperationAuthorizer(fails as any);
+    }
+    assert.strictEqual(await probeOperation(ctx, "OpService.Authorized"), true);
+  }
+
+  @test
+  streamingModeFromTheGrpcHint() {
+    assert.strictEqual(getOperationStreaming({ grpc: { streaming: "server" } } as any), "server");
+    assert.strictEqual(getOperationStreaming({ grpc: {} } as any), "none");
+    assert.strictEqual(getOperationStreaming({ grpc: false } as any), "none");
+    assert.strictEqual(getOperationStreaming({ streaming: "bidi", grpc: { streaming: "server" } } as any), "bidi");
+    assert.strictEqual(getOperationStreaming(), "none");
+  }
+
+  @test
+  invalidInputAtTheRootIsReportedOnTheRootPath() {
+    const schema = { type: "object", properties: { name: { type: "string" } }, required: ["name"] };
+    useApplication().getSchemas()["OpService.RootInput"] = schema;
+    registerSchema("OpService.RootInput", schema as any, true);
+    assert.throws(
+      () => validateOperationInput("OpService.Root", "OpService.RootInput", "not an object"),
+      (err: any) =>
+        err instanceof WebdaError.BadRequest && /OpService\.Root InvalidInput: \/ must be object/.test(err.message)
+    );
+    assert.throws(
+      () => validateOperationInput("OpService.Root", "OpService.RootInput", {}),
+      (err: any) => err instanceof WebdaError.BadRequest && /InvalidInput: \/name /.test(err.message)
+    );
+  }
+
+  @test
+  async streamedInputWithoutSchemaIsNotValidated() {
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    ctx.setExtension(
+      "operationInputStream",
+      (async function* incoming() {
+        yield 1;
+        yield { anything: true };
+      })()
+    );
+    const [stream] = await resolveArguments(ctx, {
+      id: "OpService.Stream",
+      service: "OpService",
+      method: "doSomething",
+      input: "void",
+      output: "void",
+      streaming: "client"
+    } as any);
+    const received: any[] = [];
+    for await (const item of stream) received.push(item);
+    assert.deepStrictEqual(received, [1, { anything: true }]);
+  }
+
+  @test
+  async returnValueDoesNotReplaceWhatTheMethodWrote() {
+    registerOperation("OpService.WriteAndReturn", {
+      service: "OpService",
+      method: "writeAndReturn",
+      input: "void",
+      output: "void"
+    });
+    const ctx = new FakeOpContext();
+    await ctx.init();
+    // A context without parameters is called like one with none
+    ctx.setParameters(undefined as any);
+    await callOperation(ctx, "OpService.WriteAndReturn");
+    assert.strictEqual(ctx.getOutput(), "written");
   }
 }
 

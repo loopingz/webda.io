@@ -745,6 +745,8 @@ class GraphQLServiceTest extends WebdaApplicationTest {
             // next results (after the deletion below) do not hold it
             await Course.ref("test3").create({ name: "test3", value: 10 } as any);
             await Course.ref("test4").create({ name: "test4", value: 1 } as any);
+            // An update of an object out of the results sends nothing either
+            await Course.ref("test4").patch({ name: "test4b" } as any);
           } else if (i === 3) {
             assert.deepStrictEqual(names, ["test", "test2b", "test3"]);
             await Course.ref("test").delete();
@@ -937,6 +939,50 @@ class GraphQLServiceTest extends WebdaApplicationTest {
     } finally {
       await client.dispose();
     }
+  }
+
+  @test
+  async aggregateSubscriptionWithANullArgument() {
+    await Course.ref("test").create({ name: "test" } as any);
+    const client = await this.client();
+    try {
+      // Only literal values are passed to the merged subscriptions: a null query is no query
+      await this.subscribe(client, `subscription { Aggregate { Courses(query: null) { results { name } } } }`, data => {
+        assert.deepStrictEqual(
+          data.Aggregate.Courses.results.map(c => c.name),
+          ["test"]
+        );
+        return true;
+      });
+    } finally {
+      await client.dispose();
+    }
+  }
+
+  @test
+  async objectIteratorIsNamedAfterTheModelByDefault() {
+    await Course.ref("test").create({ name: "test" } as any);
+    const iterator = await this.service.registerAsyncIterator(Course as any, "test", await this.newContext());
+    try {
+      const first = await iterator.next();
+      assert.deepStrictEqual(Object.keys(first.value), ["WebdaDemo/Course"]);
+      assert.strictEqual(first.value["WebdaDemo/Course"].name, "test");
+    } finally {
+      await iterator.return?.();
+    }
+  }
+
+  @test
+  async mappedObjectWithoutKeyIsLeftOut() {
+    const context = await this.newContext();
+    context.setExtension("graphql", { count: 0 });
+    // Not every selected field is known, and there is no key to load the object with: answered like a missing one
+    const field: any = { selectionSet: { selections: [{ kind: Kind.FIELD, name: { value: "owner" } }] } };
+    assert.strictEqual(
+      await this.service.loadListedInstance(<any>{ name: "orphan" }, Computer as any, context, field),
+      null
+    );
+    assert.strictEqual(context.getExtension<any>("graphql").count, 1);
   }
 
   @test

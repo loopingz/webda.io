@@ -261,4 +261,121 @@ class Merge3LineStrategyStringsTest {
     expect(r1.conflicts[0].kind).toBe("line");
     expect(r2.conflicts[0].kind).toBe("line");
   }
+
+  @test({ name: "empty base string merges with one-sided line additions" })
+  emptyBaseStringMergesWithOneSidedLineAdditions() {
+    const cfg = { stringStrategy: { "/body": "line" as const } };
+    const r = merge3({ body: "", n: 1 }, { body: "added\nlines\n", n: 1 }, { body: "", n: 2 }, cfg);
+    expect(r.clean).toBe(true);
+    expect(r.merged).toEqual({ body: "added\nlines\n", n: 2 });
+  }
+}
+
+@suite("merge3 (arrays by id, edge cases)")
+class Merge3ArraysByIdEdgeCasesTest {
+  cfg = { arrayId: { "/items": "id" } };
+
+  @test({ name: "ignores items that cannot be identified" })
+  ignoresItemsThatCannotBeIdentified() {
+    const base = { items: [{ id: "a", v: 1 }] as unknown[] };
+    const ours = { items: [{ id: "a", v: 2 }, null, 42, { noId: true }] as unknown[] };
+    const theirs = {
+      items: [
+        { id: "a", v: 1 },
+        { id: "b", v: 1 }
+      ] as unknown[]
+    };
+    const r = merge3(base, ours, theirs, this.cfg);
+    expect(r.clean).toBe(true);
+    expect(r.merged.items).toEqual([
+      { id: "a", v: 2 },
+      { id: "b", v: 1 }
+    ]);
+  }
+
+  @test({ name: "drops an item deleted by both sides" })
+  dropsAnItemDeletedByBothSides() {
+    const base = {
+      items: [
+        { id: "a", v: 1 },
+        { id: "gone", v: 1 }
+      ]
+    };
+    const ours = {
+      items: [
+        { id: "a", v: 1 },
+        { id: "o", v: 1 }
+      ]
+    };
+    const theirs = {
+      items: [
+        { id: "a", v: 1 },
+        { id: "t", v: 1 }
+      ]
+    };
+    const r = merge3(base, ours, theirs, this.cfg);
+    expect(r.clean).toBe(true);
+    expect(r.merged.items).toEqual([
+      { id: "a", v: 1 },
+      { id: "o", v: 1 },
+      { id: "t", v: 1 }
+    ]);
+  }
+
+  @test({ name: "applies a one-sided deletion of an unchanged item" })
+  appliesAOneSidedDeletionOfAnUnchangedItem() {
+    const base = {
+      items: [
+        { id: "a", v: 1 },
+        { id: "b", v: 1 },
+        { id: "c", v: 1 }
+      ]
+    };
+    // ours deletes "b" (untouched by theirs), theirs deletes "c" (untouched by ours)
+    const ours = {
+      items: [
+        { id: "a", v: 2 },
+        { id: "c", v: 1 }
+      ]
+    };
+    const theirs = {
+      items: [
+        { id: "a", v: 1 },
+        { id: "b", v: 1 }
+      ]
+    };
+    const r = merge3(base, ours, theirs, this.cfg);
+    expect(r.clean).toBe(true);
+    expect(r.merged.items).toEqual([{ id: "a", v: 2 }]);
+  }
+
+  @test({ name: "merges an item added by both sides under the same id" })
+  mergesAnItemAddedByBothSidesUnderTheSameId() {
+    const base = { items: [] as { id: string; v: number }[] };
+    const same = merge3(base, { items: [{ id: "n", v: 1 }] }, { items: [{ id: "n", v: 1 }] }, this.cfg);
+    expect(same.clean).toBe(true);
+    const r = merge3(
+      { items: [{ id: "k", v: 0 }] },
+      {
+        items: [
+          { id: "k", v: 0 },
+          { id: "n", v: 1 }
+        ]
+      },
+      {
+        items: [
+          { id: "k", v: 5 },
+          { id: "n", v: 2 }
+        ]
+      },
+      this.cfg
+    );
+    expect(r.clean).toBe(false);
+    // No common ancestor for the item: the whole item conflicts, ours is kept
+    expect(r.conflicts).toEqual([
+      { path: "/items/n", kind: "value", base: undefined, ours: { id: "n", v: 1 }, theirs: { id: "n", v: 2 } }
+    ]);
+    expect(r.merged.items[1]).toEqual({ id: "n", v: 1 });
+    expect(r.merged.items[0]).toEqual({ id: "k", v: 5 });
+  }
 }

@@ -36,6 +36,9 @@ class ThrottleTest {
   @test
   tolerant() {
     assert.ok(!isLocked(undefined as any, 3, 1000));
+    // Never failed, or failures counted without the time of the last one: not locked
+    assert.ok(!isLocked({} as any, 3, 1000));
+    assert.ok(!isLocked({ _loginAttempts: 3 }, 3, 1000));
     assert.ok(canSend(undefined as any, 1000));
     assert.strictEqual(recordFailure(undefined as any, 1)._loginAttempts, 1);
     assert.deepStrictEqual(markSent(undefined as any, 2), { lastSentAt: 2 });

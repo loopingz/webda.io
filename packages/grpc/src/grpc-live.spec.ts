@@ -403,4 +403,113 @@ class GrpcLiveTest extends WebdaApplicationTest {
     assert.deepStrictEqual(service.unaryResponse("12"), { value: 12 });
     assert.deepStrictEqual(service.unaryResponse("not json"), { value: "not json" });
   }
+
+  @test
+  async contextWithoutMessageReadsAnEmptyObject() {
+    const ctx = new GrpcOperationContext(
+      new HttpContext("localhost", "POST", "/x"),
+      { send: () => true } as any,
+      new EventEmitter() as any
+    );
+    // No message was set yet
+    assert.strictEqual((await ctx.getRawInput()).toString(), "{}");
+    ctx.setMessage({ a: 1 });
+    assert.strictEqual((await ctx.getRawInput()).toString(), '{"a":1}');
+    assert.strictEqual((await ctx.getRawInput(4)).toString(), '{"a"');
+    // A missing message is an empty one
+    assert.strictEqual(ctx.setMessage(undefined), ctx);
+    assert.strictEqual((await ctx.getRawInput()).toString(), "{}");
+  }
+
+  @test
+  httpContextDefaultsAndMessageCleaning() {
+    const service: any = Object.create(GrpcService.prototype);
+    // No :authority, no url: the host header gives the host and the port
+    const fromHost: HttpContext = service.httpContextOf({ headers: { host: "example.com:8443", te: "trailers" } });
+    assert.strictEqual(fromHost.getHostName(), "example.com");
+    assert.strictEqual(fromHost.getPortNumber(), 8443);
+    assert.strictEqual(fromHost.getRelativeUri(), "/");
+    assert.strictEqual(fromHost.getUniqueHeader("te"), "trailers");
+    // Pseudo-headers are not metadata, the port defaults to 80
+    const fromAuthority: HttpContext = service.httpContextOf({
+      url: "/webda.FixtureService/Echo",
+      headers: { ":authority": "grpc.local", ":path": "/webda.FixtureService/Echo" }
+    });
+    assert.strictEqual(fromAuthority.getHostName(), "grpc.local");
+    assert.strictEqual(fromAuthority.getPortNumber(), 80);
+    assert.strictEqual(fromAuthority.getRelativeUri(), "/webda.FixtureService/Echo");
+    assert.strictEqual(fromAuthority.getHeaders()[":path"], undefined);
+
+    // Only plain objects carry field markers to remove
+    assert.deepStrictEqual(service.cleanMessage({ a: 1, _b: 2 }), { a: 1 });
+    assert.deepStrictEqual(service.cleanMessage([{ _a: 1 }]), [{ _a: 1 }]);
+    assert.strictEqual(service.cleanMessage(null), null);
+    assert.strictEqual(service.cleanMessage("text"), "text");
+  }
+
+  /**
+   * Status and message of a unary Echo call whose operation throws the given error
+   * @param error - the error thrown by the operation
+   * @returns the gRPC error seen by the client
+   */
+  async echoFailingWith(error: Error): Promise<any> {
+    const client = await this.connect();
+    const fixture = useService("Fixture" as any) as any;
+    fixture.echo = () => {
+      throw error;
+    };
+    try {
+      return await new Promise(resolve => client.Echo({ text: "x" }, (e: Error) => resolve(e)));
+    } finally {
+      delete fixture.echo;
+    }
+  }
+
+  @test
+  async errorsWithoutMessageGetADefaultOne() {
+    const notFound: any = await this.echoFailingWith(new WebdaError.NotFound(""));
+    assert.strictEqual(notFound.code, grpc.status.NOT_FOUND);
+    assert.strictEqual(notFound.details, "Bad request");
+
+    const cancelled: any = await this.echoFailingWith(
+      Object.assign(new WebdaError.OperationCancelledError(), { message: "" })
+    );
+    assert.strictEqual(cancelled.code, grpc.status.CANCELLED);
+    assert.strictEqual(cancelled.details, "Operation cancelled");
+  }
+
+  @test
+  async aUnaryCallEndedWithoutAMessageHasAnEmptyInput() {
+    await this.connect();
+    const fixture = useService("Fixture" as any) as any;
+    const inputs: unknown[] = [];
+    fixture.echo = (text: unknown) => {
+      inputs.push(text);
+      return { text: "empty" };
+    };
+    const http = useService("HttpServer" as any) as any;
+    const session = connect(`http://127.0.0.1:${http.server.address().port}`);
+    try {
+      const request = session.request({
+        ":method": "POST",
+        ":path": "/webda.FixtureService/Echo",
+        "content-type": "application/grpc"
+      });
+      const received: Record<string, any> = {};
+      request.on("response", headers => Object.assign(received, headers));
+      request.on("trailers", trailers => Object.assign(received, trailers));
+      request.on("data", () => {});
+      const closed = new Promise(resolve => request.on("end", resolve));
+      // Half-close without any frame
+      request.end();
+      await closed;
+      // The input is an empty object: validation refuses it for its missing `text`, the operation is not called
+      assert.strictEqual(received["grpc-status"], String(grpc.status.INVALID_ARGUMENT));
+      assert.match(decodeURIComponent(received["grpc-message"]), /must have required property 'text'/);
+      assert.deepStrictEqual(inputs, []);
+    } finally {
+      delete fixture.echo;
+      session.close();
+    }
+  }
 }

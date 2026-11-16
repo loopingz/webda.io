@@ -70,4 +70,16 @@ class ResolveTest {
     expect(() => resolve(r, new Map([["/a", { text: "oops" }]]))).toThrow(/only applies to string conflicts/);
     expect(() => resolve(r, new Map([["/a", {} as any]]))).toThrow(/invalid Resolution/);
   }
+
+  @test({ name: "accepts 'text' for a value conflict between two strings only" })
+  acceptsTextForAValueConflictBetweenTwoStringsOnly() {
+    const r = merge3({ a: "base" }, { a: "ours" }, { a: "theirs" });
+    expect(r.conflicts[0].kind).toBe("value");
+    const final = resolve(r, new Map([["/a", { text: "both" }]]));
+    expect(final.clean).toBe(true);
+    expect(final.merged).toEqual({ a: "both" });
+
+    const mixed = merge3<{ a: unknown }>({ a: "base" }, { a: "ours" }, { a: 3 });
+    expect(() => resolve(mixed, new Map([["/a", { text: "both" }]]))).toThrow(/only applies to string conflicts/);
+  }
 }

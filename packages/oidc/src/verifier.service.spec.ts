@@ -539,4 +539,36 @@ class OIDCVerifierTest extends OIDCTest {
       await errorVerifier.stop();
     }
   }
+
+  @test
+  async arrayClaimsAndTokensWithoutSubject() {
+    const verifier = await this.addVerifier({
+      trustedIssuers: [{ issuer: ISSUER, claims: { roles: "deploy-*" }, principal: "ci:${repository}" }]
+    });
+    try {
+      // One value of an array claim is enough, and a workload token is not required to carry a subject
+      const identity = await verifier.verify(
+        await this.idp.sign({ sub: undefined, repository: "orders", roles: ["reader", "deploy-prod"] })
+      );
+      assert.strictEqual(identity.principal, "ci:orders");
+      assert.strictEqual(identity.subject, "");
+      assert.strictEqual(
+        await verifier.verify(
+          await this.idp.sign({ repository: "orders", roles: ["reader", { name: "deploy-prod" }] })
+        ),
+        undefined
+      );
+    } finally {
+      await verifier.stop();
+    }
+  }
+
+  @test
+  async nonErrorRejectionIsRefused() {
+    // A transport rejecting with something that is not an Error
+    this.fetch.callsFake(() => Promise.reject("socket hang up"));
+    const refuse = this.stub(this.verifier as any, "refuse");
+    assert.strictEqual(await this.verifier.verify(await this.idp.sign()), undefined);
+    assert.deepStrictEqual(refuse.firstCall.args, [ISSUER, "refused", "socket hang up"]);
+  }
 }

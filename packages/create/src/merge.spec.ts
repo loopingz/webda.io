@@ -24,4 +24,15 @@ class MergeTest {
     assert.deepStrictEqual(deepMerge({ a: 1 }, source), { a: 1, ok: 1 });
     assert.strictEqual(({} as any).polluted, undefined);
   }
+
+  @test
+  keepsTargetWhenSourceIsUndefined() {
+    const target = { a: { b: 1 } };
+    const result = deepMerge(target, undefined);
+    assert.deepStrictEqual(result, target);
+    assert.notStrictEqual(result, target, "a copy is returned");
+    assert.strictEqual(deepMerge("kept", undefined), "kept");
+    // A key explicitly set to undefined in the fragment keeps the target value
+    assert.deepStrictEqual(deepMerge({ a: 1, b: 2 }, { a: undefined }), { a: 1, b: 2 });
+  }
 }

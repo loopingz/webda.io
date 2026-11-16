@@ -93,6 +93,19 @@ export class FakeCloudBinaryTest extends WebdaApplicationTest {
   }
 
   @test
+  async deleteOfASingleBinary() {
+    const service = new CloudBinaryFakeService("fake", {});
+    sinon.stub(service, "deleteSuccess").resolves();
+    const model = new CoreModel();
+    registerRepository(CoreModel, new MemoryRepository(CoreModel, ["uuid"]));
+    model.load({ avatar: { hash: "single" } });
+    const clean = sinon.spy(service, "_cleanUsage");
+    // Without index the attribute holds the binary itself
+    await service.delete(<CoreModelWithBinary>model, "avatar", undefined);
+    assert.deepStrictEqual(clean.getCall(0).args, ["single", model.getUUID(), "avatar", useModelId(CoreModel)]);
+  }
+
+  @test
   async contentStorageRegistrationLifecycle() {
     const params = new CloudBinaryParameters().load({ bucket: "example", contentStorage: { default: true } });
     const service = this.registerService(new CloudBinaryFakeService("content-fake", params)).resolve();

@@ -15,6 +15,7 @@ import { MemoryLogger, useWorkerOutput } from "@webda/workout";
 import * as assert from "assert";
 import * as fs from "fs";
 import * as path from "path";
+import { vi } from "vitest";
 import { AWSEventsHandler } from "../../test/fixture.js";
 import { LambdaServer, LambdaServerParameters } from "./lambdaserver.service.js";
 
@@ -311,6 +312,25 @@ class LambdaHandlerTest extends WebdaApplicationTest {
   }
 
   @test
+  async handleRequestWithoutContextNorMethod() {
+    this.ensureGoodCSRF();
+    // GET by default, the Lambda context is optional
+    delete this.evt.httpMethod;
+    const res = await this.handler.handleRequest(this.evt);
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(res.body, "CodeCoverage");
+  }
+
+  @test
+  async lambdaReturnWithoutHeaders() {
+    const context = await this.newContext();
+    vi.spyOn(context, "getResponseHeaders").mockReturnValue(undefined);
+    const result = await this.handler.handleLambdaReturn(context);
+    assert.deepStrictEqual(result.headers, {});
+    vi.restoreAllMocks();
+  }
+
+  @test
   async handleRequestUnknownRoute() {
     this.ensureGoodCSRF();
     this.evt.path = "/route/unknown";
@@ -448,6 +468,17 @@ class LambdaHandlerTest extends WebdaApplicationTest {
     this.handler.registerAWSEventsHandler(manual);
     await this.handler.handleRequest({ awslogs: {} }, this.context);
     assert.strictEqual(manualCount, 1);
+    // A handler only gets the events it handles
+    let declined = 0;
+    this.handler.registerAWSEventsHandler({
+      isAWSEventHandled: () => false,
+      handleAWSEvent: async () => {
+        declined++;
+      }
+    });
+    await this.handler.handleRequest({ awslogs: {} }, this.context);
+    assert.strictEqual(manualCount, 2);
+    assert.strictEqual(declined, 0);
   }
 
   /**

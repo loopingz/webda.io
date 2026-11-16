@@ -2,7 +2,7 @@ import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { EventEmitter } from "node:events";
 import WebSocket from "ws";
-import { registerOperation, useContext, useCore, useService } from "../index.js";
+import { registerOperation, useContext, useCore, useParameters, useService } from "../index.js";
 import type { WebContext } from "../contexts/webcontext.js";
 import { WebSocketOperationContext } from "../contexts/websocketcontext.js";
 import { HttpContext } from "../contexts/httpcontext.js";
@@ -19,7 +19,34 @@ import { useRouter } from "./hooks.js";
 import { Session } from "../session/session.js";
 import { truncateUtf8 } from "./restoperationstransport.service.js";
 
-const state = { closed: false, started: 0, gate: Promise.resolve() as Promise<void> };
+const state = {
+  closed: false,
+  started: 0,
+  gate: Promise.resolve() as Promise<void>,
+  reply: undefined as any,
+  replyError: undefined as Error | undefined
+};
+
+/** A socket driven by the test instead of a client */
+class FakeSocket extends EventEmitter {
+  readyState = 1;
+  bufferedAmount = 0;
+  sent: string[] = [];
+  failSend = false;
+  closed?: { code: number; reason?: string };
+
+  send(text: string, cb?: (err?: Error) => void) {
+    this.sent.push(text);
+    cb?.(this.failSend ? new Error("send failed") : undefined);
+  }
+
+  close(code: number, reason?: string) {
+    if (this.closed) return;
+    this.closed = { code, reason };
+    this.readyState = 3;
+    this.emit("close");
+  }
+}
 
 class WsFixtureService extends Service {
   static createConfiguration(params: any) {
@@ -50,6 +77,12 @@ class WsFixtureService extends Service {
     } finally {
       state.closed = true;
     }
+  }
+
+  /** A plain (not streamed) answer, or the error to raise */
+  reply() {
+    if (state.replyError) throw state.replyError;
+    return state.reply;
   }
 
   /** Never reads its input: waits on the gate, then writes (which throws once cancelled) */
@@ -503,5 +536,100 @@ class WebSocketOperationTest extends WebdaApplicationTest {
     };
     server.emit("upgrade", { url: "/graphql" }, socket, Buffer.alloc(0));
     assert.strictEqual(socket.destroyed, false);
+  }
+
+  @test
+  async routesAreMatchedWithOrWithoutTheGlobalRoutePrefix() {
+    await this.url();
+    const rest = useService("RESTService" as any) as any;
+    const parameters: any = useParameters();
+    const previous = parameters.routePrefix;
+    parameters.routePrefix = "/api";
+    try {
+      assert.strictEqual(rest.webSocketOperationOf("/api/ws/connect"), "Ws.Connect");
+      assert.strictEqual(rest.webSocketOperationOf("/ws/connect"), "Ws.Connect");
+      // The prefix alone is the root
+      assert.strictEqual(rest.webSocketOperationOf("/api"), undefined);
+      rest.webSocketRoutes.set("/", "Ws.Connect");
+      assert.strictEqual(rest.webSocketOperationOf("/api"), "Ws.Connect");
+    } finally {
+      rest.webSocketRoutes.delete("/");
+      parameters.routePrefix = previous;
+    }
+  }
+
+  @test
+  async upgradeOnAServerNoServiceOwnsIsRefused() {
+    await this.url();
+    const rest = useService("RESTService" as any) as any;
+    const server: any = new EventEmitter();
+    rest.webSocketRoutes.set("/", "Ws.Connect");
+    try {
+      rest.attachWebSockets(server, useInstanceStorage());
+      let answer = "";
+      const socket: any = { end: (data: string) => (answer = data), destroy: () => (answer = "destroyed") };
+      // A request without URL is the root
+      server.emit("upgrade", {}, socket, Buffer.alloc(0));
+      await until(() => answer !== "");
+      assert.ok(answer.startsWith("HTTP/1.1 400 Bad Request"), answer);
+    } finally {
+      rest.webSocketRoutes.delete("/");
+    }
+  }
+
+  @test
+  async fragmentedMessagesAndFailedSendsDoNotStopTheOperation() {
+    await this.url();
+    const rest = useService("RESTService" as any) as any;
+    const socket = new FakeSocket();
+    // The first message cannot be sent: it is only reported to an operation waiting for the drain
+    socket.failSend = true;
+    const done = rest.runWebSocketOperation("Ws.Connect", new HttpContext("localhost", "GET", "/ws/connect"), socket);
+    await until(() => socket.sent.length === 1);
+    socket.failSend = false;
+    // A message received as fragments
+    socket.emit("message", [Buffer.from(JSON.stringify({ frame: "a" }))]);
+    await until(() => socket.sent.length === 2);
+    socket.emit("message", Buffer.from(JSON.stringify({ frame: "bye" })));
+    await done;
+    assert.deepStrictEqual(
+      socket.sent.map(m => JSON.parse(m)),
+      [{ frame: "hello none" }, { frame: "echo a" }]
+    );
+    assert.strictEqual(socket.closed?.code, 1000);
+  }
+
+  @test
+  async plainResultIsSentAsOneMessageAndServerErrorsKeepTheirStatus() {
+    await this.url();
+    registerOperation("Ws.Reply", { service: "Ws", method: "reply", input: "void", output: "void" });
+    const rest = useService("RESTService" as any) as any;
+    const run = async () => {
+      const socket = new FakeSocket();
+      await rest.runWebSocketOperation("Ws.Reply", new HttpContext("localhost", "GET", "/ws/reply"), socket);
+      return socket;
+    };
+    try {
+      state.reply = { frame: "done" };
+      let socket = await run();
+      assert.deepStrictEqual(
+        socket.sent.map(m => JSON.parse(m)),
+        [{ frame: "done" }]
+      );
+      assert.strictEqual(socket.closed?.code, 1000);
+
+      state.reply = undefined;
+      socket = await run();
+      assert.deepStrictEqual(socket.sent, []);
+      assert.strictEqual(socket.closed?.code, 1000);
+
+      // A 5xx keeps its status in the close code, never its message
+      state.replyError = new WebdaError.ServiceUnavailable("database password");
+      socket = await run();
+      assert.deepStrictEqual(socket.closed, { code: 4503, reason: "Internal server error" });
+    } finally {
+      state.reply = undefined;
+      state.replyError = undefined;
+    }
   }
 }

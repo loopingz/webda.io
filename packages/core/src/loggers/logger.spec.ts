@@ -37,6 +37,11 @@ class LoggerTest extends WebdaTest {
     logger.logProgressIncrement(15, "test");
     logger.logGroupClose();
     logger.logTitle("MyTitle");
+    // Without its own output the logger uses the global one
+    assert.strictEqual(logger.output, output);
+    logger.output = undefined;
+    assert.notStrictEqual(logger.output, output);
+    assert.strictEqual(logger.output.constructor.name, "WorkerOutput");
   }
 
   @test
@@ -201,6 +206,22 @@ class LoggerParametersTest {
     } finally {
       offSync();
       offAsync();
+    }
+  }
+}
+
+@suite
+class LogContextTest {
+  @test
+  async customLogTargetDoesNotReplaceTheLoggersOutput() {
+    const { setLogContext, useLogger } = await import("./hooks.js");
+    const before = useLogger("LogContext").output;
+    // Only a WorkerOutput becomes the output of the loggers
+    setLogContext({ log: () => {} });
+    try {
+      assert.strictEqual(useLogger("LogContext").output, before);
+    } finally {
+      setLogContext(console);
     }
   }
 }

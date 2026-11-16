@@ -2,7 +2,7 @@ import * as assert from "assert";
 import { suite, test } from "@webda/test";
 import { UnpackedApplication } from "./unpackedapplication.js";
 import { WebdaApplicationTest } from "../test/application.js";
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "path";
 import { getCommonJS } from "@webda/utils";
@@ -122,6 +122,90 @@ class UnpackedApplicationTest extends WebdaApplicationTest {
       "WebdaTest/FakeService",
       "Type should be taken from the configuration"
     );
+  }
+
+  @test
+  defaultConfigurationKeepsDisabledMetricsAndUnknownServices() {
+    const { __dirname } = getCommonJS(import.meta.url);
+    const app: any = new UnpackedApplication(join(__dirname, "..", "..", "test/config.json"));
+    const configuration: any = { parameters: { metrics: false }, services: { NotAModda: {} } };
+    app.ensureDefaultConfiguration(configuration);
+    // Disabled metrics are not completed
+    assert.strictEqual(configuration.parameters.metrics, false);
+    // A service that names no known modda keeps no type
+    assert.strictEqual(configuration.services.NotAModda.type, undefined);
+    assert.strictEqual(configuration.services.Router.type, "Webda/Router");
+  }
+
+  @test
+  async cachedModulesAreNotRecomputed() {
+    const { __dirname } = getCommonJS(import.meta.url);
+    const file = join(__dirname, "..", "..", "test/config-cached.json");
+    const app: any = new UnpackedApplication(file);
+    app.loadProjectInformation = () => {
+      throw new Error("project information recomputed");
+    };
+    app.mergeModules = async () => {
+      throw new Error("modules searched");
+    };
+    await app.loadConfiguration(file);
+    assert.deepStrictEqual(
+      Object.keys(app.baseConfiguration.cachedModules).sort(),
+      Object.keys(JSON.parse(readFileSync(file, "utf-8")).cachedModules).sort()
+    );
+  }
+
+  @test
+  async workspaceRootWithoutWebdaSection() {
+    const root = realpathSync.native(mkdtempSync(join(tmpdir(), "webda-ws-nowebda-")));
+    try {
+      const pkgDir = join(root, "packages", "my-app");
+      mkdirSync(pkgDir, { recursive: true });
+      writeFileSync(join(root, "package.json"), JSON.stringify({ name: "ws-root", workspaces: ["packages/*"] }));
+      writeFileSync(
+        join(pkgDir, "package.json"),
+        JSON.stringify({ name: "my-app", version: "1.0.0", webda: { namespace: "MyApp" } })
+      );
+      writeFileSync(join(pkgDir, "webda.config.json"), JSON.stringify({ version: 4 }));
+      const app: any = new UnpackedApplication(join(pkgDir, "webda.config.json"));
+      const info = app.loadProjectInformation();
+      assert.strictEqual(info.webda.namespace, "MyApp");
+      assert.strictEqual(info.webda.workspaces.path, root);
+      assert.deepStrictEqual(info.webda.workspaces.packages, ["packages/*"]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
+
+  @test
+  async findModulesFilesSkipsPlainFiles() {
+    const root = realpathSync.native(mkdtempSync(join(tmpdir(), "webda-modules-files-")));
+    try {
+      mkdirSync(join(root, "node_modules/a-module"), { recursive: true });
+      writeFileSync(join(root, "node_modules/a-module/webda.module.json"), "{}");
+      // npm and pnpm leave files next to the packages
+      writeFileSync(join(root, "node_modules/webda.module.json"), "{}");
+      writeFileSync(join(root, "node_modules/README.md"), "");
+      const modules = await UnpackedApplication.findModulesFiles(join(root, "node_modules"));
+      assert.deepStrictEqual(
+        modules.map(file => file.substring(root.length).replace(/\\/g, "/")),
+        ["/node_modules/a-module/webda.module.json"]
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
+
+  @test
+  async mergeModulesWithoutSchemas() {
+    const { __dirname } = getCommonJS(import.meta.url);
+    const app: any = new UnpackedApplication(join(__dirname, "..", "..", "test/config.json"));
+    app.findModules = async () => ["a"];
+    app.loadWebdaModule = () => ({ moddas: { "Webda/A": { Import: "a" } } });
+    app.loadModule = async () => {};
+    const merged = await app.mergeModules({ cachedModules: { moddas: {}, models: {}, beans: {} } });
+    assert.deepStrictEqual(merged.schemas, {});
+    assert.deepStrictEqual(Object.keys(merged.moddas), ["Webda/A"]);
   }
 
   @test

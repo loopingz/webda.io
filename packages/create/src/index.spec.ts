@@ -189,4 +189,16 @@ class MainTest {
 
     assert.throws(() => parseCliArgs(["dir1", "dir2"]), OptionsError);
   }
+
+  @test
+  spawnRunnerOnWindowsRunsGitWithoutAShell() {
+    const platform = Object.getOwnPropertyDescriptor(process, "platform")!;
+    Object.defineProperty(process, "platform", { ...platform, value: "win32" });
+    try {
+      // git is a real executable: no shell even on Windows, so this also runs here
+      assert.strictEqual(spawnRunner("git", ["--version"], process.cwd()).status, 0);
+    } finally {
+      Object.defineProperty(process, "platform", platform);
+    }
+  }
 }

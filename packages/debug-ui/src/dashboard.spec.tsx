@@ -3,9 +3,9 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import React from "react";
 import { afterEach, beforeEach, describe, it, vi } from "vitest";
 import { AnalyticsProvider } from "./analytics.js";
-import { describeConnection } from "./components/ConnectionStatus.js";
-import { failureMessage } from "./components/ConnectionError.js";
-import { DebugConnectionProvider, useDebugConnection } from "./connection.js";
+import { ConnectionStatus, describeConnection } from "./components/ConnectionStatus.js";
+import { ConnectionError, failureMessage, PortPicker } from "./components/ConnectionError.js";
+import { DebugConnectionProvider, useDebugConnection, type DebugConnectionProviderProps } from "./connection.js";
 import { DebugDashboard, FOOTER_COOKIE, shortenCwd } from "./DebugDashboard.js";
 import {
   assertAllowlisted,
@@ -227,6 +227,213 @@ describe("DebugDashboard", () => {
     });
     await waitFor(() => assert.ok(fetchMock.mock.calls.length > before));
   });
+
+  it("ignores arrow keys typed in an input, and every other key", async () => {
+    renderDashboard(healthyRoutes());
+    await screen.findByText("Server started");
+    fireEvent.keyDown(screen.getByLabelText("Search logs"), { key: "ArrowRight" });
+    fireEvent.keyDown(window, { key: "a" });
+    assert.strictEqual(screen.getByRole("tab", { name: "Logs" }).getAttribute("aria-selected"), "true");
+    screen.getByText("Server started");
+  });
+
+  it("falls back to the first panel when the initial one is not served", async () => {
+    const routes = healthyRoutes();
+    delete routes["/api/config"];
+    installFetch(routes, { token: TOKEN });
+    installWebSocket();
+    render(
+      <DebugConnectionProvider mode="hosted" port={18181} token={TOKEN} probeIntervalMs={100000}>
+        <DebugDashboard initialPanel="config" />
+      </DebugConnectionProvider>
+    );
+    await screen.findByText("Server started");
+    assert.strictEqual(screen.queryByRole("tab", { name: "Config" }), null);
+    assert.strictEqual(screen.getByRole("tab", { name: "Logs" }).getAttribute("aria-selected"), "true");
+  });
+
+  it("keeps the config tab when /api/config fails for another reason than a missing endpoint", async () => {
+    const routes = healthyRoutes();
+    routes["/api/config"] = { status: 500, body: { error: "boom" } };
+    const fetchMock = renderDashboard(routes) && (globalThis.fetch as ReturnType<typeof vi.fn>);
+    await screen.findByText("Server started");
+    assert.ok(fetchMock.mock.calls.some(c => String(c[0]).endsWith("/api/config")));
+    screen.getByRole("tab", { name: "Config" });
+  });
+
+  it("names an application without package information unknown", async () => {
+    const routes = healthyRoutes();
+    routes["/api/info"] = { debugApiVersion: 1 };
+    const sink = vi.fn();
+    const { container } = renderDashboard(routes, { token: TOKEN }, sink);
+    await screen.findByText("unknown");
+    assert.strictEqual(container.querySelector(".wdbg-app-info")!.getAttribute("title"), "unknown\n");
+    assert.strictEqual(container.querySelector(".wdbg-app-cwd")!.textContent, "");
+    await waitFor(() => assert.ok(FakeWebSocket.instances.length > 0, "websocket not opened"));
+    await act(async () => {
+      FakeWebSocket.instances[0].open();
+    });
+    await screen.findByText("Connected");
+    assert.deepStrictEqual(
+      sink.mock.calls.find(c => c[0] === "debug_connected"),
+      ["debug_connected", { debug_api_version: 1, framework_version: "unknown", mode: "hosted" }]
+    );
+  });
+});
+
+describe("DebugConnectionProvider", () => {
+  let state: ReturnType<typeof useDebugConnection>;
+  let statuses: string[] = [];
+  /**
+   * Record the connection state.
+   *
+   * @returns nothing visible
+   */
+  function Recorder(): null {
+    state = useDebugConnection();
+    statuses.push(state.status);
+    return null;
+  }
+
+  /**
+   * Render a provider around the recorder.
+   *
+   * @param props - provider overrides
+   * @param sink - analytics sink
+   * @returns the provider element
+   */
+  function tree(props: Partial<DebugConnectionProviderProps> = {}, sink?: ReturnType<typeof vi.fn>) {
+    const provider = (
+      <DebugConnectionProvider mode="hosted" port={18181} token={TOKEN} probeIntervalMs={100000} {...props}>
+        <Recorder />
+      </DebugConnectionProvider>
+    );
+    return sink ? <AnalyticsProvider value={sink}>{provider}</AnalyticsProvider> : provider;
+  }
+
+  /**
+   * Count the probes of `/api/info`.
+   *
+   * @param fetchMock - the fetch mock
+   * @returns the number of probes
+   */
+  function probes(fetchMock: ReturnType<typeof vi.fn>): number {
+    return fetchMock.mock.calls.filter(c => String(c[0]).endsWith("/api/info")).length;
+  }
+
+  beforeEach(() => {
+    statuses = [];
+  });
+
+  it("uses the page origin in local mode, and stays idle without one", async () => {
+    const fetchMock = installFetch(healthyRoutes(), { token: TOKEN });
+    installWebSocket();
+    render(tree({ mode: "local", port: undefined }));
+    assert.strictEqual(state.baseUrl, window.location.origin);
+    await waitFor(() => assert.strictEqual(state.status, "connected"));
+    assert.strictEqual(fetchMock.mock.calls[0][0], `${window.location.origin}/api/info`);
+    cleanup();
+
+    // No location (rendered outside of a browser): there is nothing to probe
+    fetchMock.mockClear();
+    vi.stubGlobal("location", undefined);
+    render(tree({ mode: "local", port: undefined }));
+    assert.strictEqual(state.baseUrl, "");
+    assert.strictEqual(state.client, null);
+    assert.strictEqual(state.status, "idle");
+    assert.strictEqual(fetchMock.mock.calls.length, 0);
+  });
+
+  it("ignores the answer of a probe once unmounted", async () => {
+    const fetchMock = installFetch(healthyRoutes(), { token: TOKEN });
+    installWebSocket();
+    render(tree()).unmount();
+    await new Promise(resolve => setTimeout(resolve, 30));
+    assert.strictEqual(fetchMock.mock.calls.length, 1, "only /api/info was requested");
+    assert.strictEqual(FakeWebSocket.instances.length, 0);
+
+    const onUnauthorized = vi.fn();
+    installFetch(healthyRoutes(), { token: "another" });
+    render(tree({ onUnauthorized })).unmount();
+    await new Promise(resolve => setTimeout(resolve, 30));
+    assert.strictEqual(onUnauthorized.mock.calls.length, 0);
+    assert.ok(!statuses.includes("error"));
+  });
+
+  it("keeps probing while connected and reports the connection once", async () => {
+    const fetchMock = installFetch(healthyRoutes(), { token: TOKEN });
+    installWebSocket();
+    const sink = vi.fn();
+    const { rerender } = render(tree({ probeIntervalMs: 10 }, sink));
+    await waitFor(() => assert.ok(probes(fetchMock) >= 3));
+    assert.strictEqual(state.status, "connected");
+    assert.strictEqual(sink.mock.calls.filter(c => c[0] === "debug_connected").length, 1);
+
+    // Changing the probe settings restarts the loop without dropping the connection
+    statuses = [];
+    rerender(tree({ probeIntervalMs: 15 }, sink));
+    const before = probes(fetchMock);
+    await waitFor(() => assert.ok(probes(fetchMock) > before));
+    assert.deepStrictEqual([...new Set(statuses)], ["connected"]);
+  });
+
+  it("reports an outdated server once", async () => {
+    const routes = healthyRoutes();
+    routes["/api/info"] = { ...INFO, debugApiVersion: undefined };
+    const fetchMock = installFetch(routes, { token: TOKEN });
+    installWebSocket();
+    const sink = vi.fn();
+    render(tree({ probeIntervalMs: 10 }, sink));
+    await waitFor(() => assert.ok(probes(fetchMock) >= 3));
+    assert.strictEqual(state.failure, "version");
+    assert.deepStrictEqual(sink.mock.calls, [["connection_failed", { reason: "version" }]]);
+  });
+
+  it("does not report server errors, and treats an unreadable answer as unreachable", async () => {
+    const sink = vi.fn();
+    installFetch({ "/api/info": { status: 500, body: { error: "boom" } } }, { token: TOKEN });
+    installWebSocket();
+    render(tree({}, sink));
+    await waitFor(() => assert.strictEqual(state.status, "error"));
+    assert.strictEqual(state.failure, "http");
+    assert.deepStrictEqual(sink.mock.calls, []);
+    cleanup();
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("<html>not the debug server</html>", { status: 200 }))
+    );
+    render(tree({}, sink));
+    await waitFor(() => assert.strictEqual(state.failure, "unreachable"));
+    assert.deepStrictEqual(sink.mock.calls, [["connection_failed", { reason: "unreachable" }]]);
+  });
+
+  it("drops data that finishes loading after the unmount", async () => {
+    const inner = installFetch(healthyRoutes(), { token: TOKEN });
+    installWebSocket();
+    let release!: () => void;
+    const gate = new Promise<void>(resolve => (release = resolve));
+    const logsRequested = vi.fn();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: string, init?: RequestInit) => {
+        if (String(input).endsWith("/api/logs")) {
+          logsRequested();
+          await gate;
+        }
+        return inner(input, init);
+      })
+    );
+    const { unmount } = render(tree());
+    await waitFor(() => assert.strictEqual(logsRequested.mock.calls.length, 1));
+    assert.strictEqual(state.loading, true);
+    const rendered = statuses.length;
+    unmount();
+    release();
+    await new Promise(resolve => setTimeout(resolve, 30));
+    assert.strictEqual(statuses.length, rendered, "nothing is rendered after the unmount");
+    assert.deepStrictEqual(state.data.logs, []);
+  });
 });
 
 describe("helpers", () => {
@@ -253,6 +460,38 @@ describe("helpers", () => {
       describeConnection({ ...base, status: "connected", wsConnected: true, info: INFO }).label,
       "Connected to sample-app"
     );
+    // Servers without package information may still announce a name
+    assert.strictEqual(
+      describeConnection({ ...base, status: "connected", wsConnected: true, info: { name: "legacy-app" } }).label,
+      "Connected to legacy-app"
+    );
+    assert.strictEqual(describeConnection({ ...base, status: "connected", wsConnected: true }).label, "Connected");
+  });
+
+  it("renders the indicator and the connection error without a provider", () => {
+    const { container } = render(<ConnectionStatus />);
+    const indicator = container.querySelector(".wdbg-conn")!;
+    assert.strictEqual(indicator.className.trim(), "wdbg-conn wdbg-conn-idle");
+    assert.strictEqual(indicator.getAttribute("title"), "Not connected");
+    assert.strictEqual(container.querySelector(".wdbg-conn-label"), null);
+    cleanup();
+
+    render(<ConnectionError />);
+    screen.getByText("Connecting to your application…");
+    screen.getByText(/at the debug server\.$/);
+  });
+
+  it("only submits valid ports", () => {
+    const onChange = vi.fn();
+    const { container } = render(<PortPicker port={18181} onChange={onChange} />);
+    const input = screen.getByLabelText("Debug port");
+    fireEvent.change(input, { target: { value: "0" } });
+    assert.ok((screen.getByText("Use port") as HTMLButtonElement).disabled);
+    fireEvent.submit(container.querySelector("form")!);
+    assert.deepStrictEqual(onChange.mock.calls, []);
+    fireEvent.change(input, { target: { value: "18200" } });
+    fireEvent.submit(container.querySelector("form")!);
+    assert.deepStrictEqual(onChange.mock.calls, [[18200]]);
   });
 
   it("has a message for every failure", () => {

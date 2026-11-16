@@ -35,6 +35,26 @@ class UserResolverTest extends WebdaApplicationTest {
   }
 
   @test
+  async currentUserIsResolvedOnceUnlessRefreshed() {
+    let resolved = 0;
+    registerUserResolver({
+      resolve: async id => {
+        resolved++;
+        return { getUUID: () => id, version: resolved } as any;
+      }
+    });
+    const ctx = await this.newContext();
+    await ctx.init();
+    ctx.getSession().login("u1", "x:email");
+    const first: any = await ctx.getCurrentUser();
+    assert.strictEqual(await ctx.getCurrentUser(), first);
+    assert.strictEqual(resolved, 1);
+    const refreshed: any = await ctx.getCurrentUser(true);
+    assert.strictEqual(resolved, 2);
+    assert.strictEqual(refreshed.version, 2);
+  }
+
+  @test
   async defaultResolverReturnsUndefinedWhenAnonymous() {
     const ctx = await this.newContext();
     await ctx.init();

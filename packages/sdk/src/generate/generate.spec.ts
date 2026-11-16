@@ -10,6 +10,7 @@ import {
   generateSdk,
   generateTypes,
   generatorNames,
+  inputType,
   modelDescriptor,
   pascalCase,
   rewriteSchema,
@@ -446,5 +447,30 @@ class GenerateSdkTest extends SampleAppTest {
     );
     assert.match(types, /export interface Kept \{/);
     assert.ok(!types.includes("Skipped"));
+  }
+
+  @test
+  actionInputJoinsThePrimaryKeyToTheBody() {
+    const names = {
+      types: new Map([
+        ["Task.key", "TaskKey"],
+        ["Task.archive.input", "TaskArchiveInput"]
+      ]),
+      models: new Map<string, string>(),
+      clientModule: "@webda/sdk"
+    };
+    const manifest: any = {
+      models: { Task: {} },
+      schemas: { "Task.archive.input": { type: "object" } }
+    };
+    const op: any = { kind: "action", model: "Task", action: { name: "archive" }, input: "Task.key" };
+    // Distinct key and body schemas: both are required
+    assert.strictEqual(inputType(manifest, op, names), "T.TaskKey & T.TaskArchiveInput");
+    // The input already is the body: no intersection with itself
+    assert.strictEqual(inputType(manifest, { ...op, input: "Task.archive.input" }, names), "T.TaskArchiveInput");
+    // No input at all: the body alone
+    assert.strictEqual(inputType(manifest, { ...op, input: "void" }, names), "T.TaskArchiveInput");
+    // No body schema: the key alone
+    assert.strictEqual(inputType({ ...manifest, schemas: {} }, op, names), "T.TaskKey");
   }
 }

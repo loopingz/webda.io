@@ -314,6 +314,8 @@ class HawkServiceTest extends WebdaApplicationTest {
     await assert.rejects(() => test.getApiKey("any"), WebdaError.Forbidden);
     await useRegistry().delete(HawkService.RegistryEntry);
     assert.strictEqual(await test.getOrigins(), undefined);
+    // Without any origins registry no origin is allowed
+    assert.strictEqual(await test.checkOPTIONS("https://remotehost:3000"), false);
     await test.stop();
   }
 
@@ -379,6 +381,19 @@ class HawkServiceTest extends WebdaApplicationTest {
     delete this.context.getSession()["myCSRF"];
     this.context.setExtension("HawkReviewed", false);
     await assert.rejects(() => test.checkRequest(this.context), WebdaError.Forbidden);
+    // Signing the response never throws, whatever the failure
+    this.context.setExtension("hawk", { credentials: {}, artifacts: {} });
+    const getResponseBody = this.context.getResponseBody;
+    this.context.getResponseBody = () => {
+      throw "body unavailable";
+    };
+    try {
+      test.signResponse(this.context);
+      assert.strictEqual(this.context.getResponseHeaders()["Server-Authorization"], undefined);
+    } finally {
+      this.context.getResponseBody = getResponseBody;
+      this.context.setExtension("hawk", undefined);
+    }
     // Non-session Hawk id when keyModel is absent must be rejected
     this.context.setHttpContext(
       new HttpContext("test.webda.io", "GET", url, "http", 80, {

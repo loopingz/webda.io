@@ -731,4 +731,62 @@ class ProtoGeneratorTest {
     );
     assert.ok(badUriProto.includes("message BadE0A4A"));
   }
+
+  @test
+  optionalSchemaVariantsResolveToTheBaseSchema() {
+    const schemas: Record<string, JSONSchema7> = {
+      "MyApp/Post": {
+        type: "object",
+        properties: { title: { type: "string" }, author: { $ref: "#/definitions/Author" } },
+        definitions: {
+          Author: { type: "object", properties: { fromDefinitions: { type: "string" } } }
+        }
+      },
+      // Already in the registry: the local definition of the same name must not replace it
+      Author: { type: "object", properties: { fromRegistry: { type: "string" } } }
+    };
+    const result = generateProto(
+      {
+        // `?` is the "ignore required" variant of the same schema
+        "Post.Patch": { input: "MyApp/Post?", output: "MyApp/Post" },
+        // No base schema behind the `?` variant
+        "Post.Unknown": { input: "MyApp/Missing?" }
+      },
+      schemas
+    );
+    assert.ok(result.includes("rpc Patch(Post) returns (Post);"), result);
+    assert.ok(result.includes("rpc Unknown(google.protobuf.Empty) returns (google.protobuf.Empty);"), result);
+    assert.strictEqual(result.split("message Post {").length, 2, "the message is generated once");
+    assert.ok(result.includes("fromRegistry"), "the registry schema wins over a local definition");
+    assert.ok(!result.includes("fromDefinitions"));
+  }
+
+  @test
+  messageNameWithoutAnyIdentifierCharacter() {
+    const result = generateProto(
+      { "Odd.Get": { input: "MyApp/___" } },
+      { "MyApp/___": { type: "object", properties: { id: { type: "string" } } } }
+    );
+    assert.ok(result.includes("message Empty {"), result);
+    assert.ok(result.includes("rpc Get(Empty) returns (google.protobuf.Empty);"), result);
+  }
+
+  @test
+  nestedMessageNameAlreadyGeneratedIsReused() {
+    const schemas: Record<string, JSONSchema7> = {
+      "MyApp/PostMeta": { type: "object", properties: { fromSchema: { type: "string" } } },
+      "MyApp/Post": {
+        type: "object",
+        properties: { meta: { type: "object", properties: { fromNested: { type: "string" } } } }
+      }
+    };
+    const result = generateProto(
+      { "Post.Meta": { output: "MyApp/PostMeta" }, "Post.Get": { output: "MyApp/Post" } },
+      schemas
+    );
+    assert.strictEqual(result.split("message PostMeta {").length, 2, "only one PostMeta message");
+    assert.ok(result.includes("optional PostMeta meta = 1;"), result);
+    assert.ok(result.includes("fromSchema"));
+    assert.ok(!result.includes("fromNested"));
+  }
 }

@@ -702,4 +702,85 @@ class QueryTest {
       /Invalid WebdaQL query object/
     );
   }
+
+  @test
+  comparisonWithoutValue() {
+    // A missing value compares as 0
+    assert.strictEqual(new WebdaQL.ComparisonExpression("<=", "a", null).eval({ a: 0 }), true);
+    assert.strictEqual(new WebdaQL.ComparisonExpression(">=", "a", null).eval({ a: -1 }), false);
+    assert.strictEqual(new WebdaQL.ComparisonExpression("<", "a", null).eval({ a: -1 }), true);
+    assert.strictEqual(new WebdaQL.ComparisonExpression(">", "a", null).eval({ a: 1 }), true);
+    assert.strictEqual(new WebdaQL.ComparisonExpression("=", "a", null).toStringValue(null), "NULL");
+    assert.strictEqual(new WebdaQL.ComparisonExpression("=", "a", null).toString(), "a = NULL");
+
+    // Dynamic values inside an IN set are resolved at evaluation time
+    const now = Date.now();
+    const inNow = new WebdaQL.ComparisonExpression("IN", "a", [new WebdaQL.NowValue(0), 1]);
+    const values = inNow.value as number[];
+    assert.strictEqual(values.length, 2);
+    assert.ok(values[0] >= now && values[0] <= Date.now());
+    assert.strictEqual(values[1], 1);
+    assert.ok(inNow.eval({ a: 1 }));
+
+    // Only an assignment sets the attribute
+    const target: any = {};
+    new WebdaQL.ComparisonExpression(">", "a.b", 1).setAttributeValue(target);
+    assert.deepStrictEqual(target, {});
+    new WebdaQL.ComparisonExpression("=", "a.b", 1).setAttributeValue(target);
+    assert.deepStrictEqual(target, { a: { b: 1 } });
+  }
+
+  @test
+  builderWithoutChildren() {
+    // antlr leaves `children` undefined on an empty rule context
+    const builder = new WebdaQL.ExpressionBuilder();
+    builder.visitOrderExpression({} as any);
+    assert.deepStrictEqual(builder.orderBy, []);
+    assert.deepStrictEqual(builder.visitSetExpression({} as any), []);
+    // Neither a statement nor a filter: an empty AND
+    const query = builder.visitWebdaql({ statement: () => undefined, filterQuery: () => undefined } as any);
+    assert.strictEqual(query.type, "SELECT");
+    assert.ok(query.filter instanceof WebdaQL.AndExpression);
+    assert.strictEqual(query.filter.toString(), "");
+  }
+
+  @test
+  stringifyAndNormalizeFallbacks() {
+    assert.strictEqual(
+      WebdaQL.stringifyQuery({ type: "UPDATE", filter: new WebdaQL.AndExpression([]) }).trim(),
+      "UPDATE SET"
+    );
+    assert.strictEqual(WebdaQL.checkFieldPath(["a", "b"]), "a.b");
+    assert.throws(() => WebdaQL.checkFieldPath(42), /Invalid field path in WebdaQL query/);
+
+    // A nested empty AND or OR matches everything
+    assert.strictEqual(
+      WebdaQL.normalizeQuery({
+        filter: new WebdaQL.OrExpression([new WebdaQL.AndExpression([]), new WebdaQL.ComparisonExpression("=", "a", 1)])
+      }).toString(),
+      ""
+    );
+    // Without a raw value the resolved one is checked
+    const noRaw = new WebdaQL.ComparisonExpression("=", "a", 1);
+    (noRaw as any).rawValue = undefined;
+    assert.throws(() => WebdaQL.normalizeQuery({ filter: noRaw }), /Invalid value in WebdaQL query: undefined/);
+    assert.throws(
+      () => WebdaQL.normalizeQuery({ filter: new WebdaQL.ComparisonExpression("IN", "a", "x" as any) }),
+      /Invalid IN values in WebdaQL query/
+    );
+    assert.throws(
+      () => WebdaQL.normalizeQuery({ type: "UPDATE", assignments: "a = 1" } as any),
+      /UPDATE needs at least one SET assignment/
+    );
+    assert.throws(() => WebdaQL.normalizeQuery({ fields: "a" } as any), /Invalid SELECT field list in WebdaQL query/);
+    // An empty ORDER BY and an empty continuation token print nothing
+    assert.strictEqual(
+      WebdaQL.normalizeQuery({
+        filter: new WebdaQL.ComparisonExpression("=", "a", 1),
+        orderBy: [],
+        continuationToken: ""
+      }).toString(),
+      "a = 1"
+    );
+  }
 }

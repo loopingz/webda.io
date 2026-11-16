@@ -9,6 +9,8 @@ import { join } from "node:path";
 import { KubernetesCrdExporter } from "../services/crdexporter.service.js";
 import { FakeApiServer } from "../../test/apiserver.js";
 import { KubernetesStore, KubernetesStoreParameters } from "../stores/kubernetesstore.service.js";
+import { CustomResources } from "../stores/resources.js";
+import { getKubernetesApiClient } from "../utils/client.js";
 import { setCondition } from "./controller.js";
 import { KubernetesOperator, KubernetesOperatorParameters } from "./operator.service.js";
 
@@ -365,6 +367,138 @@ class KubernetesOperatorTest extends WebdaApplicationTest {
       ctrl.resources.get = origGet;
       ctrl.resources.replace = origReplace;
     }
+  }
+
+  @test
+  async ignoresResourcesOfOtherModels() {
+    await this.tenants.create({ uuid: "acme", name: "Acme" });
+    const operator = await this.operator({ autoStart: true });
+    await until(() => this.ready("acme")?.status === "True");
+    const ctrl = (operator as any).controllers[0];
+    // A resource of the same kind holding an object of a model the controller does not reconcile
+    const external = new CustomResources(getKubernetesApiClient({ config: this.config }, k8s.CustomObjectsApi), {
+      group: GROUP,
+      version: "v1",
+      plural: "tenants",
+      kind: "Tenant",
+      namespace: "default"
+    });
+    await external.create({
+      apiVersion: `${GROUP}/v1`,
+      kind: "Tenant",
+      metadata: { name: "foreign", annotations: { "webda.io/model": "Test/Unknown" } },
+      spec: { name: "Foreign" }
+    } as any);
+    await until(() => ctrl.informer.get("foreign", "default") !== undefined);
+    await settle();
+    ctrl.resync();
+    await until(() => Tenant.calls.length === 2);
+    await ctrl.process("foreign");
+    await settle();
+    assert.deepStrictEqual(Tenant.calls, ["acme:Acme", "acme:Acme"]);
+    assert.strictEqual(this.resource("foreign").status, undefined);
+    assert.strictEqual(this.resource("foreign").metadata.finalizers, undefined);
+  }
+
+  @test
+  async stoppedController() {
+    await this.tenants.create({ uuid: "acme", name: "Acme" });
+    const depths: number[] = [];
+    const operator = await this.operator();
+    // Starting twice keeps the controllers
+    await operator.start();
+    const ctrl = (operator as any).controllers[0];
+    await operator.start();
+    assert.strictEqual((operator as any).controllers[0], ctrl);
+    await until(() => this.ready("acme")?.status === "True");
+    await operator.stop();
+    ctrl.options.onQueueDepth = (depth: number) => depths.push(depth);
+    // Nothing is queued once stopped
+    ctrl.resync();
+    const resource = this.resource("acme");
+    ctrl.onChange({ ...resource, metadata: { ...resource.metadata, generation: resource.metadata.generation + 1 } });
+    assert.deepStrictEqual(depths, [0]);
+    await settle();
+    assert.strictEqual(Tenant.calls.length, 1);
+    // An object can still be reconciled directly
+    await ctrl.process("acme");
+    assert.deepStrictEqual(depths, [0, 0]);
+    assert.strictEqual(Tenant.calls.length, 2);
+  }
+
+  @test
+  async finalizerRaces() {
+    const finalizer = `${GROUP}/finalizer`;
+    const operator = await this.operator({ autoStart: true });
+    const ctrl = (operator as any).controllers[0];
+    // The finalizer is added by someone else between the read and the update: it is not written twice
+    const get = ctrl.resources.get.bind(ctrl.resources);
+    let reads = 0;
+    ctrl.resources.get = async (name: string) => {
+      const resource = await get(name);
+      if (reads++ === 0) this.resource(name).metadata.finalizers = [finalizer];
+      return resource;
+    };
+    try {
+      await this.tenants.create({ uuid: "acme", name: "Acme" });
+      await until(() => this.ready("acme")?.status === "True");
+    } finally {
+      ctrl.resources.get = get;
+    }
+    assert.deepStrictEqual(this.resource("acme").metadata.finalizers, [finalizer]);
+    await settle();
+
+    // A resource without the finalizer is not finalized
+    await ctrl.finalize({ metadata: { name: "acme" } });
+    assert.deepStrictEqual(Tenant.finalized, []);
+    // The finalizer was removed since the resource was read: finalized, nothing to write
+    const stale = JSON.parse(JSON.stringify(this.resource("acme")));
+    this.resource("acme").metadata.finalizers = [];
+    this.api.requests = [];
+    await ctrl.finalize(stale);
+    assert.deepStrictEqual(Tenant.finalized, ["acme"]);
+    assert.deepStrictEqual(
+      this.api.requests.map(r => r.method),
+      ["GET", "GET"]
+    );
+  }
+
+  @test
+  async conflictsAndNonErrorFailures() {
+    await this.tenants.create({ uuid: "acme", name: "Acme" });
+    const operator = await this.operator({ autoStart: true, maxRetries: 2, maxBackoff: 20, leaderElection: true });
+    assert.strictEqual(operator.getLeaseName(), "webda-operator-operator");
+    await until(() => this.ready("acme")?.status === "True");
+    await settle();
+    const ctrl = (operator as any).controllers[0];
+    const label = (value: string) => (current: any) => {
+      current.metadata.labels = { touched: value };
+      return true;
+    };
+    // A conflict is retried with the resource read again
+    this.api.failures = [{ method: "PUT", code: 409 }];
+    await ctrl.update("acme", label("once"));
+    assert.strictEqual(this.resource("acme").metadata.labels.touched, "once");
+    // Up to maxRetries
+    this.api.failures = [
+      { method: "PUT", code: 409 },
+      { method: "PUT", code: 409 }
+    ];
+    await assert.rejects(
+      () => ctrl.update("acme", label("twice")),
+      (err: any) => err.code === 409
+    );
+    assert.strictEqual(this.resource("acme").metadata.labels.touched, "once");
+
+    // A reconcile can throw something else than an Error
+    let failures = 1;
+    Tenant.behavior = async () => {
+      if (failures-- > 0) throw "Quota exceeded";
+    };
+    await this.tenants.patch("acme", { name: "Acme 2" });
+    await until(() => this.ready("acme")?.status === "False");
+    assert.strictEqual(this.ready("acme").message, "Quota exceeded");
+    await until(() => this.ready("acme")?.status === "True");
   }
 
   @test

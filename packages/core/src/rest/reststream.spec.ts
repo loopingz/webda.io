@@ -109,6 +109,19 @@ class RsFixtureService extends Service {
   async *empty() {
     // nothing to say
   }
+
+  /** Not a generator, and nothing to answer */
+  async nothing() {
+    state.started++;
+  }
+
+  /** Not a generator: answers once the gate opens, whether its client is still there or not */
+  async patient() {
+    state.started++;
+    await state.gate;
+    state.closed = true;
+    return { ok: true };
+  }
 }
 
 /**
@@ -191,7 +204,9 @@ class RestStreamBase extends WebdaApplicationTest {
         "failClient",
         "failCancel",
         "empty",
-        "plain"
+        "plain",
+        "nothing",
+        "patient"
       ];
       for (const method of ops) {
         registerOperation(`Rs.${method[0].toUpperCase()}${method.slice(1)}`, {
@@ -290,6 +305,38 @@ class RestStreamTest extends RestStreamBase {
     assert.strictEqual(res.status, 200);
     assert.ok(res.headers.get("content-type")?.startsWith("application/json"), res.headers.get("content-type")!);
     assert.deepStrictEqual(await res.json(), { ok: true });
+  }
+
+  @test
+  async plainMethodWithoutResultAnswersNoContent() {
+    const started = state.started;
+    const res = await fetch(`${await this.url()}/rs/nothing`, { method: "PUT" });
+    assert.strictEqual(res.status, 204);
+    assert.strictEqual(await res.text(), "");
+    assert.strictEqual(state.started, started + 1);
+  }
+
+  @test
+  async plainMethodFinishingAfterItsClientLeft() {
+    state.closed = false;
+    const started = state.started;
+    const release = closeGate();
+    const controller = new AbortController();
+    const logs = await this.errorLogs(async () => {
+      const pending = fetch(`${await this.url()}/rs/patient`, { method: "PUT", signal: controller.signal }).catch(
+        () => undefined
+      );
+      await until(() => state.started > started);
+      controller.abort();
+      await pending;
+      // let the server see its client leave
+      await new Promise(resolve => setTimeout(resolve, 100));
+      release();
+      await until(() => state.closed);
+      await new Promise(resolve => setTimeout(resolve, 100));
+    });
+    // Nothing to answer, and nothing to report
+    assert.deepStrictEqual(logs, []);
   }
 
   @test
@@ -412,6 +459,84 @@ class RestStreamTest extends RestStreamBase {
     await ctx.writeError("late", 500);
     assert.deepStrictEqual(written, ['{"a":1}\n']);
     assert.throws(() => ctx.write({ a: 2 }), WebdaError.OperationCancelledError);
+  }
+
+  /**
+   * A response recording what it gets
+   * @returns the fake response
+   */
+  fakeResponse(): any {
+    const response: any = {
+      written: [],
+      heads: 0,
+      ended: 0,
+      writableEnded: false,
+      destroyed: false,
+      writeHead: () => response.heads++,
+      write: (text: string) => response.written.push(text) > 0,
+      end: () => {
+        response.ended++;
+        response.writableEnded = true;
+      },
+      once: () => undefined,
+      on: () => response
+    };
+    return response;
+  }
+
+  @test
+  async contextWithoutSessionLoadsItsOwn() {
+    const response = this.fakeResponse();
+    const ctx = new RestStreamingOperationContext(new HttpContext("localhost", "PUT", "/x"), response, "ndjson");
+    assert.strictEqual(await ctx.init(), ctx);
+    assert.ok(ctx.getSession());
+    ctx.setExtension("operationStreaming", true);
+    // A chunk without value is still a JSON line
+    ctx.write(undefined);
+    await ctx.drained();
+    assert.strictEqual(ctx.hasStarted, true);
+    // Once the head is sent the error is part of the stream
+    ctx.abortBeforeStart();
+    await ctx.writeError("late", 500);
+    assert.deepStrictEqual(response.written, ["null\n", '{"error":{"message":"late","code":500}}\n']);
+    // Concurrent ends: the response is ended once
+    await Promise.all([ctx.finish(true), ctx.finish(true)]);
+    assert.strictEqual(response.ended, 1);
+  }
+
+  @test
+  async contextStaysQuietOnceTheConnectionIsGone() {
+    // Gone before the first keep-alive: no head, no comment
+    let response = this.fakeResponse();
+    let ctx = new RestStreamingOperationContext(
+      new HttpContext("localhost", "PUT", "/x"),
+      response,
+      "sse",
+      undefined,
+      5
+    );
+    ctx.setExtension("operationStreaming", true);
+    response.destroyed = true;
+    ctx.startKeepAlive();
+    await new Promise(resolve => setTimeout(resolve, 30));
+    ctx.stopKeepAlive();
+    assert.strictEqual(response.heads, 0);
+    assert.deepStrictEqual(response.written, []);
+
+    // Gone while the head is sent: the error is not written, the response not ended twice
+    for (const end of ["writeError", "finish"]) {
+      response = this.fakeResponse();
+      response.writeHead = () => {
+        response.heads++;
+        response.destroyed = true;
+      };
+      ctx = new RestStreamingOperationContext(new HttpContext("localhost", "PUT", "/x"), response, "sse");
+      if (end === "writeError") await ctx.writeError("failed", 500);
+      else await ctx.finish(true);
+      assert.strictEqual(response.heads, 1, end);
+      assert.deepStrictEqual(response.written, [], end);
+      assert.strictEqual(response.ended, 0, end);
+    }
   }
 
   @test

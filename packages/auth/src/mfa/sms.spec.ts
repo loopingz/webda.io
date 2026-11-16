@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { DebugSmsSender, MFA, runAsSystem, useService, WebdaError } from "@webda/core";
+import { DebugSmsSender, MFA, runAsSystem, useApplication, useService, WebdaError } from "@webda/core";
 import { WEBDA_STORAGE } from "@webda/models";
 import type { TestApplication } from "@webda/core/lib/test/objects.js";
 import { AuthTest } from "../test/authtest.js";
@@ -329,6 +329,16 @@ class SmsMfaTest extends AuthTest {
       assert.ok(match![1].length > 0);
       assert.strictEqual(await this.sms.check(mfa, match![2]), true);
       assert.strictEqual(await this.sms.check(mfa, match![2]), false);
+      // An application without a name is "Webda"
+      const application: any = useApplication();
+      const getPackageDescription = application.getPackageDescription;
+      application.getPackageDescription = () => ({});
+      try {
+        await this.sms.startEnrollment(new MFA(), {}, { phone: PHONE });
+        assert.match(this.sender.sent[this.sender.sent.length - 1].message, /^Webda: \d{8} /);
+      } finally {
+        application.getPackageDescription = getPackageDescription;
+      }
       // Malformed submissions are refused without throwing
       await this.sms.challenge(mfa, {});
       for (const bad of [undefined, null, 12345678, "", "1234567"]) {

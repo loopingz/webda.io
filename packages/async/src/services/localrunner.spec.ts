@@ -77,6 +77,9 @@ class LocalRunnerTest extends AsyncTest {
     const fake = new FakeRunner("fake", new RunnerParameters().load({}));
     assert.deepStrictEqual(fake.getParameters().actions, []);
     assert.strictEqual(fake.handleType("plop"), false);
+    // Parameters set without going through load
+    fake.getParameters().actions = undefined;
+    assert.strictEqual(fake.handleType("plop"), false);
   }
 
   getJobInfo(action: AsyncAction) {
@@ -104,6 +107,9 @@ class LocalRunnerTest extends AsyncTest {
       assert.strictEqual(action.status, "STARTING");
       runner.getParameters().args = ["test"];
       await runner.launchAction(action, this.getJobInfo(action));
+      // A process that could not be spawned has no pid
+      spawn.returns(<any>{});
+      assert.strictEqual((await runner.launchAction(action, this.getJobInfo(action))).pid, -1);
     } finally {
       spawn.restore();
     }

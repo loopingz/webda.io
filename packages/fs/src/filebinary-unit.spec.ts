@@ -402,6 +402,29 @@ class FileBinaryUnitTest {
   }
 
   @test
+  async missingHashOnGetDeleteAndCascade() {
+    await assert.rejects(() => this.binary._get({} as any), /Missing binary hash/);
+    await assert.rejects(() => this.binary.cascadeDelete({} as any, "uuid", "attr", "Store"), /Missing binary hash/);
+    // A collection needs the index of the binary to delete
+    const object: any = { images: [{ hash: "h1" }], getUUID: () => "uuid" };
+    await assert.rejects(() => this.binary.delete(object, "images"), /Missing binary hash/);
+  }
+
+  @test
+  async contentUrlAndPutWithoutMetrics() {
+    // No metrics are registered before the service is initialized
+    assert.strictEqual((this.binary as any).metrics, undefined);
+    const withSlash = (this.binary as any).getContentUrl("/sub/file.txt");
+    assert.strictEqual(withSlash, `file://${this.binary.getParameters().folder}sub/file.txt`);
+    const info = await this.binary.putContent(withSlash, "content");
+    assert.strictEqual(info.url, withSlash);
+    assert.strictEqual(fs.readFileSync(path.join(this.tmpDir, "sub", "file.txt"), "utf-8"), "content");
+    // A folder set without its trailing slash still gives a valid url
+    this.binary.getParameters().folder = this.tmpDir;
+    assert.strictEqual((this.binary as any).getContentUrl("file.txt"), `file://${this.tmpDir}/file.txt`);
+  }
+
+  @test
   async initEarlyReturnWithoutUrl() {
     // When url is undefined, init should return early without adding routes
     assert.strictEqual(this.binary.getParameters().url, undefined);

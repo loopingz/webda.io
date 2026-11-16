@@ -126,6 +126,35 @@ class MigrateTest extends EmailTest {
   }
 
   @test
+  async failuresReportedAsPlainValues() {
+    // Some stores reject with a plain value instead of an Error; an invalid batch size falls back to the default
+    seedV3Ident(this.write, "p1", "github", "pu");
+    const userId = await seedV3(this.write, "plainfail@x.com", { validated: true, password: "v3password" });
+    const repo: any = Ident.getRepository();
+    const create = repo.create;
+    const UserModel = this.auth.getUserModel();
+    const save = UserModel.prototype.save;
+    repo.create = async (item: any) => {
+      if (item.providerUid === "p1") throw "Backend unavailable";
+      return create.call(repo, item);
+    };
+    UserModel.prototype.save = async () => {
+      throw "Backend unavailable";
+    };
+    try {
+      const run = await this.auth.migrate(false, "many" as any);
+      assert.deepStrictEqual(run.idents, { migrated: 1, skipped: 0, failed: ["p1_github"] });
+      assert.deepStrictEqual(run.users.failed, [userId]);
+    } finally {
+      repo.create = create;
+      UserModel.prototype.save = save;
+    }
+    const rerun = await this.auth.migrate(false, 0);
+    assert.deepStrictEqual(rerun.idents, { migrated: 1, skipped: 0, failed: [] });
+    assert.deepStrictEqual(rerun.users.failed, []);
+  }
+
+  @test
   async collidingRowDoesNotBreakListing() {
     const userId = await seedV3(this.write, "owner_a@x.com", { validated: true, password: "v3password" });
     const ctx = await this.ctx();

@@ -105,6 +105,9 @@ class ThrottlerTest {
     // Get the full queue to check queued items
     const queueSize = t.getSize();
     assert.ok(queueSize >= 2, "Should have 2 items in queue");
+    // Second item waits for the first one
+    const queued = (t as any)._queue.find(item => !item.promise);
+    assert.strictEqual(queued.toString(), "Task2: QUEUED");
 
     // Resolve all promises
     resolver1!();

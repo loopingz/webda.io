@@ -1,5 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
+import { useService } from "@webda/core";
 import { OAuthTest } from "./test/oauthtest.js";
 import { consentHtml, deviceHtml, errorHtml, escapeHtml, renderPage, resultHtml } from "./pages.js";
 
@@ -140,6 +141,27 @@ class PagesTest extends OAuthTest {
     assert.match(consentHtml(`/a"b`, "n"), /data-api="\/a&quot;b"/);
     assert.match(deviceHtml("/oauth", `"><x`, "n"), /value="&quot;&gt;&lt;x"/);
     assert.match(resultHtml("error", "<i>"), /Sign-in failed: &lt;i&gt;/);
+    // Nothing to prefill, no error code
+    assert.match(deviceHtml("/oauth", undefined, "n"), /maxlength="32" value="">/);
+    assert.match(resultHtml("error"), /Sign-in failed: unknown error/);
     assert.match(errorHtml("<i>"), /&lt;i&gt;/);
+  }
+
+  @test
+  async loginUrlWithAQueryAndResultWithoutStatus() {
+    const params = useService<any>("OAuthServer").getParameters();
+    params.loginUrl = "/login?tenant=acme";
+    try {
+      const res = await this.get(await this.browser(), "/oauth/device");
+      assert.strictEqual(res.status, 302);
+      assert.strictEqual(
+        res.headers.Location,
+        `/login?tenant=acme&redirect=${encodeURIComponent("http://test.webda.io/oauth/device")}`
+      );
+    } finally {
+      params.loginUrl = "/login";
+    }
+    // Without a status the result is a failure
+    assert.match((await this.get(await this.browser(), "/oauth/done")).text, /Sign-in failed: unknown error/);
   }
 }

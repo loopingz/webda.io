@@ -135,4 +135,16 @@ class PromptsTest {
     vi.mocked(clack.text).mockResolvedValueOnce(Symbol.for("cancel") as any);
     await assert.rejects(() => clackPrompter.text("Msg", "init"), OptionsError);
   }
+
+  @test
+  async blankDirectoryAnswerIsRejected() {
+    await assert.rejects(
+      resolveOptions(parseCliArgs([]), {
+        interactive: true,
+        prompter: new FakePrompter({ "Project directory": "   " }),
+        cwd: "/work"
+      }),
+      (err: Error) => err instanceof OptionsError && err.message === "Missing project directory"
+    );
+  }
 }

@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { RegExpStringValidator } from "./index.js";
+import { RegExpStringValidator, RegExpValidator } from "./index.js";
 
 @suite
 class RegExpStringValidatorTest {
@@ -32,5 +32,12 @@ class RegExpStringValidatorTest {
     const regexValidator = new RegExpStringValidator("regex:test[0-9]+");
     assert.ok(regexValidator.validate("test123"));
     assert.ok(!regexValidator.validate("test"));
+  }
+
+  @test
+  async regExpValidatorSingleString() {
+    const validator = new RegExpValidator("test[0-9]+");
+    assert.ok(validator.validate("test12"));
+    assert.ok(!validator.validate("atest12"));
   }
 }

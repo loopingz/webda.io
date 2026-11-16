@@ -35,6 +35,22 @@ describe("HttpTransport", () => {
     expect(calls[0][3]).toEqual({ scopes: [{ model: "A" }] });
   });
 
+  it("uses the global fetch when none is given", async () => {
+    const original = globalThis.fetch;
+    const urls: string[] = [];
+    globalThis.fetch = (async (url: string) => {
+      urls.push(url);
+      return new Response(JSON.stringify({ upserts: [], evicts: [], cursor: "g", hasMore: false }), { status: 200 });
+    }) as any;
+    try {
+      const res = await new HttpTransport({ baseUrl: "https://api.test" }).pull({ scopes: [{ model: "A" }] });
+      expect(res.cursor).toBe("g");
+      expect(urls).toEqual(["https://api.test/sync/pull"]);
+    } finally {
+      globalThis.fetch = original;
+    }
+  });
+
   it("throws TransportError on failures", async () => {
     const transport = new HttpTransport({
       baseUrl: "https://api.test",

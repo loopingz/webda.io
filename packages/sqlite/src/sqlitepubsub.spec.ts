@@ -274,4 +274,48 @@ db.close();
     assert.strictEqual(received[249], "from child 249");
     handle.cancel();
   }
+
+  @test
+  async tablesOfTheSameDatabaseAreIndependent() {
+    const pub = await this.makePeer("pub", { channel: "tables", table: "bus_a" });
+    const sub = await this.makePeer("sub", { channel: "tables", table: "bus_a" });
+    const other = await this.makePeer("other", { channel: "tables", table: "bus_b" });
+    const received: string[] = [];
+    const handle = sub.consume(async (msg: string) => {
+      received.push(msg);
+    });
+    await other.sendMessage("other table");
+    await pub.sendMessage("same table");
+    await waitFor(() => received.length >= 1);
+    await new Promise(r => setTimeout(r, 50));
+    assert.deepStrictEqual(received, ["same table"]);
+    handle.cancel();
+  }
+
+  @test
+  async cancelKeepsTheOtherSubscriptions() {
+    const peer = await this.makePeer("peer", { channel: "several" });
+    const first: string[] = [];
+    const second: string[] = [];
+    const firstHandle = peer.consume(async (msg: string) => {
+      first.push(msg);
+    });
+    const secondHandle = peer.consume(async (msg: string) => {
+      second.push(msg);
+    });
+    await peer.sendMessage("both");
+    await waitFor(() => first.length >= 1 && second.length >= 1);
+    await firstHandle.cancel();
+    await peer.sendMessage("second only");
+    await waitFor(() => second.length >= 2);
+    assert.deepStrictEqual(first, ["both"]);
+    assert.deepStrictEqual(second, ["both", "second only"]);
+    await secondHandle.cancel();
+  }
+
+  @test
+  async tableIsNotCreatedWithoutAutoCreateTable() {
+    const peer = await this.makePeer("manual", { database: { name: "manual" }, autoCreateTable: false });
+    await assert.rejects(() => peer.sendMessage("lost"), /no such table/);
+  }
 }

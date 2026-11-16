@@ -131,4 +131,44 @@ class StatesTest {
       `State should be childDone or done, got ${service.getState()}`
     );
   }
+
+  @test
+  nestedCallsOnlyTransitionOnce() {
+    class NestedService {
+      @State({ start: "outer", end: "outerDone" })
+      outer() {
+        return this.inner();
+      }
+
+      @State({ start: "inner", end: "innerDone" })
+      inner() {
+        return State.getCurrentState(this);
+      }
+
+      @State({ start: "started" })
+      startOnly() {}
+    }
+    const service = new NestedService();
+    // The nested call does not change the state
+    assert.strictEqual(service.outer(), "outer");
+    assert.strictEqual(State.getCurrentState(service), "outerDone");
+    assert.deepStrictEqual(
+      State.getStateStatus(service).transitions.map(t => t.step),
+      ["initial", "outer"]
+    );
+    // Without `end` the state stays on the start one
+    service.startOnly();
+    assert.strictEqual(State.getCurrentState(service), "started");
+  }
+
+  @test
+  transitionWithoutLastTransition() {
+    const target = {};
+    const status = State.getStateStatus(target);
+    status.lastTransition = undefined;
+    status.updateState("next");
+    assert.strictEqual(status.state, "next");
+    assert.strictEqual(status.transitions[0].duration, 0);
+    assert.strictEqual(status.transitions[0].startTime, status.transitions[0].endTime);
+  }
 }

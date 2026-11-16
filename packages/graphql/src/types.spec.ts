@@ -1,15 +1,18 @@
 import { describe, expect, it, vi } from "vitest";
 
 // Models carry their metadata in `__meta` here, and the app has no service
-const { createFromInput } = vi.hoisted(() => ({ createFromInput: vi.fn() }));
+const { createFromInput, storage } = vi.hoisted(() => ({
+  createFromInput: vi.fn(),
+  storage: { operations: {} as Record<string, any> | undefined, services: {} as Record<string, any> }
+}));
 vi.mock("./mutations.js", async importOriginal => ({ ...(await importOriginal<any>()), createFromInput }));
 
 vi.mock("@webda/core", async importOriginal => ({
   ...(await importOriginal<any>()),
   useModelMetadata: (model: any) => model.__meta,
   getClientWritableAttributes: () => undefined,
-  useCore: () => ({ getServices: () => ({}) }),
-  useInstanceStorage: () => ({ operations: {} })
+  useCore: () => ({ getServices: () => storage.services }),
+  useInstanceStorage: () => storage
 }));
 
 import {
@@ -27,7 +30,8 @@ import {
 import { GraphQLService } from "./graphql.service.js";
 import { AnyScalarType } from "./types/any.js";
 import { DateScalar } from "./types/date.js";
-import { restoreInputKeys } from "./names.js";
+import { restoreInputKeys, toGraphQLName } from "./names.js";
+import { GraphQLLong } from "./types/long.js";
 
 /**
  * @returns a service double with the converter state
@@ -285,5 +289,256 @@ describe("GraphQL named types", () => {
       "WithNullField"
     );
     expect(Object.keys(fields)).toEqual(["ok"]);
+  });
+});
+
+describe("GraphQL converter fallbacks", () => {
+  it("names any JSON key with a valid GraphQL name", () => {
+    expect(toGraphQLName("available-balance")).toBe("availableBalance");
+    expect(toGraphQLName("name")).toBe("name");
+    // A leading digit is not allowed
+    expect(toGraphQLName("2fa")).toBe("_2fa");
+    expect(toGraphQLName("-3d-secure")).toBe("_3dSecure");
+    // Nothing usable in the key
+    expect(toGraphQLName("--")).toBe("_");
+    expect(toGraphQLName("")).toBe("_");
+  });
+
+  it("truncates Long values toward zero", () => {
+    expect(GraphQLLong.parseValue(12.9)).toBe(12);
+    expect(GraphQLLong.parseValue(-12.9)).toBe(-12);
+    expect(GraphQLLong.serialize("-7.5")).toBe(-7);
+    expect(GraphQLLong.serialize(0)).toBe(0);
+  });
+
+  it("resolves a dangling $ref to the null type and maps unknown types to the Object scalar", () => {
+    const svc = service();
+    expect(svc.getJsonSchemaDefinition({ $ref: "#/definitions/Missing" }, {})).toEqual({ type: "null" });
+    expect(svc.getJsonSchemaDefinition({ $ref: "#/definitions/Missing" })).toEqual({ type: "null" });
+    expect(
+      svc.getJsonSchemaDefinition(
+        { $ref: "#/definitions/A" },
+        { A: { $ref: "#/definitions/B" }, B: { type: "boolean" } }
+      )
+    ).toEqual({
+      type: "boolean"
+    });
+    expect(svc.getGraphQLSchemaFromSchema({ type: "binary" } as any, "Unknown")?.type).toBe(AnyScalarType);
+    // A schema without properties has no field
+    expect(svc.getGraphQLFieldsFromSchema({ type: "object" }, "NoProperties")).toEqual({});
+  });
+
+  it("gives an operation without object input a single input argument", () => {
+    const svc = service();
+    const schemas: Record<string, any> = {
+      text: { type: "string" },
+      nothing: { type: "null" },
+      named: { type: "object", properties: { name: { type: "string" } } }
+    };
+    (svc as any).app = { getSchema: (name: string) => schemas[name] };
+    const text = svc.operationArgs({ input: "text" } as any, "Text");
+    expect(text.args.input.type).toBe(GraphQLString);
+    expect(text.toInput({ input: "hello" })).toBe("hello");
+    // A schema the converter cannot map still takes a value
+    const nothing = svc.operationArgs({ input: "nothing" } as any, "Nothing");
+    expect(nothing.args.input.type).toBe(AnyScalarType);
+    expect(nothing.toInput({ input: { any: "thing" } })).toEqual({ any: "thing" });
+    // An argument GraphQL did not declare is passed as is
+    const named = svc.operationArgs({ input: "named" } as any, "Named");
+    expect(named.toInput({ name: "a", extra: { b: 1 } })).toEqual({ name: "a", extra: { b: 1 } });
+    // No schema, or an unmappable one, for the output: the Object scalar
+    expect(svc.operationOutputType({ output: "missing" } as any, "Missing")).toBe(AnyScalarType);
+    expect(svc.operationOutputType({ output: "nothing" } as any, "Nothing")).toBe(AnyScalarType);
+    expect(svc.operationOutputType({ output: "text" } as any, "Text")).toBe(GraphQLString);
+  });
+
+  it("reads the subscribed events from the selection set", () => {
+    const svc = service();
+    const field = (name: string) => ({ kind: "Field", name: { value: name } });
+    expect(
+      svc.getSubscribedEvents({
+        fieldNodes: [{ selectionSet: { selections: [field("Created"), field("latestEventTime"), field("Deleted")] } }]
+      } as any)
+    ).toEqual(["Created", "Deleted"]);
+    expect(svc.getSubscribedEvents({ fieldNodes: [{}] } as any)).toEqual([]);
+  });
+
+  it("accepts a missing query and reports any refusal as BAD_USER_INPUT", () => {
+    const svc = service();
+    expect(() => svc.assertFilterQuery(undefined as any)).not.toThrow();
+    expect(() => svc.assertFilterQuery("a = 1")).not.toThrow();
+    // Whatever is thrown while checking the statement becomes a GraphQL error
+    (svc as any).assertNoStatement = () => {
+      throw "not a filter";
+    };
+    let error: any;
+    try {
+      svc.assertFilterQuery("a = 1");
+    } catch (err) {
+      error = err;
+    }
+    expect(error?.message).toBe("not a filter");
+    expect(error?.extensions).toEqual({ code: "BAD_USER_INPUT" });
+  });
+
+  it("places operations next to the model fields and names who owns a taken field", () => {
+    const build = () => {
+      const svc = service();
+      (svc as any).app = { getSchema: (): any => undefined };
+      (svc as any).parameters = {};
+      (svc as any).operationPlacements = {};
+      return svc;
+    };
+    const previous = storage.operations;
+    try {
+      // No operation registry at all
+      storage.operations = undefined;
+      const none = { query: {}, mutation: {}, subscription: {} };
+      build().addOperationFields(none.query, none.mutation, none.subscription);
+      expect(none).toEqual({ query: {}, mutation: {}, subscription: {} });
+
+      storage.operations = {
+        "Doc.Publish": { id: "Doc.Publish", method: "publish", graphql: { mutation: "publish" } },
+        "Doc.Release": { id: "Doc.Release", method: "release", graphql: { mutation: "publish" } }
+      };
+      // Two operations asking for the same field
+      expect(() => build().addOperationFields({}, {}, {})).toThrow(
+        /GraphQL mutation field publish of operation Doc\.Release is already defined by operation Doc\.Publish/
+      );
+      // A field the model schema already has
+      expect(() => build().addOperationFields({}, { publish: { type: GraphQLBoolean } }, {})).toThrow(
+        /GraphQL mutation field publish of operation Doc\.Publish is already defined by the model schema/
+      );
+      delete storage.operations["Doc.Release"];
+      const mutations: any = {};
+      const svc = build();
+      svc.addOperationFields({}, mutations, {});
+      expect(Object.keys(mutations)).toEqual(["publish"]);
+      expect(mutations.publish.type).toBe(GraphQLBoolean);
+      expect((svc as any).operationPlacements["Doc.Publish"]).toEqual({ kind: "mutation", name: "publish" });
+    } finally {
+      storage.operations = previous;
+    }
+  });
+});
+
+describe("GraphQL schema generation without the optional parts", () => {
+  it("leaves out models without metadata or not exposable, and subscriptions without events", async () => {
+    const svc = service();
+    const meta = (id: string): any => ({ Identifier: id, Plural: `${id}s`, Actions: {} });
+    const classes: any = {
+      "Test/Ghost": {},
+      "Test/Internal": { __meta: { ...meta("Test/Internal"), Events: ["Rotated"] } },
+      // No `Events` at all
+      "Test/Doc": { __meta: meta("Test/Doc") },
+      "Test/User": { __meta: meta("Test/User") }
+    };
+    (svc as any).app = {
+      getModels: () => classes,
+      getModel: (id: string) => classes[id],
+      completeNamespace: (id: string) => id,
+      isFinalModel: () => true,
+      getSchema: () => ({ type: "object", properties: { uuid: { type: "string" } } })
+    };
+    (svc as any).parameters = { isIncluded: () => true, exposeMe: true, userModel: "Test/User" };
+    (svc as any).isExposable = (_model: any, id: string) => id !== "Test/Internal";
+    (svc as any).emit = () => {};
+    // Services with nothing to publish
+    storage.services = { Silent: { getClientEvents: (): any => undefined }, Plain: {} };
+    try {
+      svc.generateSchema();
+    } finally {
+      storage.services = {};
+    }
+    expect(
+      Object.keys(svc.modelsMap)
+        .filter(id => id.startsWith("Test/"))
+        .sort()
+    ).toEqual(["Test/Doc", "Test/User"]);
+    const schema: GraphQLSchema = (svc as any).schema;
+    expect(validateSchema(schema)).toEqual([]);
+    const subscriptions = Object.keys(schema.getSubscriptionType()!.getFields());
+    expect(subscriptions).toContain("Me");
+    expect(subscriptions.filter(name => name.endsWith("Events"))).toEqual([]);
+
+    // A single-object query without key looks for the empty key
+    const queries = schema.getQueryType()!.getFields();
+    const docQuery = Object.values(queries).find(f => f.type === svc.modelsMap["Test/Doc"])!;
+    const loaded: any[] = [];
+    (svc as any).loadModelInstance = async (uuid: string, model: any) => {
+      loaded.push([uuid, model]);
+      return null;
+    };
+    const context: any = { getExtension: (): any => undefined };
+    expect(await docQuery.resolve!({}, {}, context, {} as any)).toBeNull();
+    expect(loaded).toEqual([["", classes["Test/Doc"]]]);
+  });
+
+  it("counts operations only for a GraphQL request", () => {
+    const svc = service();
+    (svc as any).parameters = { maxOperationsPerRequest: 2 };
+    // No graphql extension on the context: nothing to count
+    expect(() => svc.countOperation({ getExtension: (): any => undefined } as any, 10)).not.toThrow();
+    const ext = { count: 0 };
+    const context: any = { getExtension: () => ext };
+    svc.countOperation(context);
+    svc.countOperation(context);
+    expect(ext.count).toBe(2);
+    expect(() => svc.countOperation(context)).toThrow(/Too many operations/);
+  });
+
+  it("resolves relations of an object whose relation attributes are not set", async () => {
+    const svc = service();
+    const type = (name: string) => new GraphQLObjectType({ name, fields: { uuid: { type: GraphQLString } } });
+    svc.modelsMap = { "Test/Folder": type("Folder"), "Test/User": type("User"), "Test/Tag": type("Tag") };
+    const classes: any = { "Test/Folder": { id: "Folder" }, "Test/User": { id: "User" }, "Test/Tag": { id: "Tag" } };
+    (svc as any).app = { getModel: (id: string) => classes[id] };
+    const single: any[] = [];
+    const listed: any[] = [];
+    (svc as any).loadModelInstance = async (uuid: string, model: any) => {
+      single.push([uuid, model.id]);
+      return null;
+    };
+    (svc as any).loadListedInstance = async (item: any, model: any) => {
+      listed.push([item, model.id]);
+      return item === "gone" ? null : { uuid: item.uuid ?? item };
+    };
+    const fields = svc.getGraphQLFieldsFromSchema({ type: "object", properties: { uuid: { type: "string" } } }, "Doc", {
+      parent: { attribute: "folder", model: "Test/Folder" },
+      links: [
+        { attribute: "owner", model: "Test/User", type: "LINK" },
+        { attribute: "tags", model: "Test/Tag", type: "LINKS_ARRAY" },
+        { attribute: "members", model: "Test/User", type: "LINKS_MAP" }
+      ],
+      maps: [{ attribute: "watchers", model: "Test/User" }]
+    } as any);
+    expect(Object.keys(fields).sort()).toEqual(["folder", "members", "owner", "tags", "uuid", "watchers"]);
+    const context: any = { getExtension: (): any => undefined };
+    const info: any = { fieldNodes: [] };
+
+    // Nothing set on the object
+    await fields.folder.resolve({}, {}, context, info);
+    await fields.owner.resolve({}, {}, context, info);
+    expect(single).toEqual([
+      ["", "Folder"],
+      ["", "User"]
+    ]);
+    expect(await fields.tags.resolve({}, {}, context, info)).toEqual([]);
+    expect(await fields.watchers.resolve({}, {}, context, info)).toEqual([]);
+    expect(listed).toEqual([]);
+
+    // Set relations: a map of links is read by its values, elements that cannot be loaded are dropped
+    await fields.folder.resolve({ folder: "f1" }, {}, context, info);
+    await fields.owner.resolve({ owner: "u1" }, {}, context, info);
+    expect(single.slice(2)).toEqual([
+      ["f1", "Folder"],
+      ["u1", "User"]
+    ]);
+    expect(await fields.tags.resolve({ tags: ["t1", "gone"] }, {}, context, info)).toEqual([{ uuid: "t1" }]);
+    expect(
+      await fields.members.resolve({ members: { a: { uuid: "u1" }, b: { uuid: "u2" } } }, {}, context, info)
+    ).toEqual([{ uuid: "u1" }, { uuid: "u2" }]);
+    expect(await fields.watchers.resolve({ watchers: [{ uuid: "u3" }] }, {}, context, info)).toEqual([{ uuid: "u3" }]);
+    expect(listed.map(([, model]) => model)).toEqual(["Tag", "Tag", "User", "User", "User"]);
   });
 });

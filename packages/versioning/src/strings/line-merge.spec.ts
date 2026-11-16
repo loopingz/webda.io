@@ -38,4 +38,12 @@ class LineMerge3Test {
     expect(r.clean).toBe(true);
     expect(r.merged).toBe(ours);
   }
+
+  @test({ name: "merges from an empty base" })
+  mergesFromAnEmptyBase() {
+    const r = lineMerge3("", "a\nb\n", "");
+    expect(r.clean).toBe(true);
+    expect(r.merged).toBe("a\nb\n");
+    expect(lineMerge3("", "", "")).toEqual({ merged: "", conflicts: [], clean: true });
+  }
 }

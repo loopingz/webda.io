@@ -67,6 +67,18 @@ class DeploymentTest {
   }
 
   @test
+  emptyDeployment() {
+    const dir = createAppFolder({ Empty: null });
+    try {
+      // A deployment file without content is an empty deployment, without unit
+      assert.deepStrictEqual(loadDeployment(dir, "Empty"), {});
+      assert.deepStrictEqual(getDeploymentUnitServices(loadDeployment(dir, "Empty")), {});
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
+  @test
   applyDeploymentOverrides() {
     const configuration: any = {
       version: 4,

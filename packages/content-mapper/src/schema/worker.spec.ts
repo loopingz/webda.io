@@ -141,4 +141,39 @@ describe("worker handle and main", () => {
       if (origStdin) Object.defineProperty(process, "stdin", origStdin);
     }
   });
+
+  it("accepts a tsconfig path as the project and finds a default export by its modifier", () => {
+    const res = handle({
+      project: join(schemaFixture, "tsconfig.json"),
+      requests: [
+        {
+          id: "anonymous",
+          kind: "service",
+          file: join(schemaFixture, "src", "default.service.ts"),
+          className: "default"
+        },
+        // No default export in this file
+        {
+          id: "noDefault",
+          kind: "service",
+          file: join(schemaFixture, "src", "params.service.ts"),
+          className: "default"
+        },
+        { id: "noFile", kind: "model", file: join(schemaFixture, "src", "missing.ts"), className: "Invoice" }
+      ]
+    });
+    // No class name to title the schema after: the requested one is used
+    expect(res.results.anonymous.title).toBe("default");
+    expect(res.results.anonymous.properties!.flag.type).toBe("boolean");
+    expect(res.errors.noDefault).toContain("class default not found");
+    expect(res.errors.noFile).toContain("class Invoice not found");
+  });
+
+  it("reads the namespace from the project when a topLevel request names none", () => {
+    // The fixture package is unscoped and declares no namespace: `Webda` applies
+    const res = handle({ project: schemaFixture, requests: [{ id: "top", kind: "topLevel" }] });
+    const top = res.results.top as unknown as Record<string, unknown>;
+    expect(top["Webda/Ticket"]).toBeDefined();
+    expect(top["Test/Ticket"]).toBeUndefined();
+  });
 });

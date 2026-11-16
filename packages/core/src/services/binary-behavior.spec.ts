@@ -1248,6 +1248,111 @@ class BinaryBehaviorTest extends WebdaApplicationTest {
     assert.strictEqual(service.delete.callCount, 1);
     assert.strictEqual(b.length, 0);
   }
+
+  /**
+   * A file stored without mimetype is streamed as `application/octet-stream`.
+   */
+  @test
+  async streamingWithoutMimetype() {
+    const parent = { instance: makeFakeParent(), attribute: "image" };
+    const service = makeServiceStub({ get: sinon.stub().callsFake(async () => Readable.from(Buffer.from("raw"))) });
+    const stream = async (download: () => Promise<void>) =>
+      runWithCtx({}, async ctx => {
+        const out = new PassThrough();
+        out.resume();
+        (ctx as any)._stream = out;
+        const writeHead = ((ctx as any).writeHead = sinon.stub());
+        await download();
+        return writeHead.firstCall.args;
+      });
+    const single = makeBinary(parent, service, { hash: "h1", size: 3, mimetype: undefined });
+    assert.deepStrictEqual(await stream(() => single.download()), [
+      200,
+      { "Content-Type": "application/octet-stream", "Content-Length": 3 }
+    ]);
+    const many = makeBinaries(parent, service);
+    many.push(new BinariesItem(many, { hash: "h1", size: 3 } as any));
+    many[0].mimetype = undefined;
+    assert.deepStrictEqual(await stream(() => many.get(0)), [
+      200,
+      { "Content-Type": "application/octet-stream", "Content-Length": 3 }
+    ]);
+  }
+
+  /**
+   * The index of a REST route is a string: it is parsed by every item action.
+   */
+  @test
+  async binariesActionsParseStringIndex() {
+    const parentInstance = makeFakeParent();
+    const service = makeServiceStub({ getRedirectUrlFromObject: sinon.stub().resolves("https://cdn.example/p") });
+    const b = makeBinaries({ instance: parentInstance, attribute: "photos" }, service);
+    b.push(new BinariesItem(b, { hash: "p1", size: 1, name: "p1", mimetype: "text/plain" } as any));
+    b.push(new BinariesItem(b, { hash: "p2", size: 2, name: "p2", mimetype: "text/plain" } as any));
+
+    await runWithCtx({}, async () => {
+      const url = await b.getUrl("1" as any);
+      assert.strictEqual(url.Location, "https://cdn.example/p");
+      assert.strictEqual(url.Map.hash, "p2");
+      await assert.rejects(() => b.getUrl("2" as any), WebdaError.NotFound);
+      await b.setMetadata("1" as any, "p2", { caption: "second" } as any);
+    });
+    assert.deepStrictEqual(b[1].metadata, { caption: "second" });
+    await b.deleteAt("1" as any, "p2");
+    assert.deepStrictEqual(service.delete.firstCall.args.slice(1), ["photos", 1]);
+    assert.deepStrictEqual(
+      Array.from(b, item => item.hash),
+      ["p1"]
+    );
+  }
+
+  /**
+   * The service can already have removed the item from the collection: it is not removed twice.
+   */
+  @test
+  async binariesDeleteWhenServiceUpdatesTheCollection() {
+    const service = makeServiceStub();
+    const b = makeBinaries({ instance: makeFakeParent(), attribute: "photos" }, service);
+    for (const hash of ["p1", "p2", "p3", "p4"]) {
+      b.push(new BinariesItem(b, { hash, size: 1, name: hash, mimetype: "text/plain" } as any));
+    }
+    service.delete = sinon.stub().callsFake(async (_instance: any, _attribute: string, index: number) => {
+      b.splice(index, 1);
+    });
+    await b.deleteAt(0, "p1");
+    assert.deepStrictEqual(
+      Array.from(b, item => item.hash),
+      ["p2", "p3", "p4"]
+    );
+    await b.delete(b[1]);
+    assert.deepStrictEqual(
+      Array.from(b, item => item.hash),
+      ["p2", "p4"]
+    );
+    // Last item: nothing left at its index
+    await b.deleteAt(1, "p4");
+    assert.deepStrictEqual(
+      Array.from(b, item => item.hash),
+      ["p2"]
+    );
+  }
+
+  /**
+   * `assign` on a model without any file yet gives an empty collection.
+   */
+  @test
+  binariesAssignWithoutFiles() {
+    const service: any = { tag: "stub-service" };
+    const stub = sinon.stub(useCore(), "getBinaryStore" as any).returns(service);
+    try {
+      const model: any = {};
+      const b = new BinariesImpl().assign(model, "photos");
+      assert.strictEqual(b.length, 0);
+      assert.strictEqual((b as any)[WEBDA_STORAGE]["__parent__"].instance, model);
+    } finally {
+      stub.restore();
+    }
+  }
 }
 
 /**
@@ -1829,6 +1934,33 @@ class BinaryServiceUnitTest extends WebdaApplicationTest {
     assert.strictEqual(patches[0].items.length, 2);
     assert.strictEqual(patches[0].items[0].hash, "h0");
     assert.strictEqual(patches[0].items[1].hash, "h2");
+  }
+
+  /**
+   * `deleteSuccess` on a collection without a valid index keeps the items,
+   * a collection that was never set is patched as an empty one.
+   */
+  @test
+  async deleteSuccessWithoutItemToRemove() {
+    const svc = this.makeService();
+    const patches: any[] = [];
+    const target: any = {
+      constructor: { Metadata: { Relations: { behaviors: [{ attribute: "items", behavior: "Webda/BinariesImpl" }] } } },
+      getUUID: () => "u",
+      items: [{ hash: "h0", size: 1, name: "a", mimetype: "t" }],
+      patch: async (data: any) => {
+        patches.push(data);
+      }
+    };
+    await svc.deleteSuccess(target, "items");
+    await svc.deleteSuccess(target, "items", 3);
+    assert.deepStrictEqual(
+      patches.map(p => p.items.map((i: any) => i.hash)),
+      [["h0"], ["h0"]]
+    );
+    target.items = undefined;
+    await svc.deleteSuccess(target, "items");
+    assert.deepStrictEqual(patches[2], { items: [] });
   }
 
   /**

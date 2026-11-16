@@ -4,8 +4,11 @@ import {
   createReadStream,
   createWriteStream,
   existsSync,
+  mkdirSync,
   readFileSync,
   readlinkSync,
+  realpathSync,
+  rmSync,
   symlinkSync,
   unlinkSync,
   writeFileSync
@@ -514,6 +517,83 @@ plop: test
   getConfigurationFileError() {
     // Test error handling when configuration file is missing (line 338)
     assert.throws(() => FileUtils.getConfigurationFile(TEST_FOLDER + "nonexistent"), /File not found .*/);
+  }
+
+  @test
+  walkSyncOptions() {
+    const root = path.join(tmpdir(), `webda-walk-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    const real = path.join(tmpdir(), `webda-walk-real-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    try {
+      mkdirSync(path.join(root, "sub", "deep"), { recursive: true });
+      mkdirSync(real, { recursive: true });
+      writeFileSync(path.join(root, "a.txt"), "");
+      writeFileSync(path.join(root, ".hidden"), "");
+      writeFileSync(path.join(root, "sub", "b.txt"), "");
+      writeFileSync(path.join(root, "sub", "deep", "c.txt"), "");
+      writeFileSync(path.join(real, "target.txt"), "");
+      symlinkSync(real, path.join(root, "dirlink"));
+      symlinkSync(path.join(real, "target.txt"), path.join(root, "filelink"));
+      const realResolved = realpathSync(real);
+      const walk = (options: any) => {
+        const res: string[] = [];
+        FileUtils.walkSync(root, f => res.push(f), options);
+        return res
+          .map(f => (f.startsWith(realResolved) ? `real:${path.relative(realResolved, f)}` : path.relative(root, f)))
+          .sort();
+      };
+      // No maximum depth, hidden files skipped, symlinks ignored
+      assert.deepStrictEqual(walk({ skipHidden: true }), ["a.txt", "sub/b.txt", "sub/deep/c.txt"]);
+      // Symlinks are reported with their own path by default
+      assert.deepStrictEqual(walk({ followSymlinks: true }), [
+        ".hidden",
+        "a.txt",
+        "dirlink/target.txt",
+        "filelink",
+        "sub/b.txt",
+        "sub/deep/c.txt"
+      ]);
+      // Or with the path they point to
+      assert.deepStrictEqual(walk({ followSymlinks: true, resolveSymlink: true, skipHidden: true }), [
+        "a.txt",
+        "real:target.txt",
+        "real:target.txt",
+        "sub/b.txt",
+        "sub/deep/c.txt"
+      ]);
+      // Folders, linked or not, are not entered once the maximum depth is reached
+      assert.deepStrictEqual(walkAt(root, 1), [".hidden", "a.txt", "filelink"]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+      rmSync(real, { recursive: true, force: true });
+    }
+
+    /**
+     * Walk as if the walker was already at the given depth with a maximum depth of 1
+     * @param folder - folder to walk
+     * @param depth - current depth
+     * @returns the relative path found
+     */
+    function walkAt(folder: string, depth: number) {
+      const res: string[] = [];
+      FileUtils.walkSync(folder, f => res.push(f), { followSymlinks: true, maxDepth: 1 }, depth);
+      return res.map(f => path.relative(folder, f)).sort();
+    }
+  }
+
+  @test
+  loadIgnoresInvalidImportAndUnknownFormat() {
+    const dir = path.join(tmpdir(), `webda-load-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    try {
+      mkdirSync(dir, { recursive: true });
+      const file = path.join(dir, "config.json");
+      writeFileSync(file, JSON.stringify({ $import: 42, key: "value" }));
+      // An import that is neither a string nor an array is dropped
+      assert.deepStrictEqual(FileUtils.loadConfigurationFile(path.join(dir, "config")), { key: "value" });
+      // An explicit format that is not supported loads nothing
+      assert.strictEqual(FileUtils.load(file, "xml" as any), undefined);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   }
 
   @test

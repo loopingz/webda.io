@@ -24,6 +24,7 @@ import {
   isPackagedApplication,
   loadApplication,
   prepareDeploymentUnits,
+  resolveCapabilities,
   loadOperations,
   addServiceCommandsToCli,
   resolveLogStream,
@@ -1539,6 +1540,253 @@ export class MyBean {
       stop.mockRestore();
       init.mockRestore();
       exit.mockRestore();
+    }
+  }
+}
+
+@suite
+class CliOperationEdgeCasesTest {
+  @test
+  async buildCliOptionsCarryEnumAndDefault() {
+    const ops = makeOps(
+      {
+        "Task.Create": { id: "Task.Create", input: "Task.Create.input" },
+        "Task.Tag": { id: "Task.Tag", input: "Task.Tag.input" }
+      },
+      {
+        "Task.Create.input": {
+          type: "object",
+          properties: {
+            status: { type: "string", enum: ["open", "closed"], default: "open" },
+            title: { type: "string" }
+          }
+        },
+        // Not an object schema: no per-property option, --json only
+        "Task.Tag.input": { type: "string" }
+      }
+    );
+    const calls: OperationCall[] = [];
+    const cli = buildCli(ops, async call => {
+      calls.push(call);
+    }).exitProcess(false);
+
+    // The default of the schema is applied
+    await cli.parseAsync(["task", "create", "--title", "Test"]);
+    assert.deepStrictEqual(calls[0].input, { status: "open", title: "Test" });
+    await cli.parseAsync(["task", "tag", "--json", '"urgent"']);
+    assert.strictEqual(calls[1].input, "urgent");
+    // A value outside of the enum is refused by yargs
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      await assert.rejects(async () => cli.parseAsync(["task", "create", "--status", "unknown"]), /Invalid values/);
+    } finally {
+      error.mockRestore();
+    }
+    assert.strictEqual(calls.length, 2);
+  }
+
+  @test
+  async buildCliOperationWithoutGroupOrInputValues() {
+    const ops = makeOps(
+      {
+        // No dot in the id: the operation is its own group
+        Ping: { id: "Ping" },
+        "Task.Create": { id: "Task.Create", input: "Task.Create.input" }
+      },
+      { "Task.Create.input": { type: "object", properties: { title: { type: "string" } } } }
+    );
+    const calls: OperationCall[] = [];
+    const cli = buildCli(ops, async call => {
+      calls.push(call);
+    });
+    await cli.parseAsync(["ping", "ping"]);
+    assert.strictEqual(calls[0].id, "Ping");
+    // None of the input properties given: no input rather than an empty one
+    await cli.parseAsync(["task", "create"]);
+    assert.strictEqual(calls[1].id, "Task.Create");
+    assert.strictEqual(calls[1].input, undefined);
+  }
+
+  @test
+  capabilitiesWithoutAnyProvider() {
+    const app = deploymentApp(undefined);
+    resolveCapabilities(app, []);
+    assert.deepStrictEqual(app.config.services, {});
+    // The modules declare no capability at all
+    resolveCapabilities(app, ["router"]);
+    assert.deepStrictEqual(app.config.services, {});
+    // A declared capability is injected once
+    const modules = { ...app.getModules(), capabilities: { router: "Webda/HttpServer" } };
+    app.getModules = () => modules;
+    resolveCapabilities(app, ["router"]);
+    resolveCapabilities(app, ["router"]);
+    assert.deepStrictEqual(app.config.services, { HttpServer: { type: "Webda/HttpServer" } });
+  }
+
+  @test
+  async runCliOperationServicesAndInputs() {
+    const app = realpathSync(mkdtempSync(join(tmpdir(), "webda-cli-ops-")));
+    const called: any[][] = [];
+    const service = {
+      hello: (...args: any[]) => {
+        called.push(["hello", ...args]);
+      },
+      get: (...args: any[]) => {
+        called.push(["get", ...args]);
+      },
+      free: (...args: any[]) => {
+        called.push(["free", ...args]);
+      }
+    };
+    let application: Application;
+    const init = vi.spyOn(Core.prototype, "init").mockImplementation(async function init(this: Core) {
+      application = (this as any).application;
+      return this as any;
+    });
+    const stop = vi.spyOn(Core.prototype, "stop").mockResolvedValue(undefined);
+    const services = vi.spyOn(Core.prototype, "getServices").mockReturnValue({ Runner: service } as any);
+    const exit = vi.spyOn(process, "exit").mockImplementation((() => undefined) as any);
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      write(join(app, "package.json"), { name: "mini", version: "1.0.0", type: "module" });
+      write(join(app, "webda.config.json"), { version: 4, services: { Runner: { type: "Mini/Runner" } } });
+      write(join(app, "runner.js"), "export class Runner {}\nexport class Plain {}\nexport class Conf {}\n");
+      write(join(app, "webda.module.json"), {
+        $schema: "https://webda.io/schemas/webda.module.v4.json",
+        moddas: {
+          "Mini/Runner": { Import: "runner.js:Runner" },
+          "Mini/Listed": { Import: "runner.js:Runner" }
+        },
+        beans: {},
+        deployers: {},
+        models: {},
+        schemas: {}
+      });
+      write(join(app, ".webda/operations.json"), {
+        operations: {
+          "Runner.Hello": { id: "Runner.Hello", input: "message", output: "void" },
+          "Runner.Get": { id: "Runner.Get", input: "uuidRequest", output: "void" },
+          "Runner.Free": { id: "Runner.Free", input: "free", output: "void" },
+          "Listed.Hello": { id: "Listed.Hello", input: "void", output: "void" }
+        },
+        schemas: {
+          message: { type: "object", properties: { value: { type: "string" } } },
+          free: { type: "object" }
+        }
+      });
+      const run = async (...argv: string[]) => {
+        await runCli({ appPath: app, argv: [...argv, "--console-patch=false"] });
+        await new Promise<void>(resolve => setImmediate(resolve));
+      };
+      // Service already configured, no input given: the method is called without argument
+      await run("runner", "hello");
+      assert.deepStrictEqual(called.pop(), ["hello"]);
+      assert.deepStrictEqual(application.getConfiguration().services.Runner, { type: "Mini/Runner" });
+      // Positional uuid of a well-known request
+      await run("runner", "get", "abc-123");
+      assert.deepStrictEqual(called.pop(), ["get"]);
+      // Free-form object input: nothing to prompt for
+      await run("runner", "free", "--json", '{"a":1,"b":"two"}');
+      assert.deepStrictEqual(called.pop(), ["free", 1, "two"]);
+      // Modda not configured yet: added to the configuration, its type is already loaded
+      services.mockReturnValue({ Listed: service } as any);
+      await run("listed", "hello");
+      assert.deepStrictEqual(called.pop(), ["hello"]);
+      assert.deepStrictEqual(application.getConfiguration().services.Listed, { type: "Mini/Listed" });
+      assert.deepStrictEqual(
+        exit.mock.calls.map(call => call[0]),
+        [0, 0, 0, 0]
+      );
+    } finally {
+      error.mockRestore();
+      exit.mockRestore();
+      services.mockRestore();
+      stop.mockRestore();
+      init.mockRestore();
+      rmSync(app, { recursive: true, force: true });
+    }
+  }
+
+  @test
+  async runCliRegistersBeansOfTheOperation() {
+    const app = realpathSync(mkdtempSync(join(tmpdir(), "webda-cli-beans-")));
+    const service = { hello: () => {} };
+    let application: Application;
+    const init = vi.spyOn(Core.prototype, "init").mockImplementation(async function init(this: Core) {
+      application = (this as any).application;
+      return this as any;
+    });
+    const stop = vi.spyOn(Core.prototype, "stop").mockResolvedValue(undefined);
+    const services = vi
+      .spyOn(Core.prototype, "getServices")
+      .mockReturnValue({ Ghost: service, Plain: service, Conf: service } as any);
+    const exit = vi.spyOn(process, "exit").mockImplementation((() => undefined) as any);
+    try {
+      write(join(app, "package.json"), { name: "mini", version: "1.0.0", type: "module" });
+      write(join(app, "webda.config.json"), { version: 4, services: {} });
+      write(join(app, "runner.js"), "export class Plain {}\nexport class Conf {}\n");
+      write(join(app, "webda.module.json"), {
+        ...webdaModule({}),
+        beans: {
+          // Export missing from the file, referenced without its extension
+          "Mini/Ghost": { Import: "runner:Missing" },
+          "Mini/Plain": { Import: "runner.js:Plain" },
+          // Configuration class missing from the file: the default parameters are used
+          "Mini/Conf": { Import: "runner.js:Conf", Configuration: "runner.js:Missing" }
+        }
+      });
+      write(join(app, ".webda/operations.json"), {
+        operations: Object.fromEntries(
+          ["Ghost.Hello", "Plain.Hello", "Conf.Hello"].map(id => [id, { id, input: "void", output: "void" }])
+        ),
+        schemas: {}
+      });
+      for (const bean of ["Ghost", "Plain", "Conf"]) {
+        await runCli({ appPath: app, argv: [bean.toLowerCase(), "hello", "--console-patch=false"] });
+        await new Promise<void>(resolve => setImmediate(resolve));
+        assert.deepStrictEqual(application.getConfiguration().services[bean], { type: `Mini/${bean}` });
+        const modda: any = application.getModdas()[`Mini/${bean}`];
+        if (bean === "Ghost") {
+          assert.strictEqual(modda, undefined);
+        } else {
+          assert.strictEqual(modda.name, bean);
+          assert.strictEqual(typeof modda.createConfiguration, "function");
+          assert.strictEqual(modda.createConfiguration({}).constructor.name, "ServiceParameters");
+        }
+      }
+      assert.deepStrictEqual(
+        exit.mock.calls.map(call => call[0]),
+        [0, 0, 0]
+      );
+    } finally {
+      exit.mockRestore();
+      services.mockRestore();
+      stop.mockRestore();
+      init.mockRestore();
+      rmSync(app, { recursive: true, force: true });
+    }
+  }
+
+  @test
+  async runCliWithoutCommand() {
+    const app = realpathSync(mkdtempSync(join(tmpdir(), "webda-cli-none-")));
+    const exit = vi.spyOn(process, "exit").mockImplementation((() => undefined) as any);
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      write(join(app, "package.json"), { name: "mini", version: "1.0.0", type: "module" });
+      write(join(app, "webda.config.json"), { version: 4, services: {} });
+      write(join(app, "webda.module.json"), webdaModule({}));
+      await runCli({ appPath: app, argv: ["--console-patch=false"] });
+      const output = error.mock.calls.flat().join("\n");
+      // yargs asks for a command, it is not reported as an unknown one
+      assert.ok(output.includes("Specify a command"), output);
+      assert.ok(!output.includes("Unknown command"), output);
+      assert.ok(exit.mock.calls.length > 0);
+      assert.ok(exit.mock.calls.every(call => call[0] === 1));
+    } finally {
+      error.mockRestore();
+      exit.mockRestore();
+      rmSync(app, { recursive: true, force: true });
     }
   }
 }

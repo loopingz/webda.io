@@ -727,6 +727,29 @@ describe("delete-modify strategies through push", () => {
     expect(await storage.getRecord("App/Task|a")).toBeUndefined();
   });
 
+  it("a local delete answered by a conflict on an already deleted object forgets the record", async () => {
+    const { server, client, tasks, storage, events } = await synced("manual");
+    await tasks.delete("a");
+    const push = server.push.bind(server);
+    server.push = async req => {
+      server.push = push;
+      server.received.push(structuredClone(req));
+      // The object was deleted on the server meanwhile, and the server reports it as a conflict
+      server.serverWrite("App/Task", "a", null);
+      return {
+        results: req.mutations.map(m => ({ mutationId: m.mutationId, status: "conflict", rev: 0, object: null }))
+      };
+    };
+    await client.sync();
+    expect(server.received).toHaveLength(1);
+    expect(await storage.getRecord("App/Task|a")).toBeUndefined();
+    expect(await client.conflicts()).toEqual([]);
+    expect(events).toEqual([
+      ["local", null],
+      ["remote", null]
+    ]);
+  });
+
   it("server-wins drops a local delete when the server edited the object", async () => {
     const { server, client, tasks, storage, events } = await synced("server-wins");
     await tasks.delete("a");

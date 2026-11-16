@@ -295,6 +295,41 @@ class LocalSessionExchangeTest {
   }
 
   @test
+  async oversizedSessionBodyIsDropped() {
+    const code = this.service.issueBootstrapCode();
+    await assert.rejects(
+      rawRequest(
+        this.port,
+        "/api/session",
+        { "Content-Type": "application/json" },
+        "POST",
+        JSON.stringify({ code, padding: "x".repeat(8192) })
+      )
+    );
+    // The connection was cut before the code was read: it is still valid
+    const ok = await rawRequest(
+      this.port,
+      "/api/session",
+      { "Content-Type": "application/json" },
+      "POST",
+      JSON.stringify({ code })
+    );
+    assert.strictEqual(ok.status, 200);
+  }
+
+  @test
+  async webSocketWithoutTheDebugProtocolIsNotEstablished() {
+    // The token is valid but the client does not speak the debug sub-protocol
+    const ws = new WebSocket(`ws://127.0.0.1:${this.port}/ws`, [`${WS_TOKEN_PREFIX}${this.service.getToken()}`]);
+    const outcome = await new Promise<string>(resolve => {
+      ws.on("open", () => resolve("open"));
+      ws.on("error", err => resolve(err.message));
+    });
+    ws.terminate();
+    assert.match(outcome, /subprotocol/i);
+  }
+
+  @test
   async wrongGuessesDoNotBurnTheCode() {
     const code = this.service.issueBootstrapCode();
     for (let i = 0; i < 3; i++) {

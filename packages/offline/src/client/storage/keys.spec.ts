@@ -117,6 +117,31 @@ describe("EncryptedStorage key providers", () => {
     expect(await s.getMeta("other")).toBe(1);
   });
 
+  it("re-adding a provider or removing an unknown one keeps the provider list", async () => {
+    const s = new EncryptedStorage(new MemoryStorage());
+    await s.unlock(fakeProvider("p1"));
+    await s.putRecords([record()]);
+    await s.addProvider(fakeProvider("p2"));
+    // Registering the same provider again re-wraps its key without listing it twice
+    await s.addProvider(fakeProvider("p2"));
+    expect(await s.providers()).toEqual(["p1", "p2"]);
+    await s.removeProvider("unknown");
+    expect(await s.providers()).toEqual(["p1", "p2"]);
+    s.lock();
+    await s.unlock(fakeProvider("p2"));
+    expect(await s.getRecord("Note#1")).toEqual(record());
+  });
+
+  it("fails with NO_KEY when a listed provider lost its wrapped key", async () => {
+    const inner = new MemoryStorage();
+    const s = new EncryptedStorage(inner);
+    await s.unlock(fakeProvider("p1"));
+    s.lock();
+    await inner.setMeta("__encryption.keys.p1", undefined);
+    expect(await code(s.unlock(fakeProvider("p1")))).toBe("NO_KEY");
+    expect(s.isLocked()).toBe(true);
+  });
+
   it("drops the provider KEK when the data key is set or cleared directly", async () => {
     const s = new EncryptedStorage(new MemoryStorage());
     await s.unlock(fakeProvider("p1"));

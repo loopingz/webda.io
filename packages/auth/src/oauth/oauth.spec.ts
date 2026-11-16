@@ -282,6 +282,81 @@ class OAuthProviderTest extends AuthTest {
       `${KO}?reason=REDIRECT_NOT_ALLOWED`
     );
     assert.ok(await this.start(browser));
+    // Same without any list at all
+    this.fake.getParameters().authorized_uris = undefined;
+    assert.strictEqual(
+      (await this.route(browser, "login", { redirect: "https://app.example.com/after" })).location,
+      `${KO}?reason=REDIRECT_NOT_ALLOWED`
+    );
+  }
+
+  @test
+  async loginAcceptsAnyPathBelowAnAuthorizedRoot() {
+    // An authorized uri ending with a slash covers everything below it
+    const browser = await this.browser();
+    const q = await this.start(browser, "https://other.example.com/deep/page?x=1");
+    const res = await this.route(browser, "callback", { code: "sub20,,0", state: q.state });
+    assert.strictEqual(res.location, "https://other.example.com/deep/page?x=1");
+  }
+
+  @test
+  async failureRedirectKeepsItsFragmentAndIsRequired() {
+    const params = this.fake.getParameters();
+    params.redirects = { success: OK, failure: `${KO}?from=oauth#login` };
+    const refused = await this.route(await this.browser(), "login", { redirect: "https://evil.example.com/" });
+    assert.strictEqual(refused.location, `${KO}?from=oauth&reason=REDIRECT_NOT_ALLOWED#login`);
+    // Removed after init: the failure cannot be reported
+    params.redirects = { success: OK } as any;
+    await assert.rejects(
+      async () => this.route(await this.browser(), "login", { redirect: "https://evil.example.com/" }),
+      /Missing OAuth failure redirect/
+    );
+  }
+
+  @test
+  async loginWithoutScopeAndWithANativeCallback() {
+    const params = this.fake.getParameters();
+    const scope = params.scope;
+    params.scope = undefined;
+    // A callback that is not an http(s) url (native application): the pending cookie is sent to every path
+    params.redirect_uri = "com.example.app:/oauth/callback";
+    try {
+      const res = await this.route(await this.browser(), "login");
+      const q = query(res.location);
+      assert.strictEqual(q.scope, "");
+      assert.strictEqual(q.redirect_uri, "com.example.app:/oauth/callback");
+      assert.strictEqual(res.cookie.options.path, "/");
+    } finally {
+      params.scope = scope;
+    }
+  }
+
+  @test
+  async identityWithoutAmrIsAnOAuthLogin() {
+    const handleToken = this.fake.handleToken.bind(this.fake);
+    this.fake.handleToken = async request => ({ ...(await handleToken(request)), amr: undefined });
+    try {
+      const ctx = await this.ctx();
+      const res: any = await this.op("Auth.Fake.Token", { token: "sub21,,0" }, ctx);
+      assert.strictEqual(res.status, "ok");
+      assert.deepStrictEqual(ctx.getSession().amr, ["oauth"]);
+    } finally {
+      delete (this.fake as any).handleToken;
+    }
+  }
+
+  @test
+  async tokenOperationOutsideHttp() {
+    // Not an HTTP request (internal call): there is no content type to check
+    (this.fake as any).requireJson(undefined);
+    (this.fake as any).requireJson({ getHttpContext: () => undefined });
+    // A request without any content type is refused
+    assert.throws(
+      () => (this.fake as any).requireJson({ getHttpContext: () => ({ getUniqueHeader: () => undefined }) }),
+      {
+        code: "UNSUPPORTED_MEDIA_TYPE"
+      }
+    );
   }
 
   @test
@@ -652,6 +727,9 @@ class OAuthProviderTest extends AuthTest {
     err.code = "eyJsecret.with spaces";
     assert.strictEqual(safeErrorReason(err), "Error");
     assert.strictEqual(safeErrorReason(undefined), "Error");
+    // Numeric codes (HTTP status, errno) are kept
+    assert.strictEqual(safeErrorReason(Object.assign(new TypeError("eyJsecret"), { code: 503 })), "TypeError(503)");
+    assert.strictEqual(safeErrorReason(Object.assign(new Error("eyJsecret"), { code: NaN })), "Error");
   }
 
   @test
@@ -681,7 +759,13 @@ class OAuthProviderTest extends AuthTest {
     await assert.rejects(() => make({ ...base, client_secret: "" }), /client_secret/);
     await assert.rejects(() => make({ ...base, redirects: {} }), /redirects\.failure/);
     await assert.rejects(() => make({ ...base, authorized_uris: ["/relative"] }), /authorized_uris/);
+    await assert.rejects(() => make({ ...base, authorized_uris: [42] }), /authorized_uris/);
     await make(base);
+    // Without any authorized uri, and before resolve() defaulted the url
+    const bare = new FakeOAuthProvider("bare", new OAuthProviderParameters().load(base) as any);
+    bare.getParameters().authorized_uris = undefined;
+    await bare.init();
+    assert.deepStrictEqual(bare.getPublicInfo(), { name: "fake", type: "oauth", startUrl: "/auth/fake" });
     const origGetService = this.webda.getService.bind(this.webda);
     (this.webda as any).getService = (name: string) => (name === "Authentication" ? undefined : origGetService(name));
     try {

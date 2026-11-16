@@ -94,6 +94,14 @@ class ApplicationPackagerTest extends WebdaApplicationTest {
   }
 
   @test
+  async packageDefaultFolder() {
+    // Without output the application is packaged in dist/webda
+    await this.getPackager().package();
+    assert.ok(existsSync(join(this.appPath, "dist/webda", PACKAGED_MARKER)));
+    assert.ok(existsSync(join(this.appPath, "dist/webda", PACKAGED_CONFIGURATION)));
+  }
+
+  @test
   async configOnly() {
     const packager = this.getPackager();
     const json = await packager.package(undefined, true);

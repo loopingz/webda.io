@@ -1740,4 +1740,146 @@ class DebugServiceCollectDetailsTest {
     await svc2.startDebugServer(0);
     await svc2.stop();
   }
+
+  @test
+  async captureLimitsComeFromParameters() {
+    (this.service as any).parameters = { captureBodyLimit: 4, captureBinaryPreview: 2 };
+    const limited = await (this.service as any).collectDetails(
+      this.fakeCtx({
+        rawBody: Buffer.from("0123456789", "utf8"),
+        contentType: "text/plain",
+        responseHeaders: { "content-type": "image/png" },
+        responseBody: Buffer.from([0x89, 0x50, 0x4e, 0x47])
+      })
+    );
+    assert.strictEqual(limited.requestBody?.kind, "text-truncated");
+    assert.strictEqual(limited.requestBody?.content, "0123");
+    assert.strictEqual(limited.requestBody?.size, 10);
+    assert.strictEqual(limited.responseBody?.kind, "binary");
+    assert.strictEqual(limited.responseBody?.preview, "8950");
+
+    // Without parameters at all the defaults apply
+    (this.service as any).parameters = undefined;
+    const defaults = await (this.service as any).collectDetails(
+      this.fakeCtx({ rawBody: Buffer.from("0123456789", "utf8"), contentType: "text/plain", responseBody: "ok" })
+    );
+    assert.strictEqual(defaults.requestBody?.content, "0123456789");
+    assert.strictEqual(defaults.responseBody?.content, "ok");
+  }
+
+  @test
+  async missingBodiesAreCapturedAsEmpty() {
+    // getRawBody resolving to nothing: a request without a body
+    const viaRawBody = await (this.service as any).collectDetails({
+      getHttpContext: () => ({
+        getHeaders: () => ({}),
+        getRawBody: async () => undefined,
+        getUniqueHeader: () => undefined
+      }),
+      getResponseHeaders: () => ({}),
+      getOutput: () => "",
+      getExtension: () => undefined
+    });
+    assert.strictEqual(viaRawBody.requestBody?.kind, "empty");
+    // An empty output is an empty response body
+    assert.strictEqual(viaRawBody.responseBody?.kind, "empty");
+
+    const viaRawInput = await (this.service as any).collectDetails({
+      getHttpContext: () => ({ getHeaders: () => ({}), getUniqueHeader: () => undefined }),
+      getResponseHeaders: () => ({}),
+      getResponseBody: () => "",
+      getRawInput: async () => undefined,
+      getExtension: () => undefined
+    });
+    assert.strictEqual(viaRawInput.requestBody?.kind, "empty");
+  }
+
+  @test
+  async eventFallbacksWithoutHttpContextTimingOrStatus() {
+    for (const key of Object.keys(coreEventCallbacks)) delete coreEventCallbacks[key];
+    const service = new DebugService();
+    service.resolve();
+    try {
+      const newCtx = () => ({
+        extensions: {} as Record<string, any>,
+        setExtension(key: string, val: any) {
+          this.extensions[key] = val;
+        },
+        getExtension(key: string) {
+          return this.extensions[key];
+        }
+      });
+      // No HTTP context: method and url are placeholders
+      const ctx = newCtx();
+      coreEventCallbacks["Webda.Request"]({ context: ctx });
+      let [entry] = service.requestLog.getEntries();
+      assert.strictEqual(entry.method, "UNKNOWN");
+      assert.strictEqual(entry.url, "/");
+      // The start time is gone and the context has no status code
+      (service as any).timings.clear();
+      await coreEventCallbacks["Webda.Result"]({ context: ctx });
+      [entry] = service.requestLog.getEntries();
+      assert.strictEqual(entry.statusCode, 200);
+      assert.strictEqual(entry.duration, 0);
+
+      // A 404 while capture is disabled is still recorded, without details
+      (service as any).parameters = { captureRequests: false };
+      const missing = newCtx();
+      coreEventCallbacks["Webda.Request"]({ context: missing });
+      await coreEventCallbacks["Webda.404"]({ context: missing });
+      const notFound = service.requestLog.getEntries()[1];
+      assert.strictEqual(notFound.statusCode, 404);
+      assert.strictEqual(notFound.requestHeaders, undefined);
+    } finally {
+      await service.stop();
+    }
+  }
+
+  @test
+  async internalErrorWithoutMessageAndClosedClients() {
+    await this.service.startDebugServer(0);
+    const port = ((this.service as any).server as Server).address().port;
+    try {
+      (this.service as any).logBuffer.getEntries = () => {
+        throw new Error("");
+      };
+      const res = await fetch(`http://localhost:${port}/api/logs`, { headers: auth(this.service) });
+      assert.strictEqual(res.status, 500);
+      assert.deepStrictEqual(await res.json(), { error: "Internal server error" });
+
+      // Only open websocket clients receive broadcasts
+      const closed = { readyState: WebSocket.CLOSED, send: vi.fn() };
+      const open = { readyState: WebSocket.OPEN, send: vi.fn() };
+      (this.service as any).clients.add(closed);
+      (this.service as any).clients.add(open);
+      this.service.broadcast({ type: "restart" });
+      assert.strictEqual(closed.send.mock.calls.length, 0);
+      assert.deepStrictEqual(open.send.mock.calls, [[JSON.stringify({ type: "restart" })]]);
+      (this.service as any).clients.clear();
+    } finally {
+      await this.service.stop();
+    }
+  }
+
+  @test
+  async ipv6FailureWithoutCodeIsReportedAsIs() {
+    const service = new DebugService();
+    service.resolve();
+    const warnings: string[] = [];
+    (service as any).log = (level: string, message: string) => {
+      if (level === "WARN") warnings.push(message);
+    };
+    const origListen = (service as any).listen.bind(service);
+    (service as any).listen = async (p: number, host: string) => {
+      if (host === "::1") throw new Error("no ipv6 here");
+      return origListen(p, host);
+    };
+    await service.startDebugServer(0);
+    try {
+      assert.strictEqual(warnings.length, 1);
+      assert.match(warnings[0], /IPv6 loopback unavailable \(Error: no ipv6 here\), listening on 127\.0\.0\.1 only/);
+    } finally {
+      await service.stop();
+    }
+  }
 }

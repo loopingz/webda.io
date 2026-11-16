@@ -58,6 +58,7 @@ class ValidateAggregationTest {
       ["bad field", { metrics: { n: { fn: "SUM", field: "a;drop" } } }],
       ["unknown order key", { orderBy: [{ key: "nope", direction: "ASC" }] }],
       ["bad direction", { orderBy: [{ key: "n", direction: "UP" as any }] }],
+      ["no metrics", { metrics: undefined }],
       ["zero limit", { limit: 0 }],
       ["float limit", { limit: 1.5 }],
       ["digit group segment", { groupBy: ["tags.0"] }],

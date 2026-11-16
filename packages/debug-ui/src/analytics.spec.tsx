@@ -65,6 +65,17 @@ describe("SanitizeEventTest", () => {
     assert.deepStrictEqual(sanitizeEvent("operation_invoked", { name: "User.Create", input: "x" }), {});
     assert.deepStrictEqual(sanitizeEvent("model_graph_view"), {});
   });
+
+  it("onlyKeepsFiniteNumbersAndShortStrings", () => {
+    assert.deepStrictEqual(sanitizeEvent("debug_connected", { debug_api_version: 2 }), { debug_api_version: 2 });
+    assert.deepStrictEqual(sanitizeEvent("debug_connected", { debug_api_version: "2" }), { debug_api_version: "2" });
+    assert.deepStrictEqual(sanitizeEvent("debug_connected", { debug_api_version: NaN }), {});
+    assert.deepStrictEqual(sanitizeEvent("debug_connected", { debug_api_version: "x".repeat(65) }), {});
+    assert.deepStrictEqual(
+      sanitizeEvent("debug_connected", { debug_api_version: true } as unknown as AnalyticsParams),
+      {}
+    );
+  });
 });
 
 /**
@@ -109,6 +120,18 @@ describe("UseTrackTest", () => {
       );
     });
     assert.strictEqual(sink.mock.calls.length, 1);
+  });
+
+  it("dropsUnknownEventsBeforeTheSink", async () => {
+    const sink = vi.fn();
+    await act(async () => {
+      render(
+        <AnalyticsProvider value={sink}>
+          <Tracker event={"page_view" as AnalyticsEvent} params={{ panel: "logs" }} />
+        </AnalyticsProvider>
+      );
+    });
+    assert.deepStrictEqual(sink.mock.calls, []);
   });
 });
 

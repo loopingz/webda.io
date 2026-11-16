@@ -7,6 +7,7 @@ import * as k8s from "@kubernetes/client-node";
 import * as WebdaQL from "@webda/ql";
 import { checkAggregation, checkCount, checkCreateWithoutPrimaryKey, WebdaApplicationTest } from "@webda/core/lib/test";
 import {
+  CoreModel,
   EventRepository,
   MemoryRepository,
   ServiceParameters,
@@ -197,6 +198,11 @@ export class KubernetesStoreTest extends WebdaApplicationTest {
     assert.strictEqual(tracker.consume("a", "1"), true);
     assert.strictEqual(tracker.consume("a", "1"), false);
     assert.strictEqual(tracker.consume("a", undefined), false);
+    tracker.record("b", "2");
+    // A sweep keeps the entries not expired yet
+    (tracker as any).nextSweep = 0;
+    tracker.record("kept", "1");
+    assert.strictEqual(tracker.consume("b", "2"), true);
     tracker.record("b", "2");
     const now = Date.now();
     while (Date.now() < now + 15);
@@ -550,6 +556,106 @@ export class KubernetesStoreTest extends WebdaApplicationTest {
   }
 
   @test
+  async rootModels() {
+    const User = useModel("Webda/User");
+    class Child extends CoreModel {}
+    class Loose extends CoreModel {}
+    // Ancestors can be listed by identifier, the ones the store does not hold are skipped
+    this.registerModel(Child as any, "Test/Child", {
+      Identifier: "Test/Child",
+      Ancestors: ["Test/NotStored", "Webda/User"]
+    } as any);
+    assert.strictEqual(this.store.getRootModel(useModel("Test/Child")), User);
+    // Partial metadata: no ancestors nor subclasses
+    this.registerModel(Loose as any, "Test/Loose", {
+      Identifier: "Test/Loose",
+      Plural: "Looses",
+      PrimaryKey: ["uuid"],
+      Schemas: {}
+    } as any);
+    assert.throws(() => this.store.getRootModel(useModel("Test/Loose")), /Test\/Loose is not handled by the store k8s/);
+    const crd = this.store.getCrd(useModel("Test/Loose"));
+    assert.strictEqual(crd.metadata.name, "looses.test.webda.io");
+    assert.strictEqual(
+      crd.spec.versions[0].schema.openAPIV3Schema.properties!.spec["x-kubernetes-preserve-unknown-fields"],
+      true
+    );
+  }
+
+  @test
+  async repositoryEdgeCases() {
+    const repo = this.repository(Item, { statusFields: ["ready"], labelFields: ["name"], maxRetries: 2 });
+    // A resource created without status (e.g. with kubectl): a spec change does not write the status
+    this.api.resources.set(`${GROUP}/items/default/bare`, {
+      apiVersion: `${GROUP}/v1`,
+      kind: "Item",
+      metadata: { name: "bare", namespace: "default", resourceVersion: "1" },
+      spec: { count: 1 }
+    });
+    this.api.requests = [];
+    await repo.patch("bare", { count: 2 });
+    assert.deepStrictEqual(
+      this.api.requests.map(r => `${r.method} ${r.path.split("/").slice(-2).join("/")}`),
+      ["GET items/bare", "PUT items/bare"]
+    );
+    assert.strictEqual(this.stored("bare").spec.count, 2);
+    assert.strictEqual(this.stored("bare").status, undefined);
+
+    // An API error while reading the object to change is not a missing object
+    this.api.failures = [500];
+    await assert.rejects(
+      () => repo.patch("bare", { count: 3 }),
+      (err: any) => err.code === 500
+    );
+    // A model without metadata is named after its resources
+    await assert.rejects(
+      () => this.repository(Row).upsertItemToCollection("missing", "items", { id: "a" }),
+      (err: any) => err instanceof StoreNotFoundError && /items/.test(err.message)
+    );
+
+    // Deleted by someone else between the condition check and the delete
+    this.api.failures = [{ method: "DELETE", code: 404 }];
+    await assert.rejects(() => repo.delete("bare", "count", 2), UpdateConditionFailError);
+    // Other errors and exhausted retries are thrown
+    this.api.failures = [{ method: "DELETE", code: 500 }];
+    await assert.rejects(
+      () => repo.delete("bare"),
+      (err: any) => err.code === 500
+    );
+    this.api.failures = [
+      { method: "DELETE", code: 409 },
+      { method: "DELETE", code: 409 }
+    ];
+    await assert.rejects(
+      () => repo.delete("bare"),
+      (err: any) => err.code === 409
+    );
+    assert.strictEqual(await repo.exists("bare"), true);
+
+    // Only values valid as labels, with = or IN, are filtered by the API server
+    await repo.create({ uuid: "web", name: "web" });
+    for (const [query, selector, results] of [
+      ["name = 'not a label'", null, []],
+      ["name != 'web'", null, ["bare"]],
+      ["name IN ['not a label', 'web']", null, ["web"]],
+      ["name IN ['db', 'web']", "name in (db,web)", ["web"]]
+    ] as const) {
+      this.api.requests = [];
+      const res = await repo.query(query);
+      assert.deepStrictEqual(res.results.map(r => r.uuid).sort(), results, query);
+      assert.strictEqual(this.api.requests[0].query.get("labelSelector"), selector, query);
+    }
+    // Bound parameters
+    this.api.requests = [];
+    const res = await repo.query("name = :name", { name: "web" });
+    assert.deepStrictEqual(
+      res.results.map(r => r.uuid),
+      ["web"]
+    );
+    assert.strictEqual(this.api.requests[0].query.get("labelSelector"), "name=web");
+  }
+
+  @test
   async storeIntegration() {
     const User = useModel("Webda/User");
     const repo = this.store.getRepository(User);
@@ -588,7 +694,15 @@ export class KubernetesStoreTest extends WebdaApplicationTest {
   @test
   async clusterScope() {
     const store = await this.registerService(
-      new KubernetesStore("cluster", this.parameters({ models: ["Webda/User"], scope: "Cluster", version: "v2" }))
+      new KubernetesStore(
+        "cluster",
+        this.parameters({
+          models: ["Webda/User"],
+          scope: "Cluster",
+          version: "v2",
+          statusFields: { "Webda/User": ["_mfaAttempts"] }
+        })
+      )
     )
       .resolve()
       .init();
@@ -598,6 +712,21 @@ export class KubernetesStoreTest extends WebdaApplicationTest {
     assert.strictEqual((await repo.get("c1" as any)).email, "c1@webda.io");
     assert.strictEqual(this.api.requests.at(-1)!.path, `/apis/${GROUP}/v2/users/c1`);
     assert.strictEqual(store.getCrds()[0].spec.scope, "Cluster");
+    // List, replace and status writes are cluster wide too
+    assert.deepStrictEqual(
+      (await repo.query("")).results.map(u => u.uuid),
+      ["c1"]
+    );
+    await repo.patch("c1" as any, <any>{ email: "c1b@webda.io", _mfaAttempts: 3 });
+    assert.deepStrictEqual(
+      this.api.requests.slice(-2).map(r => `${r.method} ${r.path}`),
+      [`PUT /apis/${GROUP}/v2/users/c1`, `PUT /apis/${GROUP}/v2/users/c1/status`]
+    );
+    assert.strictEqual(this.api.resources.get(`${GROUP}/users//c1`)!.status._mfaAttempts, 3);
+    assert.deepStrictEqual(
+      store.getRbacGrants().map(g => g.namespace),
+      [undefined, undefined]
+    );
     await repo.delete("c1" as any);
     assert.strictEqual(await repo.exists("c1" as any), false);
   }
@@ -620,6 +749,13 @@ export class KubernetesStoreTest extends WebdaApplicationTest {
     // A second install replaces it
     await store.installCrds();
     assert.ok(this.api.requests.some(r => r.method === "PUT" && r.path.endsWith("/users.test.webda.io")));
+    // Only a missing definition is created
+    this.api.failures = [500];
+    await assert.rejects(
+      () => store.installCrds(),
+      (err: any) => err.code === 500
+    );
+    assert.strictEqual(this.api.requests.at(-1)!.method, "GET");
   }
 
   @test
@@ -637,12 +773,27 @@ export class KubernetesStoreTest extends WebdaApplicationTest {
       metadata: { name, annotations: { "webda.io/model": "Webda/User" } },
       spec
     });
+    // Another root model of the store
+    class Gadget extends CoreModel {}
+    this.registerModel(Gadget as any, "Test/Gadget", {
+      Identifier: "Test/Gadget",
+      Plural: "Gadgets",
+      PrimaryKey: ["uuid"],
+      Ancestors: [],
+      Subclasses: [],
+      Relations: {},
+      Schemas: { Stored: { type: "object", properties: { uuid: { type: "string" } } } }
+    } as any);
     // Known before the watch starts: no event
     await external.create(resource("before", { email: "before@webda.io" }));
     const store = await this.registerService(
       new KubernetesStore(
         "watcher",
-        this.parameters({ models: ["Webda/User"], watch: true, statusFields: { "Webda/User": ["_mfaAttempts"] } })
+        this.parameters({
+          models: ["Webda/User", "Test/Gadget"],
+          watch: true,
+          statusFields: { "Webda/User": ["_mfaAttempts"] }
+        })
       )
     )
       .resolve()
@@ -683,10 +834,38 @@ export class KubernetesStoreTest extends WebdaApplicationTest {
       ownEvents.filter(e => e.startsWith("Created") || e.startsWith("Deleted")),
       ["Created:own:own@webda.io:User", "Deleted:own"]
     );
+    // Without model, a resource holds an object of the root model
+    events.length = 0;
+    await external.create({ ...resource("untyped", { email: "untyped@webda.io" }), metadata: { name: "untyped" } });
+    await until(() => events.length === 1);
+    // An object of a model stored in other resources cannot be loaded: reported, no event
+    const warnings: string[] = [];
+    const log = store.log.bind(store);
+    (store as any).log = (level: string, ...args: any[]) => {
+      if (level === "WARN") warnings.push(args.map(String).join(" "));
+    };
+    try {
+      await external.create({
+        ...resource("misplaced", { email: "misplaced@webda.io" }),
+        metadata: { name: "misplaced", annotations: { "webda.io/model": "Test/Gadget" } }
+      });
+      await until(() => warnings.length === 1);
+    } finally {
+      (store as any).log = log;
+    }
+    assert.match(warnings[0], /Watch of Webda\/User failed.*'Test\/Gadget' does not belong to Webda\/User/);
+    await external.delete("untyped");
+    await until(() => events.length === 2);
+    assert.deepStrictEqual(events, ["Created:untyped:untyped@webda.io:User", "Deleted:untyped"]);
+    events.length = 0;
+    events.push("Deleted:ext");
     await store.stop();
     // Watcher error callbacks (watcher.ts lines 116, 132 and kubernetesstore.service.ts line 280)
     await store.startWatchers();
     const w0 = (store as any).watchers[0];
+    // Already watching
+    await store.startWatchers();
+    assert.strictEqual((store as any).watchers[0], w0);
     const origReposOf = w0.repositoriesOf.bind(w0);
     w0.repositoriesOf = () => {
       throw new Error("w0 error");

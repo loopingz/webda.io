@@ -194,6 +194,7 @@ class RegistrationTest extends OAuthTest {
       [{ redirect_uris: ok, client_uri: "http://client.example.com" }, "invalid_client_metadata"],
       [{ redirect_uris: ok, logo_uri: "javascript:alert(1)" }, "invalid_client_metadata"],
       [{ redirect_uris: ok, client_name: "x".repeat(101) }, "invalid_client_metadata"],
+      [{ redirect_uris: ok, scope: ["Task.*"] }, "invalid_client_metadata"],
       [{ redirect_uris: [] }, "invalid_redirect_uri"],
       [{}, "invalid_redirect_uri"],
       [{ redirect_uris: ["http://evil.example/cb"] }, "invalid_redirect_uri"],
@@ -215,6 +216,22 @@ class RegistrationTest extends OAuthTest {
   }
 
   @test
+  async registrationWithoutClientAddressOrKnownScope() {
+    const http = new HttpContext("test.webda.io", "POST", "/oauth/register", "http", 80, {
+      "content-type": "application/json"
+    });
+    http.setBody(JSON.stringify({ redirect_uris: [LOOPBACK], scope: "bogus other" }));
+    const call = await this.newWebContext<WebContext>(http);
+    await runWithContext(call, () => useRouter().execute(call));
+    assert.strictEqual(call.statusCode, 201);
+    const body = JSON.parse(call.getResponseBody()!.toString());
+    // No requested scope is advertised by the server: none is registered
+    assert.ok(!("scope" in body), JSON.stringify(body));
+    assert.strictEqual((await OAuthRegisteredClient.ref(body.client_id).get()).ip, "unknown");
+    assert.deepStrictEqual([...useService<any>("OAuthServer").registrationRequests.keys()], ["ip:unknown"]);
+  }
+
+  @test
   async registrationPatterns() {
     (useService<any>("OAuthServer").getParameters() as any).registrationRedirectPatterns = ["http://127.0.0.1/*"];
     const bad = await this.register({ redirect_uris: ["https://evil.example/cb"] });
@@ -224,6 +241,11 @@ class RegistrationTest extends OAuthTest {
     assert.strictEqual((await this.register({ redirect_uris: ["http://127.0.0.1/cb"] })).status, 201);
     // Loopback: any port
     assert.strictEqual((await this.register({ redirect_uris: ["http://127.0.0.1:5555/callback"] })).status, 201);
+    // A private-use scheme without authority is matched as a whole
+    const params = useService<any>("OAuthServer").getParameters() as any;
+    params.registrationRedirectPatterns = ["com.example.app:/oauth/*"];
+    assert.strictEqual((await this.register({ redirect_uris: ["com.example.app:/oauth/callback"] })).status, 201);
+    assert.strictEqual((await this.register({ redirect_uris: ["com.example.other:/oauth/callback"] })).status, 400);
   }
 
   @test

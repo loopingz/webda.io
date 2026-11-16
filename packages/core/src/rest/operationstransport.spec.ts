@@ -7,6 +7,7 @@ import { Session } from "../session/session.js";
 import { useService } from "../core/hooks.js";
 import { useApplication, useModel } from "../application/hooks.js";
 import { registerOperation } from "../core/operations.js";
+import { useInstanceStorage } from "../core/instancestorage.js";
 import { HttpServer } from "../services/httpserver.service.js";
 import { OperationIdTransport } from "./operationstransport.service.js";
 
@@ -177,6 +178,33 @@ class OperationsTransportTest extends WebdaApplicationTest {
     assert.strictEqual(all.body.operations["Scoped.ClientStream"], undefined);
     for (const id of ["Scoped.Hidden", "Scoped.ClientStream"]) {
       assert.strictEqual((await this.http("POST", `/operations/${id}`, {}, { bearerScopes: ["*"] })).status, 404);
+    }
+  }
+
+  @test
+  async listDescribesOutputDestructiveAndStreaming() {
+    registerOperation("Scoped.Described", {
+      service: "Scoped",
+      method: "echo",
+      input: "Scoped.Echo",
+      output: "Scoped.Echo",
+      mcp: { destructive: true },
+      streaming: "server"
+    } as any);
+    try {
+      const { body } = await this.http("GET", "/operations", undefined, { bearerScopes: ["*"] });
+      const schema = useApplication<any>().getSchemas()["Scoped.Echo"];
+      assert.deepStrictEqual(body.operations["Scoped.Described"], {
+        id: "Scoped.Described",
+        input: schema,
+        output: schema,
+        destructive: true,
+        streaming: "server"
+      });
+      // Nothing of it on a plain operation
+      assert.deepStrictEqual(body.operations["Scoped.Read"], { id: "Scoped.Read" });
+    } finally {
+      delete useInstanceStorage().operations["Scoped.Described"];
     }
   }
 

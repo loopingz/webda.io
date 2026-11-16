@@ -61,4 +61,33 @@ class InlineSchemaTest {
     const out = inlineSchema({ type: "object", properties: { x: { $ref: "#/definitions/50%" } } }, () => undefined);
     assert.deepStrictEqual(out.properties.x, {});
   }
+
+  @test
+  resolvesBareRefNames() {
+    // A ref without a `#/definitions/` like prefix is looked up as written
+    const out = inlineSchema({ type: "object", properties: { post: { $ref: "WebdaSample%2FPost" } } }, name =>
+      name === "WebdaSample%2FPost" ? { type: "string" } : undefined
+    );
+    assert.deepStrictEqual(out.properties.post, { type: "string" });
+  }
+
+  @test
+  inlinesDefinitionsOfResolvedSchemas() {
+    for (const key of ["definitions", "$defs"]) {
+      const out = inlineSchema({ type: "object", properties: { post: { $ref: "#/definitions/Post" } } }, name =>
+        name === "Post"
+          ? {
+              type: "object",
+              properties: { author: { $ref: `#/${key}/Author` } },
+              [key]: { Author: { type: "object", properties: { name: { type: "string" } } } }
+            }
+          : undefined
+      );
+      assert.deepStrictEqual(
+        out.properties.post.properties.author,
+        { type: "object", properties: { name: { type: "string" } } },
+        key
+      );
+    }
+  }
 }

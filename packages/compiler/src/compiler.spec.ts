@@ -972,4 +972,70 @@ class CompilerTest {
       rmSync(dir, { recursive: true, force: true });
     }
   }
+
+  @test
+  unnamedProjectAndTsconfigWithoutInclude() {
+    const dir = mkdtempSync(path.join(tmpdir(), "webdac-unnamed-"));
+    try {
+      // No package name: the default namespace applies
+      writeFileSync(path.join(dir, "package.json"), JSON.stringify({ version: "1.0.0" }));
+      // No `include`: every file of the project takes part in the digest
+      writeFileSync(path.join(dir, "tsconfig.json"), JSON.stringify({ compilerOptions: {} }));
+      const project = new WebdaProject(dir);
+      assert.strictEqual(project.namespace, "Webda");
+      const digest = project.getDigest();
+      assert.strictEqual(project.getDigest(), digest);
+      writeFileSync(path.join(dir, "anywhere.ts"), "export const a = 1;");
+      assert.notStrictEqual(project.getDigest(), digest);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
+  @test
+  buildEmitOnlyAndSilentWorkerFailure() {
+    const dir = mkdtempSync(path.join(tmpdir(), "webdac-emit-only-"));
+    const prevWorker = process.env.WEBDA_SCHEMA_WORKER;
+    try {
+      // The worker echoes the kinds of the requests it received as the emit report
+      const workerScript = path.join(dir, "mock-worker.mjs");
+      writeFileSync(
+        workerScript,
+        `let input = "";
+process.stdin.on("data", d => (input += d));
+process.stdin.on("end", () => {
+  const { requests } = JSON.parse(input);
+  process.stdout.write(
+    JSON.stringify({
+      results: {
+        emit: { diagnosticCount: 0, diagnostics: "", written: 0, editCounts: {}, kinds: requests.map(r => r.kind) },
+        module: requests.length > 1 ? { module: {}, namingViolations: [], errors: [] } : undefined
+      }
+    })
+  );
+});`
+      );
+      process.env.WEBDA_SCHEMA_WORKER = workerScript;
+      const emitOnly = build(dir, { emitOnly: true });
+      assert.deepStrictEqual((emitOnly.emit as any).kinds, ["emit"]);
+      assert.strictEqual(emitOnly.module, undefined);
+      const full = build(dir);
+      assert.deepStrictEqual((full.emit as any).kinds, ["emit", "module"]);
+      assert.ok(full.module);
+
+      // A worker dying without a word on stderr still reports its exit status
+      writeFileSync(workerScript, `process.exit(3);`);
+      assert.throws(
+        () => build(dir),
+        (err: Error) => err.message === "Build worker failed (3): "
+      );
+    } finally {
+      if (prevWorker === undefined) {
+        delete process.env.WEBDA_SCHEMA_WORKER;
+      } else {
+        process.env.WEBDA_SCHEMA_WORKER = prevWorker;
+      }
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
 }

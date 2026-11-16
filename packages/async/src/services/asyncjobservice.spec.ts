@@ -659,6 +659,22 @@ class AsyncJobServiceTest extends AsyncTest {
       await action.refresh();
       assert.strictEqual(action.status, "SUCCESS");
       assert.deepStrictEqual(action.results, { myMethod: "async", success: true, args: ["plop", 666] });
+      // An action stored without arguments calls the method without any
+      await action.patch({
+        uuid: action.uuid,
+        status: "RUNNING",
+        errorMessage: ""
+      });
+      stub.resetHistory();
+      stub.onCall(0).returns({
+        // @ts-ignore
+        serviceName: "mine",
+        method: "myMethod"
+      });
+      await service.runAsyncOperationAction();
+      await action.refresh();
+      assert.strictEqual(action.status, "SUCCESS");
+      assert.deepStrictEqual(action.results, { myMethod: "async", success: true, args: [] });
       const fail = sinon.stub(useCore().getServices()["mine"] as any, "myMethod");
       for (const error of [new Error("execution failed"), "non-error failure"]) {
         stub.resetHistory();
@@ -951,6 +967,46 @@ class AsyncJobServiceTest extends AsyncTest {
       }
     } finally {
       unregisterOperationAuthorizer(authorizer as any);
+      delete useCore().getServices()["async"];
+    }
+  }
+
+  @test
+  async operationsWithoutInputOrDefinition() {
+    const service = await this.addService(
+      AsyncJobService,
+      { type: "Webda/AsyncJobService", queue: "AsyncQueue", runners: ["LocalRunner"] },
+      "async"
+    );
+    try {
+      // An empty definition gets a default application and registers nothing
+      service.registerOperations(<any>{});
+      // @ts-ignore
+      assert.deepStrictEqual(service.operations, {
+        application: { name: "Unknown", version: "0.0.0" },
+        operations: {},
+        schemas: {}
+      });
+      // Operations without input, or with a void one, need no schema
+      service.registerOperations(<any>{
+        operations: {
+          "Async.NoInput": { id: "Async.NoInput" },
+          "Async.VoidInput": { id: "Async.VoidInput", input: "void", output: "void" }
+        }
+      });
+      const context = await this.newContext();
+      context.getParameters().full = true;
+      await service.listOperations(context);
+      const res = JSON.parse(context.getOutput());
+      assert.deepStrictEqual(Object.keys(res.operations).sort(), ["Async.NoInput", "Async.VoidInput"]);
+      assert.deepStrictEqual(res.schemas, {});
+      // No input is read nor validated for them
+      const getInput = sinon.stub(context, "getInput").rejects(new Error("input should not be read"));
+      await service.checkOperation(context, "Async.NoInput");
+      await service.checkOperation(context, "Async.VoidInput");
+      assert.strictEqual(getInput.callCount, 0);
+    } finally {
+      sinon.restore();
       delete useCore().getServices()["async"];
     }
   }

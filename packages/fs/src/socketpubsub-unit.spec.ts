@@ -350,6 +350,46 @@ class SocketPubSubUnitTest {
   }
 
   @test
+  frameSplitAcrossChunks() {
+    const frames: string[] = [];
+    const reader = makeFrameReader(b => frames.push(b.toString()));
+    const frame = Buffer.allocUnsafe(9);
+    frame.writeUInt32BE(5, 0);
+    frame.write("hello", 4);
+    // Header complete but payload still partial: nothing is emitted yet
+    reader(frame.subarray(0, 6));
+    assert.deepStrictEqual(frames, []);
+    reader(frame.subarray(6));
+    assert.deepStrictEqual(frames, ["hello"]);
+  }
+
+  @test
+  async brokerCreatesMissingSocketFolder() {
+    this.socketPath = join(this.tmpDir, "nested", "deeper", "channel.sock");
+    await this.makePeer("broker");
+    assert.ok(existsSync(this.socketPath), "broker should create the folder and the socket file");
+  }
+
+  @test
+  async noReconnectOnceStopped() {
+    const params = new SocketPubSubParameters().load({ path: this.socketPath, reconnectDelay: 10 });
+    const svc = new SocketPubSubService("stopped", params);
+    let connects = 0;
+    (svc as any).connect = async () => {
+      connects++;
+    };
+    // Stopped while a reconnect is scheduled: it is not attempted
+    (svc as any).handleBrokerDisconnect();
+    await svc.stop();
+    await new Promise(r => setTimeout(r, 150));
+    assert.strictEqual(connects, 0);
+    // Nor scheduled at all after the stop
+    (svc as any).handleBrokerDisconnect();
+    await new Promise(r => setTimeout(r, 150));
+    assert.strictEqual(connects, 0);
+  }
+
+  @test
   async connectEdgeCasesAndInvalidJsonFrame() {
     const params = new SocketPubSubParameters().load({ path: this.socketPath, reconnectDelay: 50 });
     const svc = new SocketPubSubService("edge", params);

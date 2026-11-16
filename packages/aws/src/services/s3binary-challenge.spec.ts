@@ -200,6 +200,26 @@ class S3BinaryChallengeTest extends WebdaApplicationTest {
       `attachment; filename="l'_t_.png"; filename*=UTF-8''l%27%C3%A9t%C3%A9.png`
     );
     assert.strictEqual(params.ResponseContentType, "image/png");
+    // Without name, the original file name is used
+    await this.binary.getSignedUrlFromMap(
+      { hash: "h", originalname: "original.png", mimetype: "image/png" } as any,
+      30,
+      undefined as any
+    );
+    assert.strictEqual(
+      (this.binary.getSignedUrl as any).mock.calls.at(-1)[2].ResponseContentDisposition,
+      `attachment; filename="original.png"; filename*=UTF-8''original.png`
+    );
+  }
+
+  /**
+   * Cleaning a hash without any object left deletes nothing
+   */
+  @test
+  async cleanHashWithoutObjects() {
+    this.mock.on(ListObjectsV2Command).resolves({});
+    await this.binary._cleanHash("abc");
+    assert.deepStrictEqual(this.deleted, []);
   }
 
   async afterEach() {

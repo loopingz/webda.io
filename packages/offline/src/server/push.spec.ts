@@ -776,6 +776,105 @@ class PushTest extends SyncTest {
   }
 
   @test
+  async objectsWrittenBeforeSyncHaveRevisionZero() {
+    // Written before sync was enabled: bypass the repository events
+    const inner: any = (useRepository(Note) as any).repository;
+    const legacy: any = await inner.create({ title: "old" });
+    const ref = { model: "Test/Note", key: legacy.uuid };
+    // A stale base revision conflicts with the stored object, reported at revision 0
+    const [stale] = await this.push([
+      { mutationId: "m1", ref, baseRev: 3, op: "patch", patch: diff({ title: "old" }, { title: "new" }) }
+    ]);
+    assert.strictEqual(stale.status, "conflict");
+    assert.strictEqual(stale.rev, 0);
+    assert.strictEqual(stale.object.title, "old");
+    // A failing delete that changed nothing is internal: the object is still at revision 0
+    const restore = this.raceOn("delete", async () => {});
+    try {
+      const [res] = await this.push([{ mutationId: "m2", ref, baseRev: 0, op: "delete" }]);
+      assert.strictEqual(res.status, "rejected");
+      assert.strictEqual(res.error.code, "INTERNAL");
+      assert.strictEqual(await Note.ref(legacy.uuid).exists(), true);
+    } finally {
+      restore();
+    }
+    // A plain write outside of Sync.Push starts counting from 0
+    await Note.ref(legacy.uuid).patch({ title: "patched" } as any);
+    assert.strictEqual((await Note.ref(legacy.uuid).get())._rev, 1);
+  }
+
+  @test
+  async replayOnAnObjectWithoutRevision() {
+    const uuid = "99999999-9999-4999-8999-999999999999";
+    const m = {
+      mutationId: "m1",
+      ref: { model: "Test/Note", key: uuid },
+      baseRev: 0,
+      op: "create",
+      patch: { title: "a" }
+    };
+    assert.strictEqual((await this.push([m]))[0].rev, 1);
+    // The object was replaced by a writer bypassing the repository events: it has no revision anymore
+    const inner: any = (useRepository(Note) as any).repository;
+    await inner.delete(uuid);
+    await inner.create({ uuid, title: "restored" });
+    const [replay] = await this.push([m]);
+    assert.strictEqual(replay.status, "ok");
+    assert.strictEqual(replay.rev, 0);
+    assert.strictEqual(replay.object.title, "restored");
+  }
+
+  @test
+  async objectGoneRightAfterTheWrite() {
+    const note = await Note.create({ title: "a" } as any);
+    const service: any = this.sync;
+    const load = service.load.bind(service);
+    let calls = 0;
+    // Deleted by another writer between the patch and the reload of the result
+    const spy = vi
+      .spyOn(service, "load")
+      .mockImplementation((...args: any[]) => (++calls > 1 ? undefined : load(...args)));
+    try {
+      const [res] = await this.push([
+        {
+          mutationId: "m1",
+          ref: { model: "Test/Note", key: note.uuid },
+          baseRev: 1,
+          op: "patch",
+          patch: diff(note.toDTO(), { ...note.toDTO(), title: "b" })
+        }
+      ]);
+      assert.strictEqual(res.status, "ok");
+      assert.strictEqual(res.rev, 0);
+      assert.strictEqual(res.object, undefined);
+    } finally {
+      spy.mockRestore();
+    }
+    assert.strictEqual((await Note.ref(note.uuid).get()).title, "b");
+  }
+
+  @test
+  async modelsWithoutDeclaredPrimaryKeyUseTheUuid() {
+    const declared = Object.getOwnPropertyDescriptor(Tag, "Metadata");
+    const metadata: any = (Tag as any).Metadata;
+    try {
+      for (const [i, primaryKey] of [undefined, []].entries()) {
+        Object.defineProperty(Tag, "Metadata", { value: { ...metadata, PrimaryKey: primaryKey }, configurable: true });
+        const uuid = `aaaaaaaa-aaaa-4aaa-8aaa-00000000000${i}`;
+        const [res] = await this.push([
+          { mutationId: `m${i}`, ref: { model: "Test/Tag", key: uuid }, baseRev: 0, op: "create", patch: { name: "t" } }
+        ]);
+        assert.strictEqual(res.status, "ok");
+        assert.strictEqual(res.object.uuid, uuid);
+        assert.strictEqual((await Tag.ref(uuid).get()).name, "t");
+      }
+    } finally {
+      if (declared) Object.defineProperty(Tag, "Metadata", declared);
+      else delete (Tag as any).Metadata;
+    }
+  }
+
+  @test
   async pushLimitIsMaxMutations() {
     const mutation = (i: number) => ({
       mutationId: `m${i}`,

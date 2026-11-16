@@ -72,6 +72,19 @@ describe("PasskeyKeyProvider", () => {
     );
   });
 
+  it("accepts a PRF result returned as an ArrayBuffer", async () => {
+    stubGet({ prf: { results: { first: PRF } } });
+    const fromView = await provider().unlock();
+    stubGet({ prf: { results: { first: PRF.buffer.slice(0) } } });
+    const fromBuffer = await provider().unlock();
+    const data = await dummy();
+    const wrapped = await crypto.subtle.wrapKey("raw", data, fromView, "AES-KW");
+    const back = await crypto.subtle.unwrapKey("raw", wrapped, fromBuffer, "AES-KW", "AES-GCM", true, ["encrypt"]);
+    expect(new Uint8Array(await crypto.subtle.exportKey("raw", back))).toEqual(
+      new Uint8Array(await crypto.subtle.exportKey("raw", data))
+    );
+  });
+
   it("derives a different key for a different label", async () => {
     stubGet({ prf: { results: { first: PRF } } });
     const k1 = await provider().unlock();

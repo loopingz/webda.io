@@ -107,6 +107,11 @@ let mockProjectInfo: Record<string, any> | undefined = {
   git: { branch: "main" }
 };
 
+let mockGetModelStore: (model: any) => any = () => ({
+  getName: () => "Store",
+  constructor: { name: "MemoryStore" }
+});
+
 // ---------------------------------------------------------------------------
 // Mocks
 // ---------------------------------------------------------------------------
@@ -123,10 +128,7 @@ vi.mock("@webda/core", () => ({
   }),
   useCore: () => ({
     getServices: () => mockServices,
-    getModelStore: () => ({
-      getName: () => "Store",
-      constructor: { name: "MemoryStore" }
-    }),
+    getModelStore: (model: any) => mockGetModelStore(model),
     getService: (name: string) => {
       if (name === "DomainService")
         return {
@@ -482,5 +484,182 @@ class GetAppInfoTest {
     const info = getAppInfo();
     assert.deepStrictEqual(info.package, mockPackageDescription);
     assert.strictEqual(info.workingDirectory, process.cwd());
+  }
+}
+
+/**
+ * Run a check with extra entries in one of the mock registries, removing them afterwards
+ * @param registry - the mock registry to extend
+ * @param extra - the entries to add
+ * @param check - the assertions
+ */
+function withExtra(registry: Record<string, any>, extra: Record<string, any>, check: () => void) {
+  Object.assign(registry, extra);
+  try {
+    check();
+  } finally {
+    for (const key of Object.keys(extra)) delete registry[key];
+  }
+}
+
+@suite
+class IntrospectionFallbacksTest {
+  @test
+  modelWithoutMetadataOrStoreFallsBackToItsKey() {
+    const previous = mockGetModelStore;
+    mockGetModelStore = model => (model === mockModelClass ? previous(model) : undefined);
+    try {
+      withExtra(mockModels, { "MyApp/Bare": { name: "Bare" } }, () => {
+        const bare = getModel("MyApp/Bare")!;
+        assert.strictEqual(bare.plural, "MyApp/Bare");
+        assert.deepStrictEqual(bare.actions, []);
+        assert.deepStrictEqual(bare.relations, {});
+        assert.strictEqual(bare.store, undefined);
+        assert.strictEqual(bare.storeType, undefined);
+        assert.strictEqual(bare.metadata, undefined);
+        // The other models keep their store
+        assert.strictEqual(getModel("MyApp/Task")!.store, "Store");
+      });
+    } finally {
+      mockGetModelStore = previous;
+    }
+  }
+
+  @test
+  serviceWithoutTypeOrMetrics() {
+    const base = { getState: () => "running", getCapabilities: () => ({}) };
+    withExtra(
+      mockServices,
+      {
+        Untyped: { ...base, parameters: {} },
+        NoParameters: { ...base, metrics: "none" },
+        Partial: {
+          ...base,
+          parameters: { type: "Custom" },
+          metrics: {
+            empty: null,
+            scalar: 12,
+            // No hashMap, label names or constructor name: a metric that never recorded anything
+            bare: { name: "bare_total", help: "Bare", constructor: undefined }
+          }
+        }
+      },
+      () => {
+        const services = getServices();
+        const untyped = services.find(s => s.name === "Untyped")!;
+        assert.strictEqual(untyped.type, "unknown");
+        assert.strictEqual((untyped as any).metrics, undefined);
+        const noParameters = services.find(s => s.name === "NoParameters")!;
+        assert.strictEqual(noParameters.type, "unknown");
+        assert.strictEqual((noParameters as any).metrics, undefined);
+        const partial = services.find(s => s.name === "Partial")!;
+        assert.strictEqual(partial.type, "Custom");
+        assert.deepStrictEqual((partial as any).metrics, [
+          { name: "bare", fullName: "bare_total", help: "Bare", type: "unknown", labelNames: [], values: [] }
+        ]);
+      }
+    );
+  }
+
+  @test
+  routesWithoutOpenapiOrOperationIdAreIgnored() {
+    withExtra(
+      mockRoutes,
+      {
+        "/raw": [
+          { methods: ["GET"], executor: "Custom" },
+          { methods: ["POST"], executor: "Custom", openapi: { post: { summary: "No operation" }, get: null } }
+        ]
+      },
+      () => {
+        const ops = getOperations();
+        assert.strictEqual(ops.length, 5);
+        assert.ok(ops.every(o => o.rest?.url !== "/raw"));
+      }
+    );
+  }
+
+  @test
+  keepsTheDeclaredRestDefinition() {
+    withExtra(
+      mockRoutes,
+      { "/declared": [{ methods: ["PUT"], executor: "X", openapi: { put: { operationId: "Task.Declared" } } }] },
+      () => {
+        withExtra(
+          mockOperations,
+          { "Task.Declared": { input: "void", output: "void", rest: { method: "post", summary: "Declared" } } },
+          () => {
+            const declared = getOperations().find(o => o.id === "Task.Declared")!;
+            assert.deepStrictEqual(declared.rest, { method: "post", summary: "Declared", url: "/declared" });
+            // Neither a service nor a model implements it
+            assert.strictEqual(declared.implementor, undefined);
+          }
+        );
+      }
+    );
+  }
+
+  @test
+  implementorFallbacks() {
+    const oneLiner = () => 1;
+    const blankLines = Object.assign(() => 2, { toString: () => "() =>\n\n  " });
+    const named = { name: "Named", prototype: { run: oneLiner } };
+    const anonymous = { prototype: { run: blankLines } };
+    withExtra(mockModels, { "MyApp/Static": { name: "Static", staticMethod: oneLiner, notAMethod: 12 } }, () => {
+      withExtra(
+        mockOperations,
+        {
+          "Op.UnknownService": { input: "void", output: "void", service: "Missing", method: "run" },
+          "Op.NoMethod": { input: "void", output: "void", service: "DomainService" },
+          "Op.UnknownMethod": { input: "void", output: "void", service: "DomainService", method: "missing" },
+          "Op.NamedModel": {
+            input: "void",
+            output: "void",
+            service: "DomainService",
+            method: "modelAction",
+            context: { action: { name: "run" }, model: named }
+          },
+          "Op.AnonymousModel": {
+            input: "void",
+            output: "void",
+            service: "DomainService",
+            method: "modelAction",
+            context: { action: { name: "run" }, model: anonymous }
+          },
+          "Op.Static": { input: "void", output: "void", model: "MyApp/Static", method: "staticMethod" },
+          "Op.NotAMethod": { input: "void", output: "void", model: "MyApp/Static", method: "notAMethod" },
+          "Op.UnknownModel": { input: "void", output: "void", model: "MyApp/Missing", method: "run" },
+          "Op.ModelNoMethod": { input: "void", output: "void", model: "MyApp/Static" }
+        },
+        () => {
+          const ops = Object.fromEntries(getOperations().map(o => [o.id, o.implementor]));
+          assert.deepStrictEqual(ops["Op.UnknownService"], { type: "service", name: "Missing" });
+          assert.deepStrictEqual(ops["Op.NoMethod"], { type: "service", name: "DomainService" });
+          assert.deepStrictEqual(ops["Op.UnknownMethod"], { type: "service", name: "DomainService" });
+          // The model class name, then the service name, stand in for a missing identifier
+          assert.deepStrictEqual(ops["Op.NamedModel"], {
+            type: "model",
+            name: "Named",
+            method: "run",
+            code: "() => 1"
+          });
+          assert.deepStrictEqual(ops["Op.AnonymousModel"], {
+            type: "model",
+            name: "DomainService",
+            method: "run",
+            code: "() =>\n\n  "
+          });
+          assert.deepStrictEqual(ops["Op.Static"], {
+            type: "model",
+            name: "MyApp/Static",
+            method: "staticMethod",
+            code: "() => 1"
+          });
+          assert.deepStrictEqual(ops["Op.NotAMethod"], { type: "model", name: "MyApp/Static" });
+          assert.deepStrictEqual(ops["Op.UnknownModel"], { type: "model", name: "MyApp/Missing" });
+          assert.deepStrictEqual(ops["Op.ModelNoMethod"], { type: "model", name: "MyApp/Static" });
+        }
+      );
+    });
   }
 }

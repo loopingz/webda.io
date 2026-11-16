@@ -55,6 +55,25 @@ class DeploymentVariablesTest extends WebdaAsyncStorageTest {
   }
 
   @test
+  variablesOfAnApplicationWithoutProject() {
+    delete process.env.GIT_INFO;
+    setApplication({
+      getCurrentDeployment: () => undefined,
+      getConfiguration: () => ({}),
+      getProjectInfo: () => undefined
+    } as any);
+    const variables = getDeploymentVariables();
+    assert.strictEqual(variables.deployment, "");
+    assert.deepStrictEqual(variables.deployer, { name: "", type: undefined });
+    assert.deepStrictEqual(variables.resources, {});
+    assert.deepStrictEqual(variables.package, {});
+    assert.deepStrictEqual(variables.webda, {});
+    // Without GIT_INFO nor application path, the repository of the current folder is read
+    assert.strictEqual(typeof variables.git.commit, "string");
+    assert.strictEqual(getDeploymentVariables().git, variables.git);
+  }
+
+  @test
   resolve() {
     const deployer = { getName: () => "Stack", getParameters: () => ({}) };
     const variables = getDeploymentVariables(deployer);
@@ -96,5 +115,16 @@ class RunCommandTest {
       (err: any) => err.status === 3 && err.output === "out\n" && err.error === "err\n"
     );
     assert.deepStrictEqual(await runCommand("exit 2", { resolveOnError: true }), { status: 2, output: "", error: "" });
+  }
+
+  @test
+  async killedCommandIsAFailure() {
+    // A command ended by a signal has no exit code
+    const result = await runCommand("kill -9 $$", { resolveOnError: true });
+    assert.strictEqual(result.status, 1);
+    await assert.rejects(
+      () => runCommand("kill -9 $$"),
+      (err: any) => err.status === 1
+    );
   }
 }

@@ -421,6 +421,175 @@ class RevokeTest extends OAuthTest {
   }
 
   @test
+  async storeFailuresAreNotTakenForLostRaces() {
+    const server = useService<any>("OAuthServer");
+    const now = Date.now();
+    const down = async () => {
+      throw new Error("store down");
+    };
+    const staleRead = (model: any, stale: any) => {
+      const iterate = model.iterate.bind(model);
+      vi.spyOn(model, "iterate").mockImplementation(((q: string, p: any) =>
+        q === "expiresAt < ?"
+          ? (async function* read() {
+              yield stale;
+            })()
+          : iterate(q, p)) as any);
+    };
+    try {
+      // Sweep of an expired grant: the failure surfaces while the grant is still there
+      const grant: any = { uuid: "u1:app", expiresAt: now - 1000 };
+      grant.ref = () => ({ delete: down, exists: async () => true });
+      staleRead(OAuthGrant, grant);
+      await assert.rejects(() => server.sweep(), /store down/);
+      // ... and is ignored once the grant is gone
+      grant.ref = () => ({ delete: down, exists: async () => false });
+      assert.strictEqual(await server.sweep(), 0);
+      vi.restoreAllMocks();
+
+      // Sweep of an expired registered client
+      const client: any = { uuid: "dcr_down", expiresAt: now - 1000 };
+      client.ref = () => ({ delete: down, exists: async () => true });
+      staleRead(OAuthRegisteredClient, client);
+      await assert.rejects(() => server.sweep(), /store down/);
+      client.ref = () => ({ delete: down, exists: async () => false });
+      assert.strictEqual(await server.sweep(), 0);
+      vi.restoreAllMocks();
+
+      // Use of a registered client that still exists
+      vi.spyOn(OAuthRegisteredClient, "ref").mockReturnValue({ patch: down, exists: async () => true } as any);
+      await assert.rejects(() => server.touchRegisteredClient("dcr_down"), /store down/);
+      vi.restoreAllMocks();
+
+      // Decision on a device code
+      const device = { clientId: "app", expiresAt: now + 60_000 };
+      const deviceRef = { get: async () => device, patch: down, exists: async () => true };
+      vi.spyOn(OAuthDeviceCode, "ref").mockReturnValue(deviceRef as any);
+      await assert.rejects(
+        () => server.decideDevice({ userCode: "DDDDDDDD", clientId: "app" }, { status: "denied" }),
+        /store down/
+      );
+      // Deleted between the read and the decision
+      let reads = 0;
+      deviceRef.exists = async () => reads++ === 0;
+      assert.strictEqual(
+        await server.decideDevice({ userCode: "DDDDDDDD", clientId: "app" }, { status: "denied" }),
+        false
+      );
+      vi.restoreAllMocks();
+
+      // Exchange of an authorization code: marking it used fails
+      vi.spyOn(OAuthCode, "ref").mockReturnValue({
+        get: async () => ({}),
+        patch: down,
+        exists: async () => true
+      } as any);
+      await assert.rejects(
+        () => server.exchangeCode({ code: "c", code_verifier: "v", client_id: "app", redirect_uri: "http://a/b" }),
+        /store down/
+      );
+      vi.restoreAllMocks();
+
+      // ... or recording the issued family fails
+      const flow = await this.consentFlow({ scope: "Task.*", operations: ["Task.Get"] });
+      const ref = OAuthCode.ref.bind(OAuthCode);
+      vi.spyOn(OAuthCode, "ref").mockImplementation(((key: any) => {
+        const real: any = ref(key);
+        return {
+          exists: () => real.exists(),
+          get: () => real.get(),
+          patch: (data: any, field?: any, cond?: any) => (field === "reusedAt" ? down() : real.patch(data, field, cond))
+        };
+      }) as any);
+      await assert.rejects(
+        () =>
+          server.exchangeCode({
+            code: flow.code,
+            code_verifier: flow.verifier,
+            client_id: "app",
+            redirect_uri: flow.redirectUri
+          }),
+        /store down/
+      );
+    } finally {
+      vi.restoreAllMocks();
+    }
+  }
+
+  @test
+  async deviceDecisionNeedsAPendingCodeOfTheClient() {
+    const server = useService<any>("OAuthServer");
+    const now = Date.now();
+    const identity = { userId: "u1", amr: [], mfa: "none" };
+    // Unknown code, of a client that is gone too: named after its id
+    assert.strictEqual(await server.familyName({ clientId: "ghost", hostname: "box" }), "ghost on box");
+    await assert.rejects(
+      () => server.approveDevice({ userCode: "ZZZZZZZZ", clientId: "ghost" }, identity, ["Task.Get"]),
+      /The device authorization is no longer pending/
+    );
+    await OAuthDeviceCode.create({
+      userCode: "HHHHHHHH",
+      secretHash: "s",
+      clientId: "webda-cli",
+      requestedScope: "Task.*",
+      status: "pending",
+      expiresAt: now + 60_000,
+      interval: 5
+    } as any);
+    // Code of another client
+    assert.strictEqual(
+      await server.decideDevice({ userCode: "HHHHHHHH", clientId: "app" }, { status: "denied" }),
+      false
+    );
+    // Expired code
+    await OAuthDeviceCode.ref("HHHHHHHH").patch({ expiresAt: now - 1 } as any);
+    assert.strictEqual(
+      await server.decideDevice({ userCode: "HHHHHHHH", clientId: "webda-cli" }, { status: "denied" }),
+      false
+    );
+    assert.strictEqual((await OAuthDeviceCode.ref("HHHHHHHH").get()).status, "pending");
+    await OAuthDeviceCode.ref("HHHHHHHH").delete();
+  }
+
+  @test
+  async expiredRememberedConsentIsReplaced() {
+    const server = useService<any>("OAuthServer");
+    const now = Date.now();
+    await OAuthGrant.create({
+      uuid: "u1:app",
+      userId: "u1",
+      clientId: "app",
+      scope: "Task.Update",
+      createdAt: now - 2000,
+      lastUsedAt: now - 2000,
+      expiresAt: now - 1000
+    } as any);
+    await server.remember("u1", "app", ["Task.Get"]);
+    const grant = await OAuthGrant.ref("u1:app").get();
+    // The expired scope is not carried over
+    assert.strictEqual(grant.scope, "Task.Get");
+    assert.ok(grant.expiresAt > now);
+    // A still valid one is extended
+    await server.remember("u1", "app", ["Task.Update"]);
+    assert.strictEqual((await OAuthGrant.ref("u1:app").get()).scope, "Task.Get Task.Update");
+  }
+
+  @test
+  async forgetNeedsAClient() {
+    const b = await this.browser();
+    await this.login(b, "u1");
+    await assert.rejects(() => this.op(b, "OAuth.Forget", {}), /400/);
+    await assert.rejects(() => this.op(b, "OAuth.Forget", { clientId: "" }), /400 clientId is required/);
+    // A lookup failure that was never recorded has nothing to withdraw
+    const server = useService<any>("OAuthServer");
+    server.lookupFailures.set("ip:127.0.0.1", [1]);
+    server.withdrawLookupFailure(["ip:127.0.0.1", "ip:192.0.2.1"], 2);
+    assert.deepStrictEqual(server.lookupFailures.get("ip:127.0.0.1"), [1]);
+    assert.strictEqual(server.lookupFailures.has("ip:192.0.2.1"), false);
+    assert.strictEqual(server.redirectHost(undefined), undefined);
+  }
+
+  @test
   async edgeCasesInOAuthServer() {
     const server = useService<any>("OAuthServer");
     const now = Date.now();

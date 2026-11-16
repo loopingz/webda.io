@@ -1,6 +1,7 @@
 import { expect } from "vitest";
 import { suite, test } from "@webda/test";
 import { diff } from "./diff.js";
+import { patch } from "./patch.js";
 
 @suite("diff")
 class DiffTest {
@@ -76,5 +77,14 @@ class DiffTest {
     };
     const d = diff(a, b, { arrayId: { "/items": "id" } });
     expect(d.ops).toBeDefined();
+  }
+
+  @test({ name: "array identity falls back to position for items without a usable id" })
+  arrayIdentityFallsBackToPositionForItemsWithoutAUsableId() {
+    const a = { items: [{ id: "a", n: 1 }, { n: 2 }, { id: { nested: true }, n: 3 }] as unknown[] };
+    const b = { items: [{ n: 2 }, { id: { nested: true }, n: 4 }, { id: "a", n: 1 }] as unknown[] };
+    const d = diff(a, b, { arrayId: { "/items": "id" } });
+    expect(d.ops).toBeDefined();
+    expect(patch(a, d)).toEqual(b);
   }
 }

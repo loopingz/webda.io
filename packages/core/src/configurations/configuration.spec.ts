@@ -130,6 +130,23 @@ class TestConfigurationService extends WebdaInternalSimpleTest {
   }
 
   @test
+  async sourcesWithoutDefaultConfiguration() {
+    const provider = useService<TestConfigurationProvider>("ConfigurationProvider");
+    provider.setConfiguration("nodefault", { services: { SampleService: { email: { text: "FromSource" } } } });
+    const service = new ConfigurationService(
+      "NoDefaultConfig",
+      new ConfigurationServiceParameters().load({ source: "ConfigurationProvider:nodefault" })
+    );
+    service.getParameters().default = undefined;
+    service.resolve();
+    // The sources are merged on an empty configuration
+    assert.deepStrictEqual(await service["loadConfiguration"](), {
+      services: { SampleService: { email: { text: "FromSource" } } },
+      parameters: {}
+    });
+  }
+
+  @test
   async additionalConfigurationCoverage() {
     const { mkdtempSync, mkdirSync, rmSync, writeFileSync } = await import("node:fs");
     const { tmpdir } = await import("node:os");

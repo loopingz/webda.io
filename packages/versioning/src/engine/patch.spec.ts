@@ -76,4 +76,13 @@ class PatchTest {
     expect(() => patch({ a: 42 }, delta)).toThrow(VersioningError);
     expect(() => patch({ a: 42 }, delta)).toThrow(/expected string at \/a/);
   }
+
+  @test({ name: "empty pointer addresses the root value" })
+  emptyPointerAddressesTheRootValue() {
+    expect(getAtPointer({ a: 1 }, "")).toEqual({ a: 1 });
+    expect(setAtPointer({ a: 1 }, "", "replaced")).toBe("replaced");
+    // String hunks targeting the root replace the whole patched value
+    const delta: Delta = { __versioning: 1, stringHunks: { "": lineDiff("a\nb\n", "a\nB\n") } };
+    expect(patch("a\nb\n", delta)).toBe("a\nB\n");
+  }
 }

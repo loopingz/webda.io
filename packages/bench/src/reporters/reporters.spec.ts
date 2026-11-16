@@ -131,6 +131,9 @@ class ReportersTest {
       "backslashes are escaped"
     );
     assert.ok(markdown.includes("commit 01234567"));
+    const withoutCommit = result();
+    delete withoutCommit.env.commit;
+    assert.ok(toMarkdown([withoutCommit]).includes("4 × Test CPU, profile quick._"));
     assert.ok(markdown.includes("**Unstable results**"));
     const file = join(this.tmp, "summary.md");
     new MarkdownReporter(file, "Bench").report([result()]);
@@ -184,6 +187,8 @@ class ReportersTest {
     try {
       process.env.WEBDA_BENCH_OUTPUT = output;
       assert.strictEqual(defaultOutputDir(), output);
+      delete process.env.WEBDA_BENCH_OUTPUT;
+      assert.strictEqual(defaultOutputDir(), join(process.cwd(), "bench-results"));
     } finally {
       if (previous === undefined) delete process.env.WEBDA_BENCH_OUTPUT;
       else process.env.WEBDA_BENCH_OUTPUT = previous;

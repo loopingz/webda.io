@@ -179,6 +179,54 @@ abstract class SQLiteStoreSuite extends WebdaApplicationTest {
   }
 
   @test
+  async repositoryDefaults() {
+    const repo = this.repo();
+    await repo.create({ uuid: "a", n: 1 });
+    await repo.create({ uuid: "b", n: 2 });
+    // An increment without value adds 1
+    await repo.incrementAttributes("a", [{ property: "n" }, "counter"] as any);
+    // A patch without data changes nothing
+    await repo.patch("a", undefined);
+    const row: any = await repo.get("a");
+    assert.strictEqual(row.n, 2);
+    assert.strictEqual(row.counter, 1);
+    // A full page comes with the token of the next one
+    const first = await repo.query("ORDER BY uuid ASC LIMIT 1");
+    assert.deepStrictEqual(
+      first.results.map((r: any) => r.uuid),
+      ["a"]
+    );
+    assert.strictEqual(first.continuationToken, "1");
+    const second = await repo.query(`ORDER BY uuid ASC LIMIT 1 OFFSET "${first.continuationToken}"`);
+    assert.deepStrictEqual(
+      second.results.map((r: any) => r.uuid),
+      ["b"]
+    );
+    // An empty stored type is kept as is
+    await this.client().query("INSERT INTO smoke_idents (uuid, data) VALUES (?1, ?2)", [
+      "untyped",
+      JSON.stringify({ uuid: "untyped", __type: "" })
+    ]);
+    assert.strictEqual(((await repo.get("untyped")) as any).__type, "");
+  }
+
+  @test
+  async cleanWithATablePerModel() {
+    // Without `table` each model has its own table
+    const store = await this.makeStore("pertable", { ...this.connection("pertable"), models: ["Webda/OwnerModel"] });
+    try {
+      const table = store.resolveTable(useModel("Webda/OwnerModel"));
+      assert.strictEqual(table, "webda_ownermodel");
+      await store.checkTable();
+      await store.getClient()!.query(`INSERT INTO ${table} (uuid, data) VALUES ('x', '{}')`);
+      await store.__clean();
+      assert.strictEqual((await store.getClient()!.query(`SELECT COUNT(*) AS n FROM ${table}`)).rows[0].n, 0);
+    } finally {
+      await store.stop();
+    }
+  }
+
+  @test
   async queryIsNull() {
     for (const [uuid, data] of [
       ["null", { uuid: "null", email: null }],

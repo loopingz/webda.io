@@ -311,6 +311,45 @@ class DeviceFlowTest extends OAuthTest {
   }
 
   @test
+  async deviceConsumeStoreFailure() {
+    const code = await this.approved("Task.*", ["Task.Get"]);
+    await this.advancePoll(code);
+    const server = useService<any>("OAuthServer");
+    const repo = OAuthDeviceCode.ref(code.split(".")[0]);
+    const stored = await repo.get();
+    let exists = async () => true;
+    vi.spyOn(OAuthDeviceCode, "ref").mockReturnValue({
+      get: async () => stored,
+      exists: () => exists(),
+      patch: async (_data: any, field?: any) => {
+        if (field === "status") throw new Error("store down");
+      }
+    } as any);
+    // The failure is not taken for a lost race while the code is still there
+    await assert.rejects(() => server.exchangeDevice({ device_code: code, client_id: "webda-cli" }), /store down/);
+    // Swept between the read and the compare-and-set
+    let reads = 0;
+    exists = async () => reads++ === 0;
+    await assert.rejects(
+      () => server.exchangeDevice({ device_code: code, client_id: "webda-cli" }),
+      /Invalid device code/
+    );
+  }
+
+  @test
+  async requestsWithoutClientAddressShareOneRateLimitKey() {
+    const server = useService<any>("OAuthServer");
+    vi.spyOn(HttpContext.prototype, "getClientIp").mockReturnValue(undefined as any);
+    const start = await this.form("/oauth/device_authorization", { client_id: "webda-cli", scope: "Task.*" });
+    assert.strictEqual(start.status, 200);
+    assert.deepStrictEqual([...server.deviceRequests.keys()], ["ip:unknown"]);
+    const b = await this.browser();
+    await this.login(b, "u1");
+    await assert.rejects(() => this.op(b, "OAuth.Device.Lookup", { userCode: "BCDF-GHJK" }), /404/);
+    assert.ok(server.lookupFailures.has("ip:unknown"));
+  }
+
+  @test
   async deviceLookupRules() {
     const anonymous = await this.browser();
     await assert.rejects(() => this.op(anonymous, "OAuth.Device.Lookup", { userCode: "BCDF-GHJK" }), /401/);

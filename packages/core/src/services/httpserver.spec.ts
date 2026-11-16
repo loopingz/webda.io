@@ -1851,4 +1851,183 @@ class HttpServerTest extends WebdaApplicationTest {
       (this.server as any).extractClientCertificate = origExtract;
     }
   }
+
+  @test
+  async flushDoesNothingOnceTheResponseIsGone() {
+    const calls: string[] = [];
+    const ctx: any = new WebContext(new HttpContext("test.webda.io", "GET", "/"));
+    ctx._stream = {
+      headersSent: true,
+      writableEnded: false,
+      writeHead: () => calls.push("writeHead"),
+      end: () => calls.push("end")
+    };
+    // Headers already sent: they are not written twice
+    this.server.flushHeaders(ctx);
+    assert.deepStrictEqual(calls, []);
+    this.server.flush(ctx);
+    assert.deepStrictEqual(calls, ["end"]);
+    // Response ended: nothing left to do
+    ctx._stream.writableEnded = true;
+    this.server.flush(ctx);
+    assert.deepStrictEqual(calls, ["end"]);
+  }
+
+  @test
+  async http2FlushDropsHttp1OnlyHeaders() {
+    const ctx: any = new WebContext(new HttpContext("test.webda.io", "GET", "/"));
+    const sent: Record<string, any> = {};
+    ctx._stream = { headersSent: false, setHeader: (name: string, value: any) => (sent[name] = value) };
+    ctx.setHeader("Connection", "keep-alive");
+    ctx.setHeader("X-Kept", "yes");
+    ctx.writeHead(201);
+    (this.server as any).isHttp2 = true;
+    try {
+      this.server.flushHeaders(ctx);
+    } finally {
+      (this.server as any).isHttp2 = false;
+    }
+    assert.strictEqual(sent["X-Kept"], "yes");
+    assert.strictEqual(sent["Connection"], undefined);
+    assert.strictEqual(ctx._stream.statusCode, 201);
+  }
+
+  @test
+  async thrownValueThatIsNotAnErrorStillAnswersItsStatus() {
+    useRouter().addRouteToRouter("/test-thrown-value", {
+      methods: ["GET"],
+      executor: "TestRoute",
+      _method: async () => {
+        throw { getResponseCode: () => 418 };
+      }
+    });
+    const port = await this.startServer();
+    const res = await httpRequest({ hostname: "127.0.0.1", port, path: "/test-thrown-value", method: "GET" });
+    assert.strictEqual(res.statusCode, 418);
+    assert.deepStrictEqual(JSON.parse(res.body), { error: { code: "BAD_REQUEST", message: "[object Object]" } });
+  }
+
+  @test
+  async flushedHeadersWithoutBodyEndTheResponse() {
+    useRouter().addRouteToRouter("/test-headers-only", {
+      methods: ["GET"],
+      executor: "TestRoute",
+      _method: async ctx => {
+        ctx.writeHead(202, { "X-Flushed": "yes" });
+        await (ctx as any).flushHeaders();
+      }
+    });
+    const port = await this.startServer();
+    const res = await httpRequest({ hostname: "127.0.0.1", port, path: "/test-headers-only", method: "GET" });
+    assert.strictEqual(res.statusCode, 202);
+    assert.strictEqual(res.headers["x-flushed"], "yes");
+    assert.strictEqual(res.body, "");
+  }
+
+  @test
+  async unhandledErrorAfterTheResponseStartedKeepsWhatWasSent() {
+    const port = await this.startServer();
+    const original = this.server.getContextFromRequest.bind(this.server);
+    try {
+      // Headers sent, then the handler fails: the response is ended as it is
+      this.server.getContextFromRequest = async (_req: any, res: any) => {
+        res.writeHead(418);
+        throw new Error("Simulated error");
+      };
+      let res = await httpRequest({ hostname: "127.0.0.1", port, path: "/test", method: "GET" });
+      assert.strictEqual(res.statusCode, 418);
+      assert.strictEqual(res.body, "");
+      // Response complete, then the handler fails: nothing more is written
+      this.server.getContextFromRequest = async (_req: any, res: any) => {
+        res.writeHead(200);
+        res.end("complete");
+        throw new Error("Simulated error");
+      };
+      res = await httpRequest({ hostname: "127.0.0.1", port, path: "/test", method: "GET" });
+      assert.strictEqual(res.statusCode, 200);
+      assert.strictEqual(res.body, "complete");
+    } finally {
+      this.server.getContextFromRequest = original;
+    }
+  }
+
+  @test
+  async startsWithoutBindAddress() {
+    // No server yet: no address
+    assert.strictEqual(this.server.address(), null);
+    await this.server.start(undefined, 0);
+    await new Promise<void>(resolve => {
+      const check = () => (this.server.server?.listening ? resolve() : setTimeout(check, 10));
+      check();
+    });
+    assert.ok((this.server.address() as any).port > 0);
+    const res = await httpRequest({
+      hostname: "127.0.0.1",
+      port: (this.server.address() as any).port,
+      path: "/nonexistent-xyz",
+      method: "GET"
+    });
+    assert.strictEqual(res.statusCode, 404);
+  }
+
+  @test
+  async autoTlsKeepsAConfiguredCertificate() {
+    await this.server.stop();
+    this.server = new HttpServer(
+      "HttpServerTlsConfigured",
+      new HttpServerParameters().load({ port: 0, autoTls: true, key: certs.server.key, cert: certs.server.cert })
+    );
+    this.registerService(this.server);
+    const generate = vi.spyOn(this.server as any, "ensureDevTlsCert");
+    await this.server.start(undefined, 0);
+    await new Promise<void>(resolve => {
+      const check = () => (this.server.server?.listening ? resolve() : setTimeout(check, 10));
+      check();
+    });
+    assert.strictEqual(generate.mock.calls.length, 0, "no certificate is generated");
+    const { statusCode } = await httpsRequest((this.server.address() as any).port);
+    assert.ok(statusCode >= 200);
+  }
+
+  @test
+  async clientAuthDefaultsFollowTheClientCa() {
+    const server: any = new HttpServer("HttpServerClientAuth", new HttpServerParameters().load({ port: 0 }));
+    // Parameters built without the HttpServerParameters defaults
+    assert.deepStrictEqual(server.getClientAuthOptions({}), {});
+    const options = server.getClientAuthOptions({ clientCa: certs.ca.cert });
+    assert.strictEqual(options.requestCert, true);
+    assert.strictEqual(options.rejectUnauthorized, false);
+    assert.ok(options.ca.length > 0);
+    // Without clientAuth nor clientCa the server is plain HTTP
+    server.parameters.clientAuth = undefined;
+    this.registerService(server);
+    try {
+      await server.start("127.0.0.1", 0);
+      assert.strictEqual(server.server.constructor.name, "Server");
+    } finally {
+      await server.stop();
+    }
+  }
+
+  @test
+  async contextFromARequestWithoutSocket() {
+    const server = new HttpServer("HttpServerNoChecker", new HttpServerParameters().load({ port: 0 }));
+    // No trusted proxies resolved yet: nobody is trusted
+    assert.strictEqual(server.isProxyTrusted("127.0.0.1"), false);
+    server.newContext = (info: any) => HttpServer.prototype.newContext.call(server, info, true);
+    const ctx: any = await server.getContextFromRequest({
+      headers: { host: "api.example.com" },
+      method: "GET",
+      url: "/path"
+    } as any);
+    // The port is the protocol default
+    assert.strictEqual(ctx.getHttpContext().getAbsoluteUrl(), "http://api.example.com/path");
+    const unbound: any = await server.getContextFromRequest({
+      headers: { host: "api.example.com" },
+      method: "GET",
+      url: "/path",
+      socket: { address: () => undefined }
+    } as any);
+    assert.strictEqual(unbound.getHttpContext().getAbsoluteUrl(), "http://api.example.com/path");
+  }
 }

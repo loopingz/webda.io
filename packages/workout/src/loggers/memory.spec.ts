@@ -1,6 +1,6 @@
 import { describe, it, beforeEach } from "vitest";
 import * as assert from "assert";
-import { WorkerOutput } from "../core.js";
+import { WorkerLogLevel, WorkerOutput } from "../core.js";
 import { MemoryLogger } from "./memory.js";
 
 describe("MemoryConsoleTest", () => {
@@ -53,5 +53,16 @@ describe("MemoryConsoleTest", () => {
     logger.setLogLevel("ERROR");
     output.log("WARN", "Test 3");
     assert.strictEqual(logger.getLogs().length, 0);
+  });
+
+  it("testDynamicLogLevel", () => {
+    const logger = new MemoryLogger(output, "ERROR");
+    let level: WorkerLogLevel = "ERROR";
+    logger.setLogLevel(() => level);
+    output.log("INFO", "filtered");
+    assert.strictEqual(logger.getLogs().length, 0);
+    level = "INFO";
+    output.log("INFO", "kept");
+    assert.strictEqual(logger.getLogs().length, 1);
   });
 });

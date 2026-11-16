@@ -407,6 +407,31 @@ class BulkStatementsTest {
   }
 
   @test
+  async fallbackDeleteSkipsObjectsGoneMeanwhile() {
+    const repo = new FallbackRepository(Task, ["uuid"]);
+    await this.fill(repo, 3);
+    // An object deleted between the key collection and its delete is not counted
+    const del = repo.delete.bind(repo);
+    repo.delete = async (key: any) => {
+      await del(key);
+      if (String(key) === "t2") {
+        throw new Error("Not found: t2");
+      }
+    };
+    assert.strictEqual(await repo.deleteMany("DELETE"), 2);
+    assert.deepStrictEqual(await this.uuids(repo), []);
+  }
+
+  @test
+  async fallbackAssignsNestedFieldsOfAMissingObject() {
+    const repo = new FallbackRepository(Task, ["uuid"]);
+    await repo.create({ uuid: "bare", title: "bare" } as any);
+    // The nested target has no parent yet: it is created
+    assert.strictEqual(await repo.updateMany("UPDATE SET profile.level = 3 WHERE uuid = 'bare'"), 1);
+    assert.deepStrictEqual(((await repo.get("bare")) as any).profile, { level: 3 });
+  }
+
+  @test
   async bulkStaysInTheModelHierarchy() {
     const storage = new Map<string, string>();
     const animals = new MemoryRepository<typeof Animal>(Animal, ["uuid"], undefined, storage);

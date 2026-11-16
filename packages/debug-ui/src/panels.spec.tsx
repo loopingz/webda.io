@@ -7,18 +7,29 @@ import { ConfigPanel, JsonTree } from "./panels/ConfigPanel.js";
 import { LogsPanel } from "./panels/LogsPanel.js";
 import { ModelsPanel } from "./panels/ModelsPanel.js";
 import { OperationsPanel, randomValue } from "./panels/OperationsPanel.js";
-import { mergeRequests, RequestsPanel } from "./panels/RequestsPanel.js";
+import { mergeRequests, RequestDetail, RequestsPanel } from "./panels/RequestsPanel.js";
 import { ServicesPanel } from "./panels/ServicesPanel.js";
-import { ancestorsOf, buildGraph, fitScale, MIN_FIT_SCALE, visibleModels } from "./components/ModelGraph.js";
+import {
+  ancestorsOf,
+  buildGraph,
+  fitScale,
+  MIN_FIT_SCALE,
+  ModelGraph,
+  visibleModels
+} from "./components/ModelGraph.js";
 import { highlightJS } from "./components/CodeBlock.js";
 import { resolveRef, SchemaForm } from "./components/SchemaForm.js";
-import { formatBytes, StateBadge } from "./components/ui.js";
+import { formatBytes, ListItem, SearchInput, shortName, StateBadge } from "./components/ui.js";
+import type { DebugModel, DebugRequest, DebugWsEvent } from "./types.js";
 import {
   FakeWebSocket,
   healthyRoutes,
   installFetch,
   installWebSocket,
+  LOGS,
   MODELS,
+  OPERATIONS,
+  SERVICES,
   TOKEN,
   type Routes
 } from "./test/harness.js";
@@ -137,6 +148,39 @@ describe("ServicesPanel", () => {
     screen.getByText("Mailer");
     fireEvent.change(screen.getByPlaceholderText("Filter services..."), { target: { value: "zzz" } });
     screen.getByText("No services found");
+  });
+
+  it("tolerates sparse services and forgets a selection that disappeared", async () => {
+    const routes = healthyRoutes();
+    routes["/api/services"] = [...SERVICES, { name: "Bare" }, { name: "", type: "Webda/Ghost" }];
+    await renderPanel(<ServicesPanel />, routes);
+    fireEvent.click(await screen.findByText("Router"));
+    fireEvent.click(await screen.findByRole("tab", { name: "Metrics" }));
+    await screen.findByText("Total requests");
+
+    // A service without metrics has no Metrics tab: the detail falls back to its configuration
+    fireEvent.click(screen.getByText("Bare"));
+    await screen.findByText("No configuration parameters");
+    assert.deepStrictEqual(
+      screen.getAllByRole("tab").map(tab => tab.textContent),
+      ["Configuration"]
+    );
+    screen.getByText("unknown", { selector: "span.wdbg-mono" });
+    assert.strictEqual(document.querySelector(".wdbg-badges"), null, "no capabilities to show");
+
+    // Services are matched on their type when the name does not match (or is missing)
+    fireEvent.change(screen.getByPlaceholderText("Filter services..."), { target: { value: "ghost" } });
+    assert.strictEqual(screen.queryByText("Router"), null);
+    assert.strictEqual(screen.queryByText("No services found"), null);
+    assert.strictEqual(screen.getAllByRole("option").length, 2, "global parameters and the nameless service");
+    fireEvent.change(screen.getByPlaceholderText("Filter services..."), { target: { value: "" } });
+
+    // The application restarts without the selected service
+    routes["/api/services"] = SERVICES;
+    await act(async () => {
+      FakeWebSocket.instances[0].emit({ type: "restart" });
+    });
+    await screen.findByText("Select a service to view details");
   });
 });
 
@@ -285,6 +329,79 @@ describe("ModelsPanel", () => {
     unmount();
     assert.strictEqual(disconnected, true);
   });
+
+  it("shows subclasses, child relations, object actions and partial schemas", async () => {
+    const routes = healthyRoutes();
+    routes["/api/models"] = [
+      {
+        id: "App/Doc",
+        actions: [{ name: "publish" }],
+        subclasses: ["App/Memo", "App/Note"],
+        metadata: { Ancestors: ["App/Base"] },
+        relations: { children: ["App/Memo"], links: [{ attribute: "ghost", model: "App/Missing" }] },
+        schemas: { Output: { type: "object", title: "OnlyOutput" } }
+      },
+      { id: "App/Memo", metadata: { Ancestors: ["App/Doc"] }, schemas: {} },
+      { id: "App/Note", metadata: { Ancestors: ["App/Doc"] } },
+      { id: "" }
+    ];
+    await renderPanel(<ModelsPanel />, routes);
+    fireEvent.click(await screen.findByText("App/Doc"));
+    await screen.findByText("publish");
+    // Subclasses are comma separated, a child relation has no attribute
+    screen.getByText(",");
+    assert.strictEqual(screen.getAllByText("Memo", { selector: "a" }).length, 2, "subclass and child links");
+    const child = screen.getByText("child").closest("tr")!;
+    assert.strictEqual(child.querySelector("td")!.textContent, "-");
+    // Only the Output schema exists: it is shown although Input is the default tab
+    assert.deepStrictEqual(
+      screen.getAllByRole("tab").map(tab => tab.textContent),
+      ["Output"]
+    );
+    screen.getByText(/"OnlyOutput"/);
+
+    // A relation may target a model the server does not expose
+    fireEvent.click(screen.getByText("Missing", { selector: "a" }));
+    await screen.findByText("Select a model to view details");
+
+    fireEvent.click(screen.getByText("App/Memo"));
+    await screen.findByText("No schemas available");
+    screen.getByText("Inheritance");
+    assert.strictEqual(screen.queryByText("Relations"), null);
+    assert.strictEqual(screen.queryByText("Actions"), null);
+  });
+
+  it("skips relations to unknown models, truncates long names and highlights the selection", () => {
+    const longId = "App/AnExtremelyLongModelNameThatCannotFitInsideItsBox";
+    const models = [
+      { id: "App/Lonely", plural: "", actions: [], metadata: {} },
+      {
+        id: longId,
+        plural: "",
+        actions: [],
+        relations: {
+          parent: { attribute: "owner", model: "App/Gone" },
+          links: [{ attribute: "link", model: "App/Gone" }],
+          queries: [{ attribute: "query", model: "App/Gone" }],
+          maps: [{ attribute: "map", model: "App/Gone" }]
+        }
+      }
+    ] as DebugModel[];
+    assert.deepStrictEqual(buildGraph(models, null, 800).edges, []);
+
+    const onSelect = vi.fn();
+    render(<ModelGraph models={models} selectedId="App/Lonely" onSelect={onSelect} />);
+    const selected = screen.getByRole("button", { name: "App/Lonely" });
+    assert.ok(selected.getAttribute("class")!.includes("wdbg-graph-node-selected"));
+    assert.strictEqual(selected.querySelector("rect")!.getAttribute("stroke-width"), "2");
+    assert.strictEqual(selected.querySelector("text")!.getAttribute("font-weight"), "600");
+    const long = screen.getByRole("button", { name: longId });
+    assert.ok(!long.getAttribute("class")!.includes("wdbg-graph-node-selected"));
+    const label = long.querySelector("text")!.textContent!;
+    assert.ok(label.endsWith("…") && longId.includes(label.slice(0, -1)), `truncated: ${label}`);
+    fireEvent.click(long);
+    assert.deepStrictEqual(onSelect.mock.calls, [[longId]]);
+  });
 });
 
 describe("OperationsPanel", () => {
@@ -316,12 +433,60 @@ describe("OperationsPanel", () => {
     await screen.findByText("No output (void)");
   });
 
+  it("shows unresolved schema references, model implementors and rest fallbacks", async () => {
+    const routes = healthyRoutes();
+    routes["/api/operations"] = [
+      ...OPERATIONS,
+      {
+        id: "Task.Get",
+        input: "Sample/Task.input",
+        output: "Sample/Task.output",
+        rest: { method: "get", path: "/tasks/{uuid}" },
+        implementor: { type: "model", name: "Task" }
+      },
+      { id: "Task.Purge", input: "void", output: "void", rest: { method: "delete" } },
+      { id: "", input: "void", output: "void" }
+    ];
+    await renderPanel(<OperationsPanel />, routes);
+    fireEvent.click(await screen.findByText("Task.Get"));
+    await screen.findByText("Model:");
+    assert.strictEqual(screen.getAllByText("/tasks/{uuid}").length, 2, "the path is used without url");
+    // Without an input schema there is no form: the first tab explains the unresolved reference
+    assert.strictEqual(screen.queryByRole("tab", { name: "Try It" }), null);
+    assert.strictEqual(screen.queryByRole("tab", { name: "Example Output" }), null);
+    screen.getByText("Schema ref: Sample/Task.input (not resolved)");
+    fireEvent.click(screen.getByRole("tab", { name: "Output Schema" }));
+    await screen.findByText("Schema ref: Sample/Task.output (not resolved)");
+
+    fireEvent.click(screen.getByText("User.Create"));
+    fireEvent.click(await screen.findByRole("tab", { name: "Output Schema" }));
+    await screen.findByText(/"format": "uuid"/);
+
+    assert.strictEqual(screen.getAllByText("/").length, 1);
+    fireEvent.click(screen.getByText("Task.Purge"));
+    await waitFor(() => assert.strictEqual(screen.getAllByText("/").length, 2, "a route without url nor path"));
+
+    // The application restarts without the selected operation
+    routes["/api/operations"] = OPERATIONS;
+    await act(async () => {
+      FakeWebSocket.instances[0].emit({ type: "restart" });
+    });
+    await screen.findByText("Select an operation to view details");
+  });
+
   it("tokenizes javascript", () => {
     const tokens = highlightJS('const a = "x"; // hi\n/* b */ 42');
     assert.deepStrictEqual(
       tokens.filter(t => t.type !== "punct" && t.value.trim()).map(t => t.type),
       ["keyword", "ident", "string", "comment", "comment", "number"]
     );
+    // Comments running to the end of the source, and escaped quotes
+    assert.deepStrictEqual(highlightJS("x// tail"), [
+      { type: "ident", value: "x" },
+      { type: "comment", value: "// tail" }
+    ]);
+    assert.deepStrictEqual(highlightJS("/* open"), [{ type: "comment", value: "/* open" }]);
+    assert.deepStrictEqual(highlightJS('"a\\"b"'), [{ type: "string", value: '"a\\"b"' }]);
   });
 
   it("resolves schema references", () => {
@@ -329,6 +494,21 @@ describe("OperationsPanel", () => {
     const resolved = resolveRef({ $ref: "#/definitions/Address", description: "Home" }, defs);
     assert.strictEqual(resolved?.type, "object");
     assert.strictEqual(resolved?.description, "Home");
+    assert.strictEqual(resolveRef(undefined, defs), undefined);
+    // Names may be URI-encoded in the reference
+    assert.strictEqual(
+      resolveRef({ $ref: "#/definitions/Postal%20Address" }, { "Postal Address": { type: "string" } })?.type,
+      "string"
+    );
+    // Unknown references are kept as they are
+    assert.deepStrictEqual(resolveRef({ $ref: "#/definitions/Missing" }, undefined), {
+      $ref: "#/definitions/Missing",
+      definitions: {}
+    });
+    assert.deepStrictEqual(resolveRef({ $ref: "#/definitions/Missing" }, defs), {
+      $ref: "#/definitions/Missing",
+      definitions: defs
+    });
   });
 
   it("generates random values for all schema types and formats", () => {
@@ -348,6 +528,14 @@ describe("OperationsPanel", () => {
     assert.ok(Array.isArray(randomValue({ type: "array" })));
     assert.deepStrictEqual(randomValue({ type: "object" }), {});
     assert.strictEqual(randomValue({ type: "unknown" as any }), null);
+    assert.ok(["a", "b"].includes(randomValue({ enum: ["a", "b"] }) as string));
+    assert.strictEqual(randomValue({ type: "string", pattern: "^a" }), "match-value");
+    assert.strictEqual(randomValue({ type: "string", minLength: 6 }), "textxx");
+    const unbounded = randomValue({ type: "number" }) as number;
+    assert.ok(unbounded >= 0 && unbounded <= 100, "numbers default to 0..100");
+    // Insecure contexts have no crypto.randomUUID
+    vi.stubGlobal("crypto", undefined);
+    assert.strictEqual(randomValue({ type: "string", format: "uuid" }), "00000000-0000-4000-8000-000000000000");
   });
 
   it("renders SchemaForm with object textareas, arrays and empty schemas", () => {
@@ -459,6 +647,80 @@ describe("OperationsPanel", () => {
     const header = container.querySelector(".wdbg-sf-collapsible-header")!;
     fireEvent.click(header);
   });
+
+  it("renders SchemaForm formats, placeholders and missing or mistyped values", () => {
+    const schema: any = {
+      type: "object",
+      properties: {
+        ghost: undefined,
+        nested: { type: "object", properties: { inner: { type: "string" } } },
+        rawObj: { type: "object" },
+        email: { type: "string", format: "email" },
+        site: { type: "string", format: "uri" },
+        secret: { type: "string", format: "password" },
+        withDefault: { type: "string", default: "dflt" },
+        withPattern: { type: "string", pattern: "^a" },
+        untyped: { description: "Anything goes" },
+        notArray: { type: "array", items: { type: "string" } },
+        noItems: { type: "array" },
+        objArr: { type: "array", items: { type: "object", properties: { label: { type: "string" } } } },
+        freeArr: { type: "array", items: { type: "object" } }
+      }
+    };
+
+    // Without values every field is empty
+    const blank = render(<SchemaForm schema={schema} onChange={() => {}} />);
+    assert.strictEqual((blank.getByPlaceholderText("JSON object") as HTMLTextAreaElement).value, "");
+    assert.strictEqual(blank.queryByText("ghost"), null, "properties without schema are skipped");
+    assert.deepStrictEqual(
+      ["email", "site", "secret", "untyped"].map(name => blank.getByPlaceholderText(name).getAttribute("type")),
+      ["email", "url", "password", "text"]
+    );
+    blank.getByPlaceholderText("Default: dflt");
+    blank.getByPlaceholderText("Pattern: ^a");
+    blank.getByText("string:email");
+    blank.getByText("ref");
+    blank.getByText("Anything goes");
+    blank.unmount();
+
+    let latest: Record<string, unknown> = {
+      rawObj: "plain",
+      email: "a@b.c",
+      notArray: "oops",
+      noItems: [null],
+      objArr: [null],
+      freeArr: ["text", undefined]
+    };
+    const Wrapper = () => {
+      const [vals, setVals] = React.useState<Record<string, unknown>>(latest);
+      return (
+        <SchemaForm
+          schema={schema}
+          values={vals}
+          onChange={v => {
+            latest = v;
+            setVals(v);
+          }}
+        />
+      );
+    };
+    render(<Wrapper />);
+    assert.strictEqual((screen.getByPlaceholderText("JSON object") as HTMLTextAreaElement).value, "plain");
+    screen.getByText("array[0]");
+    assert.strictEqual((screen.getByPlaceholderText("Item 1") as HTMLInputElement).value, "");
+    assert.strictEqual((screen.getByPlaceholderText("label") as HTMLInputElement).value, "");
+    assert.deepStrictEqual(
+      (screen.getAllByPlaceholderText("JSON") as HTMLTextAreaElement[]).map(area => area.value),
+      ["text", ""]
+    );
+
+    // Clearing a text input removes the key
+    fireEvent.change(screen.getByDisplayValue("a@b.c"), { target: { value: "" } });
+    assert.strictEqual("email" in latest, false);
+    // Removing the last item removes the array
+    fireEvent.click(screen.getAllByTitle("Remove item")[0]);
+    assert.strictEqual("noItems" in latest, false);
+  });
 });
 
 describe("RequestsPanel", () => {
@@ -538,6 +800,70 @@ describe("RequestsPanel", () => {
     );
   });
 
+  it("ignores entries and events it cannot identify", () => {
+    const merged = mergeRequests(
+      [{ timestamp: 5, method: "GET", url: "/anonymous" } as DebugRequest, { id: "a", method: "GET", url: "/a" }],
+      [
+        { type: "log", id: "l1", timestamp: 9, level: "INFO", message: "not a request" },
+        { type: "restart" },
+        { type: "result", id: "b", statusCode: 200, duration: 1 }
+      ] as DebugWsEvent[]
+    );
+    assert.deepStrictEqual(
+      merged.map(r => [r.id, r.statusCode]),
+      [
+        ["a", undefined],
+        ["b", 200]
+      ]
+    );
+  });
+
+  it("renders a single sparse request and closes its detail on a second click", async () => {
+    const routes = healthyRoutes();
+    routes["/api/requests"] = [{ id: "r9", timestamp: 1700000000000, statusCode: 302 }];
+    routes["/api/requests/r9"] = {
+      id: "r9",
+      requestBody: { kind: "binary", size: 4 },
+      responseBody: { kind: "text" }
+    };
+    await renderPanel(<RequestsPanel />, routes);
+    await screen.findByText(/^1 request recorded/);
+    const status = screen.getByText("302");
+    assert.ok(status.className.includes("wdbg-status-3xx"));
+    const cells = Array.from(status.closest("tr")!.querySelectorAll("td")).map(td => td.textContent);
+    assert.deepStrictEqual(cells.slice(1), ["", "-", "302", "-"], "no method, no url, no duration");
+
+    fireEvent.click(status);
+    await screen.findByText("Binary, 4 B (preview: 0x)");
+    screen.getByText("Time: -");
+    screen.getByText("Duration: -");
+    assert.ok(screen.getByText("pending").className.includes("wdbg-status-pending"));
+    fireEvent.click(status);
+    assert.strictEqual(screen.queryByText("Response Body"), null);
+    screen.getByText(/click a row to inspect/);
+  });
+
+  it("ignores the answer of a detail that is no longer shown", async () => {
+    await renderPanel(<RequestsPanel />);
+    const ok = await screen.findByText("200");
+    const missing = screen.getByText("404");
+    // Both the first answer and the failure arrive after another row was selected
+    fireEvent.click(ok);
+    fireEvent.click(missing);
+    fireEvent.click(ok);
+    await screen.findByText("Response Body");
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 20));
+    });
+    screen.getByText("Response Body");
+    assert.strictEqual(screen.queryByText("Failed to load request detail"), null);
+  });
+
+  it("waits for a connection before loading a detail", () => {
+    render(<RequestDetail id="r1" onClose={() => {}} />);
+    screen.getByText("Loading request detail...");
+  });
+
   it("renders binary and truncated bodies, formats bytes, and handles generic detail errors", async () => {
     assert.strictEqual(formatBytes(null), "-");
     assert.strictEqual(formatBytes(512), "512 B");
@@ -604,6 +930,34 @@ describe("LogsPanel", () => {
     });
     await screen.findByText("Live entry");
   });
+
+  it("deduplicates live entries, lists everything from TRACE and explains an empty search", async () => {
+    const routes = healthyRoutes();
+    routes["/api/logs"] = [...LOGS, { id: "l9", timestamp: 1700000003000, message: "No level" }];
+    await renderPanel(<LogsPanel />, routes);
+    await screen.findByText("Server started");
+    assert.strictEqual(screen.queryByText("No level"), null, "entries without level are below INFO");
+    fireEvent.change(screen.getByLabelText("Minimum level"), { target: { value: "TRACE" } });
+    await screen.findByText("No level");
+    screen.getByText("4 logs");
+
+    // A live entry replaces the historical one carrying the same id
+    await act(async () => {
+      FakeWebSocket.instances[0].emit({
+        type: "log",
+        id: "l1",
+        timestamp: 1700000000000,
+        level: "INFO",
+        message: "Server started (live)"
+      });
+    });
+    await screen.findByText("Server started (live)");
+    assert.strictEqual(screen.queryByText("Server started"), null);
+    screen.getByText("4 logs");
+
+    fireEvent.change(screen.getByLabelText("Search logs"), { target: { value: "zzz" } });
+    await screen.findByText(/No logs matching search/);
+  });
 });
 
 describe("ConfigPanel", () => {
@@ -642,5 +996,31 @@ describe("ConfigPanel", () => {
     delete routes["/api/config"];
     await renderPanel(<ConfigPanel />, routes);
     await screen.findByText(/does not expose the configuration/);
+  });
+});
+
+describe("ui", () => {
+  it("handles the keyboard on list items, monospace search inputs and missing identifiers", () => {
+    assert.strictEqual(shortName(undefined), "");
+    const onClick = vi.fn();
+    const onChange = vi.fn();
+    render(
+      <>
+        <ListItem active={false} onClick={onClick}>
+          Entry
+        </ListItem>
+        <SearchInput value="" placeholder="Find..." onChange={onChange} mono />
+      </>
+    );
+    const item = screen.getByRole("option");
+    fireEvent.keyDown(item, { key: "a" });
+    fireEvent.keyDown(item, { key: "Tab" });
+    assert.strictEqual(onClick.mock.calls.length, 0, "only Enter and Space activate an item");
+    fireEvent.keyDown(item, { key: " " });
+    assert.strictEqual(onClick.mock.calls.length, 1);
+    const input = screen.getByPlaceholderText("Find...");
+    assert.ok(input.className.includes("wdbg-mono"));
+    fireEvent.change(input, { target: { value: "abc" } });
+    assert.deepStrictEqual(onChange.mock.calls, [["abc"]]);
   });
 });

@@ -1,9 +1,13 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { useCoreEvents, useRegistry, WebContext, Bean, Service, WebdaError } from "../index.js";
-import { WebdaInternalTest } from "../test/index.js";
+import { TestApplication, WebdaInternalSimpleTest, WebdaInternalTest } from "../test/index.js";
+import { UnpackedConfiguration } from "../application/iconfiguration.js";
+import { useApplication } from "../application/hooks.js";
+import { BinaryService } from "../services/binary.service.js";
+import { ServiceParameters } from "../services/serviceparameters.js";
 import { JSONUtils } from "@webda/utils";
-import { MemoryRepository } from "@webda/models";
+import { MemoryRepository, Model } from "@webda/models";
 import { checkAuthorizer } from "./authorizer.js";
 
 class BadService {
@@ -218,6 +222,168 @@ class CoreTest extends WebdaInternalTest {
       // args is the simplest invalidation here. Tests after this one will
       // use different `(model, attribute)` pairs.
     }
+  }
+
+  @test
+  getBinaryStorePrefersTheMostSpecificPartialMatch() {
+    const services = this.webda.getServices();
+    const partial = (score: number) => {
+      const fake: any = Object.create(BinaryService.prototype);
+      fake.handleBinary = () => score;
+      return fake;
+    };
+    const wildcard = partial(0);
+    const modelLevel = partial(1);
+    try {
+      // Whatever the order of the services, the model match wins over the catch-all
+      services["__test_wild"] = wildcard;
+      services["__test_model"] = modelLevel;
+      assert.strictEqual(this.webda.getBinaryStore("WebdaTest/Partial1", "x"), modelLevel);
+      delete services["__test_wild"];
+      services["__test_wild"] = wildcard;
+      assert.strictEqual(this.webda.getBinaryStore("WebdaTest/Partial2", "x"), modelLevel);
+    } finally {
+      delete services["__test_wild"];
+      delete services["__test_model"];
+    }
+  }
+
+  @test
+  getModelStorePicksTheClosestStore() {
+    const scored = (score: number): any => ({ handleModel: () => score });
+    const closest = scored(1);
+    const exact = scored(0);
+    const stores: any = { far: scored(3), unrelated: scored(-1), closest, farther: scored(2) };
+    const stub = this.stub(useApplication(), "getImplementations").callsFake(() => stores);
+    try {
+      // The lowest positive score wins, a store not handling the model is ignored
+      assert.strictEqual(this.webda.getModelStore(class Closest extends Model {} as any), closest);
+      // An exact match stops the search
+      stores.exact = exact;
+      assert.strictEqual(this.webda.getModelStore(class Exact extends Model {} as any), exact);
+    } finally {
+      stub.restore();
+    }
+  }
+
+  @test
+  registerBeansSkipsMissingAndConfiguredOnes() {
+    const core: any = this.webda;
+    const application: any = core.application;
+    const beans = application.beans;
+    const configuration = core.configuration;
+    class Unfiltered {}
+    try {
+      // An application without beans
+      application.beans = undefined;
+      core.registerBeans();
+      assert.strictEqual(core.configuration, configuration);
+      application.beans = {
+        // A bean that could not be loaded
+        "WebdaTest/Unloaded": undefined,
+        // A service with the bean name is already configured
+        "WebdaTest/SampleService": class SampleServiceBean {},
+        // No parameters filter: the global parameters are used as is
+        "WebdaTest/Unfiltered": Unfiltered
+      };
+      core.registerBeans();
+      assert.strictEqual(core.configuration.Unloaded, undefined);
+      assert.strictEqual(core.configuration.SampleService, configuration.SampleService);
+      assert.deepStrictEqual(core.configuration.Unfiltered, {
+        ...core.applicationConfiguration.parameters,
+        type: "WebdaTest/Unfiltered"
+      });
+      assert.strictEqual(core.moddas.Unfiltered, Unfiltered);
+      // Its configuration can be updated like any other service
+      this.webda.updateConfiguration({ services: { Unfiltered: { custom: "value" } } });
+      assert.strictEqual(core.configuration.Unfiltered.custom, "value");
+      assert.strictEqual(core.configuration.Unfiltered.type, "WebdaTest/Unfiltered");
+    } finally {
+      application.beans = beans;
+      delete core.moddas.Unfiltered;
+      core.configuration = configuration;
+    }
+  }
+
+  @test
+  createServiceKeepsTheConstructorError() {
+    const core: any = this.webda;
+    const stub = this.stub(this.webda, "log");
+    core.moddas.Bad = BadService;
+    core.moddas.BadString = class {
+      constructor() {
+        throw "not an error";
+      }
+    };
+    try {
+      assert.strictEqual(core.createService("Bad"), undefined);
+      assert.ok(core.serviceErrors.Bad instanceof Error);
+      // An error without message is logged itself
+      assert.strictEqual(stub.lastCall.args[3], core.serviceErrors.Bad);
+      assert.strictEqual(core.createService("BadString"), undefined);
+      assert.strictEqual(stub.lastCall.args[3], "not an error");
+    } finally {
+      stub.restore();
+      delete core.moddas.Bad;
+      delete core.moddas.BadString;
+      delete core.serviceErrors.Bad;
+      delete core.serviceErrors.BadString;
+    }
+  }
+}
+
+/** Service only recording that it was created */
+class TypelessService extends Service {
+  static createConfiguration = (params: any) => new ServiceParameters().load(params);
+  static filterParameters = (params: any) => params;
+}
+
+@suite
+class CoreServiceTypeFromNameTest extends WebdaInternalSimpleTest {
+  async tweakApp(app: TestApplication): Promise<void> {
+    await super.tweakApp(app);
+    app.addModda(app.completeNamespace("Typeless"), TypelessService);
+    app.addModda(app.completeNamespace("Bad"), BadService as any);
+  }
+
+  getTestConfiguration(): string | Partial<UnpackedConfiguration> | undefined {
+    return {
+      application: { configurationService: "Bad" },
+      parameters: { ignoreBeans: true },
+      services: {
+        // No type: the service name is its type
+        Typeless: {},
+        Bad: {},
+        NoSuchType: {}
+      } as any
+    };
+  }
+
+  async beforeAll(): Promise<void> {
+    // The tests drive the init
+    await super.beforeAll(false);
+  }
+
+  @test
+  async serviceNameIsTheDefaultType() {
+    const core: any = this.webda;
+    assert.strictEqual(core.moddas.Typeless, TypelessService);
+    assert.strictEqual(core.moddas.Bad, BadService);
+    assert.strictEqual(core.moddas.NoSuchType, undefined);
+    // The configuration service cannot be created: its error is reported, even without message
+    await assert.rejects(
+      () => this.webda.resolve(),
+      (err: any) => {
+        assert.strictEqual(err.message, "Cannot create configuration service Bad: Error");
+        assert.ok(err.cause instanceof Error);
+        return true;
+      }
+    );
+    // Without configuration service the other services start, the unknown type is skipped
+    core.configurationService = undefined;
+    await this.webda.init();
+    assert.ok(this.webda.getService("Typeless") instanceof TypelessService);
+    assert.strictEqual(this.webda.getServices()["NoSuchType"], undefined);
   }
 }
 

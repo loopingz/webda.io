@@ -201,4 +201,21 @@ class YAMLProxyTest {
     assert.strictEqual(obj.safe, 1);
     assert.strictEqual(({} as any).polluted, undefined);
   }
+
+  @test
+  aliasesAreKeptWhenStringified() {
+    const yaml = "base: &b\n  a: 1\nref: *b\nlist:\n  - *b\n  - x\n";
+    const obj = YAMLProxy.parse(yaml);
+    assert.strictEqual(obj.base.a, 1);
+    assert.strictEqual(obj.list[1], "x");
+    assert.strictEqual(YAMLProxy.stringify(obj), yaml);
+  }
+
+  @test
+  replaceMapWithScalar() {
+    const obj = YAMLProxy.parse("keep: 1\nmap:\n  k: v\n");
+    obj.map = "plain";
+    assert.strictEqual(obj.map, "plain");
+    assert.strictEqual(YAMLProxy.stringify(obj), "keep: 1\nmap: plain\n");
+  }
 }

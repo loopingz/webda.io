@@ -178,6 +178,13 @@ class AWSDeployerTest extends WebdaApplicationTest {
     assert.deepStrictEqual(deployer.getDefaultTags("Unknown"), [{ Key: "Team", Value: "webda" }]);
     assert.deepStrictEqual(deployer.getDefaultTagsAsMap({ Other: "o" }), { Other: "o", Team: "webda" });
     assert.strictEqual(deployer.getDefaultTagsAsS3Tagging([{ Key: "a b", Value: "c&d" }]), "a%20b=c%26d&Team=webda");
+    // Without default tags
+    delete deployer.resources.Tags;
+    assert.deepStrictEqual(deployer.getDefaultTags({ Other: "o" }), [{ Key: "Other", Value: "o" }]);
+    assert.deepStrictEqual(deployer.getDefaultTags("Lambda"), [
+      { Key: "Team", Value: "lambda" },
+      { Key: "Fn", Value: "1" }
+    ]);
   }
 
   @test
@@ -208,6 +215,13 @@ class AWSDeployerTest extends WebdaApplicationTest {
     );
     assert.strictEqual(deployer._replaceForAWS("Webda/Service/Test"), "Webda_Service_Test");
     assert.deepStrictEqual(deployer.getARNPolicy("123", "us-east-1")[0].Resource, ["arn:aws:logs:us-east-1:123:*"]);
+    // Not prepared and without parameters
+    const bare = new TestAWSDeployer("Bare", new AWSDeployerParameters().load({ type: "Test/Deployer" }));
+    assert.strictEqual(bare.getRegion(), "us-east-1");
+    vi.spyOn(bare, "getParameters").mockReturnValue(undefined);
+    const resources = await bare.prepare();
+    assert.strictEqual(resources.name, "Bare");
+    assert.strictEqual(resources.type, undefined);
   }
 
   @test
@@ -263,6 +277,13 @@ class AWSDeployerTest extends WebdaApplicationTest {
       Subnets: [{ SubnetId: "subnet-1" }, { SubnetId: "subnet-2" }]
     });
     assert.deepStrictEqual(subnets.mock.calls[0][0], { Filters: [{ Name: "vpc-id", Values: ["vpc-666"] }] });
+    // Empty answers
+    subnets.mockResolvedValue({});
+    InstanceCache.clearAll(this.deployer);
+    assert.deepStrictEqual(await this.deployer.getDefaultVpc(), { Id: "vpc-666", Subnets: [] });
+    this.mock(EC2).on(DescribeVpcsCommand).resolves({});
+    InstanceCache.clearAll(this.deployer);
+    assert.strictEqual(await this.deployer.getDefaultVpc(), undefined);
   }
 
   @test
@@ -278,6 +299,10 @@ class AWSDeployerTest extends WebdaApplicationTest {
           throw Object.assign(new Error("Forbidden"), { name: "Forbidden" });
         } else if (heads === 3) {
           throw new NotFound({ $metadata: {}, message: "" });
+        } else if (heads === 4) {
+          throw Object.assign(new Error("Not found"), { name: "NotFound" });
+        } else if (heads === 5) {
+          throw Object.assign(new Error("Moved"), { name: "PermanentRedirect" });
         }
         return {};
       })
@@ -298,6 +323,14 @@ class AWSDeployerTest extends WebdaApplicationTest {
       Bucket: "plop",
       Tagging: { TagSet: [{ Key: "Team", Value: "webda" }] }
     });
+    // Not found by name, without tags
+    delete this.deployer.resources.Tags;
+    await this.deployer.createBucket("untagged");
+    assert.deepStrictEqual(create.mock.calls[1][0], { Bucket: "untagged" });
+    assert.strictEqual(tagging.mock.calls.length, 1);
+    // Any other error: nothing is created
+    await this.deployer.createBucket("moved");
+    assert.strictEqual(create.mock.calls.length, 2);
   }
 
   @test
@@ -369,6 +402,12 @@ class AWSDeployerTest extends WebdaApplicationTest {
       assert.strictEqual(uploads[0].Body.toString(), "bouzouf");
       assert.strictEqual(uploads[0].ContentType, "text/plain");
       assert.strictEqual(uploads[1].ContentType, "application/octet-stream");
+      // Empty bucket
+      uploads.length = 0;
+      const put = vi.fn().mockResolvedValue({});
+      this.mock(S3).on(ListObjectsV2Command).resolves({}).on(PutObjectCommand).callsFake(put);
+      await this.deployer.putFilesOnBucket("bucket", [{ key: "site/first.txt", src: Buffer.from("first") }]);
+      assert.strictEqual(put.mock.calls[0][0].Key, "site/first.txt");
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -397,6 +436,10 @@ class AWSDeployerTest extends WebdaApplicationTest {
     });
     assert.strictEqual(create.mock.calls[0][0], "other.webda.io");
     assert.strictEqual(create.mock.calls[0][2], "us-east-1");
+    // No certificate at all
+    this.mock(ACM).on(ListCertificatesCommand).resolves({});
+    assert.deepStrictEqual(await this.deployer.getCertificate("first.webda.io"), { DomainName: "created" });
+    assert.strictEqual(create.mock.calls[1][0], "first.webda.io");
   }
 
   @test
@@ -443,6 +486,18 @@ class AWSDeployerTest extends WebdaApplicationTest {
       { Status: "VALIDATION_TIMED_OUT", CertificateArn: "arn:cert" }
     );
     await assert.rejects(() => this.deployer.doCreateCertificate("test.webda.io", zone));
+    // Already issued: no DNS validation
+    dns.mockClear();
+    statuses.push(
+      // @ts-ignore partial
+      {
+        Status: "ISSUED",
+        CertificateArn: "arn:cert",
+        DomainValidationOptions: [{ ResourceRecord: { Name: "_check.webda.io", Value: "validate" } }]
+      }
+    );
+    assert.strictEqual((await this.deployer.doCreateCertificate("test.webda.io", zone)).Status, "ISSUED");
+    assert.strictEqual(dns.mock.calls.length, 0);
   }
 
   @test
@@ -464,5 +519,8 @@ class AWSDeployerTest extends WebdaApplicationTest {
       TTL: 360,
       Type: "CNAME"
     });
+    // A fully qualified domain is kept as is
+    await this.deployer.createDNSEntry("www.webda.io.", "CNAME", "loopingz.com");
+    assert.strictEqual(changes.mock.calls[1][0].ChangeBatch.Changes[0].ResourceRecordSet.Name, "www.webda.io.");
   }
 }

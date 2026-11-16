@@ -65,4 +65,37 @@ suite(import.meta.dirname, () => {
       rmSync(tmp, { recursive: true, force: true });
     }
   });
+
+  test("check() leaves up-to-date files alone and only runs the selected modules", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "morpher-modules-"));
+    try {
+      mkdirSync(join(tmp, "src"), { recursive: true });
+      writeFileSync(join(tmp, "tsconfig.json"), JSON.stringify({ include: ["src/**/*.ts"] }));
+      const srcFile = join(tmp, "src", "sample.ts");
+      const source = `import { FileStore } from "@webda/core";\nexport const y = FileStore;\n`;
+      writeFileSync(srcFile, source);
+
+      // Only the capabilities module is enabled: the import migration is skipped, nothing changes
+      const morpher = new WebdaMorpher({
+        project: { tsConfigFilePath: join(tmp, "tsconfig.json") },
+        modules: ["capabilities"]
+      });
+      let saved = 0;
+      const sf = morpher.project.getSourceFiles()[0];
+      const save = sf.save.bind(sf);
+      sf.save = async () => {
+        saved++;
+        return save();
+      };
+      expect(await morpher.check()).toEqual([]);
+      expect(saved).toBe(0);
+      expect(readFileSync(srcFile, "utf-8")).toBe(source);
+
+      // With every module the import is migrated
+      await new WebdaMorpher({ project: { tsConfigFilePath: join(tmp, "tsconfig.json") } }).check();
+      expect(readFileSync(srcFile, "utf-8")).toContain('from "@webda/fs"');
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
 });

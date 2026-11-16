@@ -157,6 +157,35 @@ class V3UpgradeTest extends EmailTest {
   }
 
   @test
+  async identsListWithACrashLeftDuplicateOrAFailingStore() {
+    const userId = await seedV3(this.write, "dup_me@x.com", { validated: true, password: "v3password" });
+    const raw = this.storage.get("dup_me@x.com_email");
+    const ctx = await this.ctx();
+    await this.op("Auth.Email.Login", { email: "dup_me@x.com", password: "v3password" }, ctx);
+    // An upgrade stopped after the create: the v3 record is still there, next to the upgraded one
+    this.storage.set("dup_me@x.com_email", raw);
+    const list: any[] = await this.op("Auth.Idents", {}, ctx);
+    assert.deepStrictEqual(
+      list.map(i => `${i.providerUid}:${i.provider}`),
+      ["dup_me@x.com:email"]
+    );
+    assert.strictEqual(this.storage.has("dup_me@x.com_email"), false);
+    // A store failure during the upgrade is not taken for a conflict
+    seedV3Ident(this.write, "777", "google", userId);
+    const repo: any = Ident.getRepository();
+    const create = repo.create;
+    repo.create = async () => {
+      throw new Error("Backend unavailable");
+    };
+    try {
+      await assert.rejects(() => this.op("Auth.Idents", {}, ctx), /Backend unavailable/);
+    } finally {
+      repo.create = create;
+    }
+    assert.ok(this.storage.has("777_google"));
+  }
+
+  @test
   async identQueryWithV3Records() {
     seedV3Ident(this.write, "q_1@x.com", "email", "quser");
     seedV3Ident(this.write, "q2", "github", "quser");
@@ -180,12 +209,44 @@ class V3UpgradeTest extends EmailTest {
     await Ident.ref(Ident.key("idem@x.com", "email")).setAttribute("_loginAttempts", 7);
     // Simulate a crash after the create: the v3 record is still there
     this.storage.set("idem@x.com_email", raw);
+    // A dry run reports the record already upgraded and keeps the v3 one
+    const preview = await upgradeIdent(await Ident.ref("idem@x.com_email" as any).get(), Ident as any, {
+      dryRun: true
+    });
+    assert.strictEqual(preview.getUUID(), "idem@x.com:email");
+    assert.strictEqual(this.storage.has("idem@x.com_email"), true);
     const again = await upgradeIdent(await Ident.ref("idem@x.com_email" as any).get());
     assert.strictEqual(again.getUUID(), "idem@x.com:email");
     // The existing record is kept as is
     assert.strictEqual(again._loginAttempts, 7);
     assert.strictEqual(this.storage.has("idem@x.com_email"), false);
     await assert.rejects(() => upgradeIdent(again), /Not a v3 ident/);
+  }
+
+  @test
+  async tolerantFieldMap() {
+    // Neither provider, type nor owner; unreadable dates
+    this.write("odd_1_github", {
+      uuid: "odd_1_github",
+      __type: "Webda/Ident",
+      _validation: "yes",
+      _lastUsed: "not a date",
+      _lastValidationEmail: 0
+    });
+    const legacy: any = await Ident.ref("odd_1_github" as any).get();
+    legacy._lastFailedLogin = new Date("2021-01-01T00:00:00.000Z");
+    const before = Date.now();
+    const ident = await upgradeIdent(legacy);
+    // The provider comes from the key
+    assert.strictEqual(ident.getUUID(), "odd_1:github");
+    assert.strictEqual(ident.provider, "github");
+    assert.ok(!ident.getUser()?.toString());
+    // Validated at an unknown date: now
+    assert.ok(ident.verifiedAt.getTime() >= before);
+    assert.strictEqual(ident.lastUsedAt, undefined);
+    assert.strictEqual(ident._throttle.lastSentAt, undefined);
+    assert.strictEqual(ident._lastLoginAttemptAt, Date.parse("2021-01-01T00:00:00.000Z"));
+    assert.strictEqual(this.storage.has("odd_1_github"), false);
   }
 
   @test
@@ -341,6 +402,18 @@ class V3UpgradeTest extends EmailTest {
     assert.ok(!isLegacyIdent(row("Webda/User"), MidIdent as any));
     assert.ok(!isLegacyIdent(new Ident({ uuid: "t@x.com_email" } as any), MidIdent as any));
     assert.ok(!isLegacyIdent(new LeafIdent({ ...Ident.key("t@x.com", "email") } as any), MidIdent as any));
+    // Incomplete metadata and subclasses listed twice are tolerated
+    class RootIdent extends Ident {}
+    class BareIdent extends RootIdent {}
+    class SiblingIdent extends RootIdent {}
+    Object.defineProperty(BareIdent, "Metadata", { value: {} });
+    Object.defineProperty(SiblingIdent, "Metadata", { value: { Identifier: "T/Sibling" } });
+    Object.defineProperty(RootIdent, "Metadata", {
+      value: { Identifier: "T/Root", Subclasses: [BareIdent, SiblingIdent, SiblingIdent, undefined] }
+    });
+    const bare: any = new BareIdent({ uuid: "t@x.com_email" } as any);
+    Object.defineProperty(bare, "__type", { value: "T/Sibling", enumerable: false });
+    assert.ok(isLegacyIdent(bare, RootIdent as any));
   }
 
   @test

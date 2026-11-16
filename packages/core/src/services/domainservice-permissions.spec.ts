@@ -2292,4 +2292,97 @@ class DomainServicePermissionsTest extends WebdaApplicationTest {
     assert.match(search.properties.query.description, /SELECT f1, f2\.g WHERE/);
     assert.match(schema.properties.results.description, /partial when the query has a field list/);
   }
+
+  @test
+  async permissionHelpersWithoutObjectClassOrReason() {
+    const ctx = { getCurrentUserId: () => "u" } as any;
+    // A static check failing with an error that is not a refusal: still a refusal
+    class BrokenStatic extends UuidModel {
+      static async canAct(): Promise<boolean> {
+        throw new Error("db down");
+      }
+    }
+    await assert.rejects(() => checkStaticModelPermission(BrokenStatic, ctx, "rebuild"), WebdaError.Forbidden);
+    // A thrown value that is not an Error carries no reason
+    class ThrowsAValue extends UuidModel {
+      static async canAct(): Promise<boolean> {
+        throw "nope";
+      }
+    }
+    await assert.rejects(
+      () => checkStaticModelPermission(ThrowsAValue, ctx, "rebuild"),
+      (err: any) => err instanceof WebdaError.Forbidden && err.message === "Action rebuild not allowed"
+    );
+    // Neither object nor model: the base check denies
+    await assert.rejects(() => checkStaticModelPermission(undefined, ctx, "rebuild"), WebdaError.Forbidden);
+    await assert.rejects(() => checkModelPermission(undefined, ctx, "create", OpenNote), WebdaError.Forbidden);
+    // Without client query, the permission query is the query
+    assert.strictEqual(mergePermissionQuery(undefined as any, { query: "team = 'a'" } as any), 'team = "a"');
+  }
+
+  @test
+  async queryOfAStoreWithoutResultsAndAModelWithoutIdentifier() {
+    const ctx: any = { getCurrentUserId: () => "u" };
+    // A store answering no results at all
+    const bare: any = { prototype: { canAct: () => true }, query: async () => ({}) };
+    assert.deepStrictEqual(await queryModelWithPermissions(bare, "", ctx), {
+      results: [],
+      continuationToken: undefined
+    });
+    // One readable row per page: once the refill is bounded, the token is kept since rows were returned
+    let pages = 0;
+    const slow: any = {
+      name: "SlowModel",
+      Metadata: {},
+      prototype: { canAct: () => true },
+      query: async () => ({
+        results: [{ uuid: `r${++pages}`, canAct: async () => true }],
+        continuationToken: `t${pages}`
+      })
+    };
+    const res = await queryModelWithPermissions(slow, "LIMIT 1000", ctx);
+    assert.strictEqual(res.results.length, MAX_REFILL_PAGES);
+    assert.ok(res.continuationToken);
+    // The token is bound to the class name of a model without identifier
+    assert.strictEqual(
+      await unsealContinuationToken(res.continuationToken!, { model: "SlowModel", query: "", user: "u" }),
+      `t${MAX_REFILL_PAGES}`
+    );
+    // And to a constant for an anonymous class
+    const anonymous: any = { ...slow, name: undefined };
+    const other = await queryModelWithPermissions(anonymous, "LIMIT 1000", ctx);
+    assert.ok(await unsealContinuationToken(other.continuationToken!, { model: "model", query: "", user: "u" }));
+  }
+
+  @test
+  async parentChecksOnAnObjectWithoutParent() {
+    const service: any = new DomainService("DomainService", new DomainServiceParameters().load({}));
+    const events: any[] = [];
+    service.on("Store.WebNotFound", (evt: any) => events.push(evt));
+    const ctx = new SimpleOperationContext();
+    await ctx.init();
+    const session = new Session();
+    session.login(USER_B, USER_B);
+    ctx.setSession(session);
+    // An orphan moved under a parent the caller cannot read
+    await assert.rejects(
+      () => service.checkReparent(PermSubTask, new PermSubTask(), { task: "task-a" }, ctx),
+      WebdaError.NotFound
+    );
+    assert.deepStrictEqual(
+      events.map(e => e.uuid),
+      ["task-a"]
+    );
+    // A composite parent key is reported as JSON
+    await assert.rejects(() => service.checkParent(PermSubTask, { a: 1 }, ctx), WebdaError.NotFound);
+    assert.strictEqual(events[1].uuid, JSON.stringify({ a: 1 }));
+    // Its own parent: nothing to check
+    await service.checkReparent(
+      PermSubTask,
+      new PermSubTask().load({ task: "task-a" } as any),
+      { task: "task-a" },
+      ctx
+    );
+    assert.strictEqual(events.length, 2);
+  }
 }

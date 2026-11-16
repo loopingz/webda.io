@@ -367,4 +367,81 @@ class CompleteTest extends AuthTest {
       repo.create = origCreate;
     }
   }
+
+  @test
+  async linkIdentityRequiresLoginAndNormalisesTheEmail() {
+    const anonymous = await this.ctx();
+    await assert.rejects(() => this.inContext(anonymous, () => this.auth.linkIdentity(google("ln0"))), {
+      code: "UNAUTHORIZED"
+    });
+    const user = await this.emailUser("ln@x.com", true);
+    const ctx = await this.ctx();
+    ctx.getSession().login(user.getUUID(), "ln@x.com:email");
+    await this.inContext(ctx, () => this.auth.linkIdentity(google("ln1", "Mixed.Case@X.com")));
+    const ident = await Ident.ref(Ident.key("ln1", "google")).get();
+    assert.strictEqual(ident.email, "mixed.case@x.com");
+    assert.strictEqual(ident.getUser().toString(), user.getUUID());
+    // An identity without amr logs in with no factor recorded
+    const plain = await this.ctx();
+    const res: any = await this.inContext(plain, () => this.auth.complete({ ...google("noamr"), amr: undefined }));
+    assert.strictEqual(res.status, "ok");
+    assert.deepStrictEqual(plain.getSession().amr, []);
+  }
+
+  @test
+  async lostRacesReportedAsPlainValues() {
+    // Some stores reject with a plain value instead of an Error
+    const user = await this.emailUser("plain@x.com", true);
+    const ctx = await this.ctx();
+    ctx.getSession().login(user.getUUID(), "plain@x.com:email");
+    const repo = Ident.getRepository();
+    const origCreate = repo.create.bind(repo);
+    const owned = (uid: string) => new Ident({ ...Ident.key(uid, "google"), _user: user.getUUID() } as any);
+    try {
+      // Explicit link
+      repo.create = async () => {
+        await origCreate(owned("pv-link"));
+        throw "Already exists";
+      };
+      assert.deepStrictEqual(await this.inContext(ctx, () => this.auth.linkIdentity(google("pv-link"))), {
+        status: "linked"
+      });
+      // First login: the retry finds the winner's ident
+      let lost = false;
+      repo.create = async (item: any) => {
+        if (lost) return origCreate(item);
+        lost = true;
+        await origCreate(owned("pv-first"));
+        throw "Already exists";
+      };
+      const first = await this.ctx();
+      assert.strictEqual(
+        ((await this.inContext(first, () => this.auth.complete(google("pv-first")))) as any).status,
+        "ok"
+      );
+      assert.strictEqual(first.getCurrentUserId(), user.getUUID());
+      // Email ident of a verified provider email: already there
+      let creates = 0;
+      repo.create = async (item: any) => {
+        if (++creates === 2) throw "Already exists";
+        return origCreate(item);
+      };
+      const extra = await this.ctx();
+      const identity = google("pv-extra", "pv-extra@x.com", true);
+      assert.strictEqual(((await this.inContext(extra, () => this.auth.complete(identity))) as any).status, "ok");
+      // ... while any other failure is reported
+      creates = 0;
+      repo.create = async (item: any) => {
+        if (++creates === 2) throw new Error("Fatal store error");
+        return origCreate(item);
+      };
+      const failed = await this.ctx();
+      await assert.rejects(
+        () => this.inContext(failed, () => this.auth.complete(google("pv-fatal", "pv-fatal@x.com", true))),
+        /Fatal store error/
+      );
+    } finally {
+      repo.create = origCreate;
+    }
+  }
 }

@@ -1,5 +1,5 @@
 import { suite, test } from "@webda/test";
-import { SecretString } from "@webda/core";
+import { SecretString, useApplication } from "@webda/core";
 import { WebdaApplicationTest } from "@webda/core/lib/test";
 import * as assert from "node:assert";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
@@ -21,7 +21,8 @@ vi.mock("@webda/core", async importOriginal => {
         files: [
           { target: "package.json", content: '{"name":"app"}' },
           { target: "node_modules/.bin/tool", source: __filename, mode: 0o100755 },
-          { target: "lib/index.js", source: __filename, mode: 0o100664 }
+          { target: "lib/index.js", source: __filename, mode: 0o100664 },
+          { target: "lib/empty.js" }
         ],
         configuration: {}
       };
@@ -81,14 +82,55 @@ class ContainerDeployerTest extends WebdaApplicationTest {
   }
 
   @test
+  resolvedLabelsAndEpoch() {
+    const epoch = process.env.SOURCE_DATE_EPOCH;
+    const project = vi.spyOn(useApplication(), "getProjectInfo").mockReturnValue({
+      package: { name: "app", repository: "https://github.com/acme/app" },
+      webda: {}
+    } as any);
+    try {
+      process.env.SOURCE_DATE_EPOCH = "1700000000";
+      const deployer = this.deployer({ labels: { empty: "", custom: "kept" } });
+      const resolved = deployer.getResolvedParameters();
+      // The repository can be a plain url, empty labels are dropped
+      assert.strictEqual(resolved.labels["org.opencontainers.image.source"], "https://github.com/acme/app");
+      assert.strictEqual(resolved.labels["org.opencontainers.image.title"], "app");
+      assert.strictEqual(resolved.labels.custom, "kept");
+      assert.ok(!("empty" in resolved.labels));
+      assert.strictEqual(resolved.mtime, 1700000000);
+      assert.strictEqual(this.deployer({ mtime: 42 }).getResolvedParameters().mtime, 42);
+      // A relative output is in the application folder, the current one without application folder
+      const app: any = useApplication();
+      assert.strictEqual((deployer as any).resolveOutput("dist/image"), join(app.applicationPath, "dist/image"));
+      assert.strictEqual((deployer as any).resolveOutput("/tmp/image"), "/tmp/image");
+      const applicationPath = vi.spyOn(app, "applicationPath", "get").mockReturnValue(undefined);
+      try {
+        assert.strictEqual((deployer as any).resolveOutput("dist/image"), join(process.cwd(), "dist/image"));
+      } finally {
+        applicationPath.mockRestore();
+      }
+    } finally {
+      project.mockRestore();
+      if (epoch === undefined) delete process.env.SOURCE_DATE_EPOCH;
+      else process.env.SOURCE_DATE_EPOCH = epoch;
+    }
+  }
+
+  @test
   resolvedSecretCredentials() {
     const resolved = this.deployer({
-      credentials: { "ghcr.io": { username: "${deployer.name}", password: new SecretString("${pass}", "test") } }
+      credentials: {
+        "ghcr.io": { username: "${deployer.name}", password: new SecretString("${pass}", "test") },
+        "gcr.io": { identityToken: new SecretString("${identity}", "test") },
+        "quay.io": { token: new SecretString("${token}", "test") }
+      }
     }).getResolvedParameters();
     // Templates apply to plain values, the encrypted ones are kept as is
     assert.strictEqual(resolved.credentials["ghcr.io"].username, "image");
     assert.ok(resolved.credentials["ghcr.io"].password instanceof SecretString);
     assert.strictEqual((resolved.credentials["ghcr.io"].password as SecretString).getValue(), "${pass}");
+    assert.strictEqual((resolved.credentials["gcr.io"].identityToken as SecretString).getValue(), "${identity}");
+    assert.strictEqual((resolved.credentials["quay.io"].token as SecretString).getValue(), "${token}");
   }
 
   @test
@@ -97,9 +139,17 @@ class ContainerDeployerTest extends WebdaApplicationTest {
     const entries = await deployer.getLayerEntries(deployer.getResolvedParameters());
     assert.deepStrictEqual(
       entries.map(entry => `${entry.path} ${entry.mode.toString(8)}`),
-      ["app/package.json 644", "app/node_modules/.bin/tool 755", "app/lib/index.js 644"]
+      ["app/package.json 644", "app/node_modules/.bin/tool 755", "app/lib/index.js 644", "app/lib/empty.js 644"]
     );
     assert.strictEqual(packaged.options.modules.includes, undefined);
+    // A file without source nor content is empty
+    assert.deepStrictEqual(entries[3].content, Buffer.alloc(0));
+    // At the root of the image
+    const root = this.deployer({ workdir: "/" });
+    assert.deepStrictEqual(
+      (await root.getLayerEntries(root.getResolvedParameters())).map(entry => entry.path),
+      ["package.json", "node_modules/.bin/tool", "lib/index.js", "lib/empty.js"]
+    );
   }
 
   @test

@@ -117,6 +117,14 @@ class ModelTest {
   }
 
   @test
+  toDTOStripsPrivateInArrays() {
+    const model = new TestModel();
+    Object.assign(model, { id: "1", items: [{ __hash: "h", ok: 1 }, "plain", [{ __deep: true, kept: 2 }]] });
+    const dto: any = model.toDTO();
+    assert.deepStrictEqual(dto.items, [{ ok: 1 }, "plain", [{ kept: 2 }]]);
+  }
+
+  @test
   async repositories() {
     // Ensuring that the repositories are re  gistered correctly
     const repo1 = new MemoryRepository(UuidModel, ["uuid"]);

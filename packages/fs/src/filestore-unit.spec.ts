@@ -275,6 +275,15 @@ class FileBackedMapTest {
   }
 
   @test
+  checkCollectionUpdateConditionMismatchIdentifier() {
+    const check = (stored: any) => () => this.store["checkCollectionUpdateCondition"](stored, "items", "v", 99, 0);
+    // The error names the object by its uuid, its _id, or as unknown
+    assert.throws(check({ uuid: "byUuid", items: [{ v: 1 }] }), /byUuid/);
+    assert.throws(check({ _id: "byId", items: [{ v: 1 }] }), /byId/);
+    assert.throws(check({ items: [{ v: 1 }] }), /unknown/);
+  }
+
+  @test
   checkCollectionUpdateConditionMismatch() {
     assert.throws(
       () =>

@@ -9,8 +9,10 @@ import { getPlural } from "./module.ts";
 import {
   buildModelMetadata,
   buildRelations,
+  classTree,
   dependencyModelName,
   discoverWebdaObjects,
+  exportedName,
   packageOf,
   packageRootOf,
   reflectAttributes,
@@ -269,5 +271,164 @@ describe("primary key separator", () => {
     } finally {
       rmSync(tmpDir, { recursive: true, force: true });
     }
+  });
+});
+
+describe("discovery edge cases", () => {
+  let tmpDir: string;
+  let session: ReturnType<typeof openSession>;
+  let sf: any;
+
+  /**
+   * Find a class statement of the fixture by name.
+   * @param name - class name
+   * @returns the declaration
+   */
+  function classNamed(name: string): any {
+    return sf.statements.find((statement: any) => statement.name?.text === name);
+  }
+
+  beforeAll(() => {
+    tmpDir = realpathSync(mkdtempSync(join(tmpdir(), "content-mapper-edge-")));
+    const corePkg = join(tmpDir, "node_modules", "@webda", "core");
+    const modelsPkg = join(tmpDir, "node_modules", "@webda", "models");
+    mkdirSync(corePkg, { recursive: true });
+    mkdirSync(modelsPkg, { recursive: true });
+    writeFileSync(join(corePkg, "package.json"), JSON.stringify({ name: "@webda/core", types: "index.d.ts" }));
+    writeFileSync(join(corePkg, "index.d.ts"), `export class Service {}\n`);
+    writeFileSync(join(modelsPkg, "package.json"), JSON.stringify({ name: "@webda/models", types: "index.d.ts" }));
+    writeFileSync(
+      join(modelsPkg, "index.d.ts"),
+      `export declare const WEBDA_PRIMARY_KEY_SEPARATOR: unique symbol;\n` +
+        `export class Model {}\n` +
+        `export class ModelParent<T> { target?: T; }\n` +
+        `export class ModelRelated<T, L> { target?: T; linker?: L; }\n`
+    );
+
+    mkdirSync(join(tmpDir, "src"), { recursive: true });
+    writeFileSync(
+      join(tmpDir, "tsconfig.json"),
+      JSON.stringify({ compilerOptions: { strict: false, types: [] }, include: ["src/**/*"] })
+    );
+    writeFileSync(join(tmpDir, "src", "other.ts"), `export const other = 1;\n`);
+    writeFileSync(
+      join(tmpDir, "src", "ignored.spec.ts"),
+      `import { Model } from "@webda/models";\nexport class InSpec extends Model {}\n`
+    );
+    writeFileSync(
+      join(tmpDir, "src", "items.ts"),
+      `import { Service } from "@webda/core";\n` +
+        `import { Model, ModelParent, ModelRelated, WEBDA_PRIMARY_KEY_SEPARATOR } from "@webda/models";\n` +
+        `export * from "./other";\n` +
+        `/** @WebdaModda NotAService */\n` +
+        `export class NotAService {}\n` +
+        `/** @WebdaModda Other/Named */\n` +
+        `export class Named extends Service {}\n` +
+        `class Hidden extends Model {}\n` +
+        `class Late extends Model {}\n` +
+        `export { Late as Renamed };\n` +
+        `export default class extends Model {}\n` +
+        `export class Edge extends Model {\n` +
+        `  declare [WEBDA_PRIMARY_KEY_SEPARATOR]: string;\n` +
+        `  ["computed"]: string;\n` +
+        `  /** @ignore */\n` +
+        `  ignored: string;\n` +
+        `  kept: string;\n` +
+        `  parent: ModelParent<string>;\n` +
+        `  related: ModelRelated<string, Edge>;\n` +
+        `}\n`
+    );
+    session = openSession(join(tmpDir, "tsconfig.json"), tmpDir);
+    sf = session.ctx.sourceFiles.find(f => f.fileName.endsWith("items.ts"))!;
+  });
+
+  afterAll(() => {
+    session.dispose();
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  /**
+   * Run discovery on the fixture.
+   * @param namespace - the project namespace, if any
+   * @returns the discovered objects
+   */
+  function discover(namespace?: string) {
+    return discoverWebdaObjects(session.ctx, {
+      appPath: tmpDir,
+      rootDir: join(tmpDir, "src"),
+      outDir: join(tmpDir, "lib"),
+      namespace
+    });
+  }
+
+  it("skips spec files, unexported classes and a modda that is not a Service", () => {
+    const names = discover("Test").map(object => object.name);
+    expect(names).not.toContain("Test/InSpec");
+    expect(names).not.toContain("Test/Hidden");
+    expect(names).not.toContain("Test/NotAService");
+    expect(names).toContain("Test/Edge");
+  });
+
+  it("keeps a tag name that already carries a namespace", () => {
+    const named = discover("Test").find(object => object.className === "Named")!;
+    expect(named.section).toBe("moddas");
+    expect(named.name).toBe("Other/Named");
+  });
+
+  it("records the alias of a class exported by a later export statement", () => {
+    const late = discover("Test").find(object => object.className === "Late")!;
+    expect(late.exportName).toBe("Renamed");
+    expect(late.importTarget).toBe("lib/items:Renamed");
+  });
+
+  it("uses the bare class name without a namespace", () => {
+    const names = discover().map(object => object.name);
+    expect(names).toContain("Edge");
+    expect(names).toContain("Other/Named");
+  });
+
+  it("leaves the separator undefined when the member declares no value", () => {
+    const edge = discover("Test").find(object => object.className === "Edge")!;
+    expect(edge.primaryKeySeparator).toBeUndefined();
+  });
+
+  it("has no type chain and no exported name for an anonymous class", () => {
+    const anonymous = sf.statements.find((statement: any) => statement.members && !statement.name);
+    expect(anonymous).toBeDefined();
+    expect(classTree(session.ctx, anonymous)).toEqual([]);
+    expect(exportedName(session.ctx, sf, anonymous)).toBeUndefined();
+    expect(reflectAttributes(session.ctx, sf, anonymous)).toEqual({});
+  });
+
+  it("does not reflect computed or @ignore attributes", () => {
+    const reflection = reflectAttributes(session.ctx, sf, classNamed("Edge"));
+    expect(Object.keys(reflection).sort()).toEqual(["kept", "parent", "related"]);
+    expect(reflection.kept).toEqual({ type: "string" });
+  });
+
+  it("drops a parent or a query whose target is not a model", () => {
+    const resolved: string[] = [];
+    const relations = buildRelations(session.ctx, sf, classNamed("Edge"), name => {
+      resolved.push(name);
+      return undefined;
+    });
+    expect(relations).toEqual({});
+    expect(resolved).toEqual([]);
+  });
+
+  it("does not record a model as its own ancestor or subclass", () => {
+    // `class User extends User`: a local model extending a dependency's of the same name
+    const base = { section: "models" as const, exportName: "User", importTarget: "", fileName: "", primaryKey: [] };
+    const metadata = buildModelMetadata(
+      [
+        { ...base, name: "App/User", className: "User", baseNames: ["User", "Model"] },
+        { ...base, name: "App/Admin", className: "Admin", baseNames: ["User", "Model"] }
+      ],
+      name => `${name}s`
+    );
+    expect(metadata["App/User"].Ancestors).toEqual([]);
+    expect(metadata["App/User"].Subclasses).toEqual(["App/Admin"]);
+    expect(metadata["App/Admin"].Ancestors).toEqual(["App/User"]);
+    expect(metadata["App/User"].Plural).toBe("Users");
   });
 });

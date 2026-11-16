@@ -5,7 +5,8 @@ import {
   SimpleOperationContext,
   useModelMetadata,
   useParameters,
-  useRouter
+  useRouter,
+  WebdaError
 } from "@webda/core";
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
@@ -37,6 +38,13 @@ class AsyncActionTest extends AsyncTest {
     });
     assert.strictEqual(await action.canAct(context, "status"), "non-error");
     verify.restore();
+    // A refusal without reason is a plain Forbidden
+    const canAct = sinon.stub(action, "canAct").resolves(false);
+    await assert.rejects(
+      () => action.checkAct(context, "status"),
+      (err: any) => err instanceof WebdaError.Forbidden && err.message === "Forbidden"
+    );
+    canAct.restore();
     assert.strictEqual(context.getExtension("asyncJob"), action);
     await assert.rejects(() => action.statusAction(new OperationContext()), /Only WebContext can call this action/);
   }

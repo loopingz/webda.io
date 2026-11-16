@@ -145,6 +145,74 @@ class LeaderElectorTest {
   }
 
   @test
+  async defaultsAndStopWhileAcquiring() {
+    const events: string[] = [];
+    const elector = new LeaderElector(
+      this.client,
+      { name: "operator", namespace: "default", identity: "a" },
+      { onStartedLeading: () => void events.push("started"), onStoppedLeading: () => void events.push("stopped") }
+    );
+    this.electors.push(elector);
+    // Stopped before the first attempt is done: never leading, no other attempt
+    const started = elector.start();
+    await elector.stop();
+    await started;
+    assert.strictEqual(elector.leading, false);
+    assert.deepStrictEqual(events, []);
+    assert.strictEqual((elector as any).timer, undefined);
+    // 15 seconds lease by default
+    assert.strictEqual(this.lease().spec.leaseDurationSeconds, 15);
+    assert.strictEqual(this.lease().spec.holderIdentity, "a");
+
+    // Stopped while it starts leading: the lease is released, no renewal is scheduled
+    let release!: () => void;
+    const starting = new Promise<void>(resolve => (release = resolve));
+    const slow = new LeaderElector(
+      this.client,
+      { name: "operator", namespace: "default", identity: "a", retryPeriod: 20 },
+      {
+        onStartedLeading: async () => {
+          events.push("started");
+          await starting;
+        },
+        onStoppedLeading: () => void events.push("stopped")
+      }
+    );
+    this.electors.push(slow);
+    const slowStarted = slow.start();
+    await until(() => events.length === 1);
+    const stopped = slow.stop();
+    await until(() => events.length === 2);
+    release();
+    await Promise.all([slowStarted, stopped]);
+    assert.deepStrictEqual(events, ["started", "stopped"]);
+    assert.strictEqual((slow as any).timer, undefined);
+    assert.strictEqual(this.lease().spec.holderIdentity, undefined);
+  }
+
+  @test
+  async incompleteLeaseOfAnotherHolder() {
+    const b = this.candidate("b", 2000);
+    const lease = (spec: any) =>
+      this.api.resources.set("coordination.k8s.io/leases/default/operator", {
+        apiVersion: "coordination.k8s.io/v1",
+        kind: "Lease",
+        metadata: { name: "operator", namespace: "default", resourceVersion: "1" },
+        spec
+      });
+    // Renewed without duration: the duration of the candidate applies
+    lease({ holderIdentity: "ghost", renewTime: new Date(Date.now() - 1000).toISOString().replace("Z", "000Z") });
+    assert.strictEqual(await b.elector.tryAcquireOrRenew(), false);
+    lease({ holderIdentity: "ghost", renewTime: new Date(Date.now() - 3000).toISOString().replace("Z", "000Z") });
+    assert.strictEqual(await b.elector.tryAcquireOrRenew(), true);
+    // Never renewed: expired
+    lease({ holderIdentity: "ghost", leaseDurationSeconds: 3600 });
+    assert.strictEqual(await b.elector.tryAcquireOrRenew(), true);
+    assert.strictEqual(this.lease().spec.holderIdentity, "b");
+    assert.strictEqual(this.lease().spec.leaseTransitions, 1);
+  }
+
+  @test
   async concurrentCreation() {
     const candidates = ["a", "b", "c"].map(id => this.candidate(id));
     await Promise.all(candidates.map(c => c.elector.start()));

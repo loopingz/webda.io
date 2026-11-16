@@ -148,4 +148,15 @@ suite("removeFilterRegistrations", () => {
     expect(result).not.toContain("registerRequestFilter");
     expect(result).toContain("super.resolve()");
   });
+
+  test("preserves a registration whose result is used", () => {
+    // Not a standalone statement: removing it would break the surrounding declaration
+    const input = `class MyService {
+  resolve() {
+    const registered = this.getWebda().registerRequestFilter(this);
+    return registered;
+  }
+}`;
+    expect(transform(input)).toBe(input);
+  });
 });

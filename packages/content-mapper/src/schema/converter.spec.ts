@@ -1,13 +1,15 @@
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import * as is from "typescript/ast/is";
 import type { ClassDeclaration } from "typescript/ast";
 import { openSession, type Session } from "../context.ts";
 import { generateActionInput } from "./action.ts";
 import { generateModelSchemas } from "./model.ts";
 import { generateTopLevelSchemas } from "./project.ts";
-import { findParametersNode, generateServiceSchema } from "./service.ts";
+import { derivesFrom, findParametersNode, generateServiceSchema } from "./service.ts";
 import { SchemaConverter } from "./converter.ts";
 import { SchemaConversionError, type JSONSchema7 } from "./types.ts";
 
@@ -618,5 +620,289 @@ describe("sanitize opt-out", () => {
       : properties.profile;
     expect(profile.properties!.bio["x-webda-sanitize"]).toBe("none");
     expect(profile.properties!.age["x-webda-sanitize"]).toBeUndefined();
+  });
+});
+
+describe("less travelled conversions", () => {
+  const options = { project: session.ctx.project, checker: session.ctx.checker };
+  const shapes = new SchemaConverter(options).fromNode(declarationOf("Shapes"));
+  const properties = shapes.properties!;
+
+  /**
+   * Find any named declaration in the `branches.ts` fixture.
+   * @param name - declaration name
+   * @returns the declaration
+   */
+  function declarationOf(name: string): ClassDeclaration {
+    const sourceFile = session.ctx.program.getSourceFile(join(fixture, "src", "branches.ts"));
+    if (!sourceFile) throw new Error("fixture branches.ts not in the program");
+    for (const statement of sourceFile.statements) {
+      if ((statement as { name?: { text?: string } }).name?.text === name) return statement as ClassDeclaration;
+    }
+    throw new Error(`${name} not found in branches.ts`);
+  }
+
+  it("writes a string enum as its values", () => {
+    expect(properties.color).toMatchObject({ type: "string", enum: ["red", "green"] });
+  });
+
+  it("takes the constant of an enum member in a union that is not the enum", () => {
+    expect(properties.redOrNone).toMatchObject({ type: "string", enum: ["red", "none"] });
+  });
+
+  it("keeps the object shape of a class whose @type names no JSON type", () => {
+    expect(properties.notJson.$ref).toBe("#/definitions/NotJson");
+    expect(shapes.definitions!.NotJson.properties!.inner.type).toBe("string");
+  });
+
+  it("falls back to the class shape when toJSON says nothing", () => {
+    // `toJSON(): any`
+    expect(properties.loose.$ref).toBe("#/definitions/Loose");
+    expect(shapes.definitions!.Loose.properties!.value.type).toBe("string");
+    // A data property called `toJSON` is not a serialiser
+    expect(properties.misnamed.$ref).toBe("#/definitions/Misnamed");
+    expect(Object.keys(shapes.definitions!.Misnamed.properties!)).toEqual(["fromDto", "toJSON"]);
+  });
+
+  it("uses a concrete toJSON return type of a generic class", () => {
+    expect(properties.pair).toMatchObject({ type: "array", items: { type: "string" }, minItems: 2, maxItems: 2 });
+  });
+
+  it("reduces a serialised intersection to its only data constituent", () => {
+    expect(properties.branded.$ref).toBe("#/definitions/Data");
+    expect(shapes.definitions!.Data.required).toEqual(["amount"]);
+  });
+
+  it("merges an intersection, staying open when a constituent is", () => {
+    expect(properties.open.type).toBe("object");
+    expect(Object.keys(properties.open.properties!)).toEqual(["known", "maybe"]);
+    expect(properties.open.required).toEqual(["known"]);
+    expect(properties.open.additionalProperties).toBeUndefined();
+  });
+
+  it("omits required from an intersection where nothing is", () => {
+    expect(Object.keys(properties.lenient.properties!)).toEqual(["maybe", "other"]);
+    expect(properties.lenient.required).toBeUndefined();
+    expect(properties.lenient.additionalProperties).toBe(false);
+  });
+
+  it("drops a callable constituent from an intersection", () => {
+    expect(properties.callable.allOf).toBeUndefined();
+    expect(Object.keys(properties.callable.properties!)).toEqual(["maybe"]);
+  });
+
+  it("leaves a readonly tuple without constants as a bare array", () => {
+    expect(properties.readonlyPair).toEqual({ type: "array", description: "A readonly tuple that is not a constant." });
+  });
+
+  it("closes an empty tuple", () => {
+    expect(properties.nothing).toMatchObject({ type: "array", items: [], minItems: 0, maxItems: 0 });
+  });
+
+  it("represents an ArrayBuffer like a Buffer", () => {
+    expect(properties.raw).toMatchObject({ type: "string", contentEncoding: "base64" });
+  });
+
+  it("keeps a property keyed by a computed string", () => {
+    expect(properties.computed).toMatchObject({ type: "string" });
+    expect(shapes.required).toContain("computed");
+  });
+
+  it("keeps void as an impossible branch of a union", () => {
+    expect(properties.maybeVoid.anyOf).toEqual([{ type: "string" }, { not: {} }]);
+  });
+
+  it("marks a union of several secret classes once", () => {
+    expect(properties.secrets).toEqual({
+      type: ["string", "number", "boolean"],
+      description: "Two secret classes in one union.",
+      "x-webda-secret": true
+    });
+  });
+
+  it("drops an attribute whose toDto returns null from Output only", () => {
+    const output = new SchemaConverter({ ...options, mode: "dto-out" }).fromNode(declarationOf("Dtos"));
+    expect(Object.keys(output.properties!)).toEqual(["misnamed", "parameterless"]);
+    expect(output.required).toEqual(["misnamed", "parameterless"]);
+  });
+
+  it("keeps the class shape in Input when fromDto accepts nothing usable", () => {
+    const input = new SchemaConverter({ ...options, mode: "dto-in" }).fromNode(declarationOf("Dtos"));
+    // No parameter, and a data property called `fromDto`
+    expect(input.properties!.parameterless.$ref).toBe("#/definitions/Parameterless");
+    expect(input.properties!.misnamed.$ref).toBe("#/definitions/Misnamed");
+    expect(input.properties!.unpresented.$ref).toBe("#/definitions/Unpresented");
+  });
+
+  it("converts index signatures without any declaration context", () => {
+    const checker = session.ctx.checker;
+    const indexed = new SchemaConverter(options).fromType(checker.getTypeAtLocation(declarationOf("Indexed")));
+    expect(indexed.additionalProperties).toEqual({ $ref: "#/definitions/Data" });
+    expect(indexed.definitions!.Data.properties!.amount.type).toBe("number");
+
+    const union = new SchemaConverter(options).fromType(checker.getTypeAtLocation(declarationOf("IndexedUnion")));
+    expect(union.additionalProperties).toEqual({ type: ["string", "number"] });
+  });
+
+  it("cannot place mapped properties without a declaration context", () => {
+    // The properties of `Record<"left" | "right", string>` have no declaration
+    // of their own, so they need the context node to be resolved.
+    const type = session.ctx.checker.getTypeAtLocation(declarationOf("Keyed"));
+    expect(new SchemaConverter(options).fromType(type).properties).toBeUndefined();
+    expect(Object.keys(new SchemaConverter(options).fromType(type, declarationOf("Keyed")).properties!)).toEqual([
+      "left",
+      "right"
+    ]);
+  });
+
+  it("reads no default from a union initialised by a call", () => {
+    const member = declarationOf("Computed2").members[0];
+    expect(new SchemaConverter(options).fromNode(member)).toEqual({
+      $schema: "http://json-schema.org/draft-07/schema#",
+      type: ["string", "number"]
+    });
+  });
+
+  it("leaves a member undocumented when its base member is too", () => {
+    const documented = new SchemaConverter(options).fromNode(declarationOf("Documented"));
+    expect(documented.properties!.plain).toEqual({ type: "string" });
+  });
+
+  it("keeps {@linkcode}, {@linkplain} and a called link target in their authored form", () => {
+    const documented = new SchemaConverter(options).fromNode(declarationOf("Documented"));
+    expect(documented.properties!.links.description).toBe("Read {@linkcode Bare} then {@linkplain Bare}.");
+    expect(documented.properties!.external.description).toBe(
+      "Call {@link compute()} first, never {@link missingFn()}."
+    );
+  });
+
+  it("documents a nested object literal from the property assigning it", () => {
+    const documented = new SchemaConverter(options).fromNode(declarationOf("Documented"));
+    expect(documented.definitions!.defaults$nested.description).toBe("Documented on the property assignment.");
+    expect(documented.definitions!.defaults$nested.properties!.level).toEqual({ type: "string", default: "info" });
+  });
+
+  it("spells @comment and @id with a dollar, and drops the type expression of @this", () => {
+    const documented = new SchemaConverter(options).fromNode(declarationOf("Documented"));
+    expect(documented.properties!.tagged).toEqual({
+      type: "string",
+      description: "Keywords JSON Schema spells with a dollar.",
+      $comment: "Internal note.",
+      $id: "urn:documented:tagged"
+    });
+    expect(documented.properties!.bound).toMatchObject({
+      type: "string",
+      description: "A callback bound to its owner."
+    });
+    expect(JSON.stringify(documented.properties!.bound)).not.toContain("Documented");
+  });
+
+  it("walks a diamond of interfaces once when looking for a base", () => {
+    const checker = session.ctx.checker;
+    const diamond = checker.getTypeAtLocation(declarationOf("Diamond"));
+    expect(derivesFrom(diamond, "DiamondRoot", checker)).toBe(true);
+    expect(derivesFrom(diamond, "ServiceParameters", checker)).toBe(false);
+  });
+
+  it("finds the parameters of an anonymous default-exported service", () => {
+    const sourceFile = session.ctx.program.getSourceFile(join(fixture, "src", "default.service.ts"))!;
+    const anonymous = sourceFile.statements.find(
+      (statement): statement is ClassDeclaration => is.isClassDeclaration(statement) && !statement.name
+    )!;
+    const schema = generateServiceSchema(anonymous, options);
+    expect(schema!.properties!.flag).toMatchObject({ type: "boolean", description: "A flag." });
+    expect(schema!.title).toBeUndefined();
+  });
+
+  it("uses an explicit toDto for Output, and ignores a data property named like a serialiser", () => {
+    const money = generateModelSchemas(classOf("dto.model.ts", "Money"), options);
+    expect(money.Output.$webda).toBe("toDto$return");
+    expect(money.Output.type).toBe("string");
+    expect(money.Stored.$webda).toBe("toJSON$auto");
+
+    const misnamed = generateModelSchemas(declarationOf("Misnamed"), options);
+    expect(misnamed.Input.$webda).toBe("fromDto$auto");
+    expect(misnamed.Stored.$webda).toBe("toJSON$auto");
+    expect(Object.keys(misnamed.Stored.properties!)).toEqual(["fromDto", "toJSON"]);
+  });
+});
+
+describe("top-level schemas of a hand-written project", () => {
+  let tmpDir: string;
+  let schemas: Record<string, JSONSchema7>;
+
+  beforeAll(() => {
+    tmpDir = realpathSync(mkdtempSync(join(tmpdir(), "content-mapper-toplevel-")));
+    const modelsPkg = join(tmpDir, "node_modules", "@webda", "models");
+    mkdirSync(modelsPkg, { recursive: true });
+    writeFileSync(join(modelsPkg, "package.json"), JSON.stringify({ name: "@webda/models", types: "index.d.ts" }));
+    writeFileSync(join(modelsPkg, "index.d.ts"), `export class Model {}\n`);
+    mkdirSync(join(tmpDir, "src"), { recursive: true });
+    writeFileSync(
+      join(tmpDir, "tsconfig.json"),
+      JSON.stringify({
+        compilerOptions: { strict: false, types: [], experimentalDecorators: true, noEmit: true },
+        include: ["src/**/*"]
+      })
+    );
+    writeFileSync(
+      join(tmpDir, "src", "items.ts"),
+      `import { Model } from "@webda/models";\n` +
+        `declare function Action(...args: any[]): any;\n` +
+        `/** @WebdaSchema Other/Qualified */\nexport interface Qualified {\n  id: string;\n}\n` +
+        `/** @WebdaSchema */\nexport interface Plain {\n  id: string;\n}\n` +
+        `export class Thing extends Model {\n` +
+        `  @Action()\n  ["computed"](): void {}\n` +
+        `  @Action()\n  named(): void {}\n` +
+        `}\n`
+    );
+    writeFileSync(
+      join(tmpDir, "src", "anonymous.ts"),
+      `/** @WebdaSchema Anon */\nexport default class {\n  label: string;\n}\n`
+    );
+    writeFileSync(
+      join(tmpDir, "src", "nameless.ts"),
+      `/** @WebdaSchema */\nexport default class {\n  label: string;\n}\n`
+    );
+    writeFileSync(
+      join(tmpDir, "src", "ignored.spec.ts"),
+      `declare function Action(...args: any[]): any;\n` +
+        `/** @WebdaSchema InSpec */\nexport interface InSpec {\n  id: string;\n}\n` +
+        `/** @WebdaBehavior */\nexport class SpecBehavior {\n  @Action()\n  run(): void {}\n}\n`
+    );
+    const temporary = openSession(join(tmpDir, "tsconfig.json"), tmpDir);
+    try {
+      schemas = generateTopLevelSchemas(temporary.ctx, {
+        appPath: tmpDir,
+        rootDir: join(tmpDir, "src"),
+        outDir: join(tmpDir, "lib")
+      });
+    } finally {
+      temporary.dispose();
+    }
+  });
+
+  afterAll(() => rmSync(tmpDir, { recursive: true, force: true }));
+
+  it("defaults to the Webda namespace and keeps a name that carries its own", () => {
+    expect(schemas["Webda/Plain"].title).toBe("Plain");
+    expect(schemas["Other/Qualified"].title).toBe("Qualified");
+  });
+
+  it("titles an anonymous declaration after its tag, and skips one without any name", () => {
+    expect(schemas["Webda/Anon"].title).toBe("Webda/Anon");
+    expect(schemas["Webda/Anon"].properties!.label.type).toBe("string");
+    expect(Object.keys(schemas).filter(name => !name.includes("."))).toEqual([
+      "Other/Qualified",
+      "Webda/Anon",
+      "Webda/Plain"
+    ]);
+  });
+
+  it("skips an action with a computed name and everything in spec files", () => {
+    expect(Object.keys(schemas).filter(name => name.includes("."))).toEqual([
+      "Thing.named.input",
+      "Thing.named.output"
+    ]);
   });
 });

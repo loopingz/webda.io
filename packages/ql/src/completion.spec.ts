@@ -507,4 +507,17 @@ export class CompletionTest {
     }
     assert.ok(elapsed < 5000, `Expected 1000 calls to complete within reasonable time, took ${elapsed}ms`);
   }
+
+  @test
+  caretFallbackAndDeduplication() {
+    // A caret that is not a number is read as the start of the query
+    assert.deepStrictEqual(
+      getCompletions("status", undefined as any, { fields: TEST_FIELDS }),
+      getCompletions("status", 0, { fields: TEST_FIELDS })
+    );
+    // The same field given twice is suggested once
+    const res = complete("|", { fields: [...TEST_FIELDS, ...TEST_FIELDS] });
+    assert.strictEqual(res.items.filter(i => i.label === "status").length, 1);
+    assert.strictEqual(new Set(res.items.map(i => i.label)).size, res.items.length);
+  }
 }

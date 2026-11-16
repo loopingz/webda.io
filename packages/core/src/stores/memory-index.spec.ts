@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { existsSync, unlinkSync } from "node:fs";
+import { existsSync, rmSync, unlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { TypeIndexedMap } from "@webda/models";
@@ -64,6 +64,32 @@ class MemoryStoreTypeIndexTest extends WebdaApplicationTest {
       store.storage.get = get;
     }
     return read;
+  }
+
+  @test
+  async persistenceFileLargerThanAReadChunk() {
+    const path = join(tmpdir(), `webda-memory-large-${process.pid}-${Date.now()}.ldjson`);
+    try {
+      const store = await this.store("largeWrite", path);
+      const { companies } = this.repositories(store);
+      // Each document is bigger than the 64KB chunks the file is read by
+      const names = ["a", "b", "c"].map(letter => letter.repeat(100000));
+      for (const [i, name] of names.entries()) {
+        await companies.create({ uuid: `large${i}`, name });
+      }
+      await store.stop();
+
+      const reloaded = await this.store("largeRead", path);
+      assert.strictEqual(reloaded.storage.size, 3);
+      const results = (await this.repositories(reloaded).companies.query("")).results;
+      assert.deepStrictEqual(
+        results.map((r: any) => r.name),
+        names
+      );
+      await reloaded.stop();
+    } finally {
+      rmSync(path, { force: true });
+    }
   }
 
   @test

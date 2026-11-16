@@ -405,6 +405,20 @@ class S3BinaryContentStorageTest extends WebdaApplicationTest {
   }
 
   @test
+  async uploadKeepsItsEtagWhenHeadHasNone() {
+    const put = this.mock.commandCalls(PutObjectCommand).length;
+    this.mock.on(HeadObjectCommand).resolves({ ContentLength: 4 });
+    const result = await this.s3Binary.putContent(
+      `s3://${TEST_BUCKET}/noetag.txt`,
+      Readable.from([Buffer.from("body")])
+    );
+    assert.strictEqual(this.mock.commandCalls(PutObjectCommand).length, put + 1);
+    assert.strictEqual(result.size, 4);
+    assert.strictEqual(result.etag, this.storageMap.get(`${TEST_BUCKET}/noetag.txt`)!.etag);
+    assert.strictEqual(result.lastModified, undefined);
+  }
+
+  @test
   async deprecatedGetObjectAndPutObject() {
     await this.s3Binary.putObject("legacy.txt", "legacy body", { env: "prod" });
     const stream = await this.s3Binary.getObject("legacy.txt");

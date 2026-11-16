@@ -274,6 +274,17 @@ class ElasticSearchUnitTest extends WebdaApplicationTest {
       assert.strictEqual(await (service as any).isIndexed(fakeIndex, "u1", undefined), false);
       await (service as any).onObject(fakeIndex, "u1", undefined, true);
       await (service as any).onPartialUpdated(fakeIndex, { object_id: "u1", partial_update: {} });
+      // A partial update of an indexed object carrying no known change is ignored
+      const indexed: any = {
+        ...fakeIndex,
+        _repository: { getRootModel: () => User, get: async () => new SimpleUser() }
+      };
+      assert.strictEqual(await (service as any).isIndexed(indexed, "u1"), true);
+      await (service as any).onPartialUpdated(indexed, { object_id: "u1", partial_update: {} });
+      // Documents are plain JSON copies, nothing for a missing object
+      assert.strictEqual((service as any).toDocument(undefined), undefined);
+      const source = { uuid: "u1", when: new Date("2026-01-02T03:04:05.000Z"), skipped: undefined };
+      assert.deepStrictEqual((service as any).toDocument(source), { uuid: "u1", when: "2026-01-02T03:04:05.000Z" });
 
       // Test reindex with continuationToken and onDrop callback
       const userRepo = useRepository(User);

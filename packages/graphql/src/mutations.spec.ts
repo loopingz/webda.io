@@ -310,5 +310,16 @@ describe("GraphQL mutations", () => {
     FakeModel.stored.set("bm1", new BrokenMetaModel().load({ uuid: "bm1", name: "Old" }));
     const updated = await updateFromInput(BrokenMetaModel as any, "bm1", { uuid: "bm1", name: "New" }, {} as any);
     assert.strictEqual(updated.name, "New");
+
+    // Metadata without primary key: the key is `uuid`
+    class KeylessModel extends FakeModel {
+      static Metadata: any = {};
+    }
+    FakeModel.stored.set("kl1", new KeylessModel().load({ uuid: "kl1", name: "Old" }));
+    await assert.rejects(
+      () => updateFromInput(KeylessModel as any, "kl1", { uuid: "other", name: "New" }, {} as any),
+      /Primary key mismatch/
+    );
+    assert.strictEqual(FakeModel.stored.get("kl1").name, "Old");
   });
 });

@@ -80,6 +80,30 @@ class ToolMappingTest {
   }
 
   @test
+  wrapsUntypedInputWithoutProperties() {
+    // Neither a type nor properties: not known to be an object, so it is wrapped
+    const entry = operationToTool(
+      "Fixture.Any",
+      { id: "Fixture.Any", input: "Fixture.Any", output: "void", method: "any" },
+      name => (name === "Fixture.Any" ? { description: "Anything" } : undefined)
+    );
+    assert.strictEqual(entry.wrapped, true);
+    assert.deepStrictEqual(entry.tool.inputSchema, {
+      type: "object",
+      properties: { value: { description: "Anything" } },
+      required: ["value"]
+    });
+    // Properties alone are enough to be an object
+    const untyped = operationToTool(
+      "Fixture.Untyped",
+      { id: "Fixture.Untyped", input: "Fixture.Untyped", output: "void", method: "any" },
+      name => (name === "Fixture.Untyped" ? { properties: { text: { type: "string" } } } : undefined)
+    );
+    assert.strictEqual(untyped.wrapped, false);
+    assert.deepStrictEqual(untyped.tool.inputSchema, { type: "object", properties: { text: { type: "string" } } });
+  }
+
+  @test
   optionalNonObjectInputDropsRequired() {
     const entry = operationToTool(
       "Fixture.Square",

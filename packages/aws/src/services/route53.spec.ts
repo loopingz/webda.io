@@ -69,6 +69,21 @@ class Route53Test {
       assert.deepStrictEqual(logs, ["INFO", "Deleting entry\n", '{\n  "Name": "toremove",\n  "Type": "TXT"\n}']);
       await commands.route53Sync("./test/zone-export.json");
       assert.deepStrictEqual(logs, ["INFO", "Deleting 1 records"]);
+      // Nothing to delete: only the upsert
+      mock.on(ListResourceRecordSetsCommand).resolves({ ResourceRecordSets: [], IsTruncated: false });
+      mock.resetHistory();
+      await commands.route53Sync("./test/zone-export.json");
+      assert.deepStrictEqual(logs, ["INFO", "Deleting 0 records"]);
+      assert.strictEqual(mock.commandCalls(ChangeResourceRecordSetsCommand).length, 1);
+      // A given zone is not searched
+      zone.mockClear();
+      await Route53Service.createDNSEntry("test.com", "A", "1.1.1.1", {
+        Id: "given",
+        Name: "com.",
+        CallerReference: ""
+      });
+      assert.strictEqual(zone.mock.calls.length, 0);
+      assert.strictEqual(mock.commandCalls(ChangeResourceRecordSetsCommand)[1].args[0].input.HostedZoneId, "given");
       mock.on(ChangeResourceRecordSetsCommand).rejects(new Error("Cannot do this"));
       await Route53Service.import({ file: "./test/zone-export.json" }, log);
       assert.deepStrictEqual([logs[0], logs[1].toString()], ["ERROR", "Error: Cannot do this"]);

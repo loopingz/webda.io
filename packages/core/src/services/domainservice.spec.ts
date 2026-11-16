@@ -8,7 +8,8 @@ import {
   stripPrivateFields,
   sanitizeModelInput,
   prepareCreateInput,
-  getReadOnlyAttributes
+  getReadOnlyAttributes,
+  getClientWritableAttributes
 } from "./domainservice.service.js";
 import { registerLoginMfa } from "../models/mfa.model.js";
 import { callOperation, canCallOperation, listOperations } from "../core/operations.js";
@@ -1192,5 +1193,110 @@ class DomainServiceTest extends WebdaApplicationTest {
         registerLoginMfa(undefined);
       }
     });
+  }
+
+  @test
+  async helpersAndKeysFromTheBody() {
+    assert.deepStrictEqual(getClientWritableAttributes({ getClientWritableAttributes: () => ["_roles"] }), ["_roles"]);
+    assert.deepStrictEqual(getClientWritableAttributes({ getClientWritableAttributes: () => undefined }), []);
+    assert.deepStrictEqual(getClientWritableAttributes(undefined), []);
+    // A schema without properties declares no read-only attribute
+    assert.deepStrictEqual(
+      getReadOnlyAttributes({
+        Metadata: {
+          Schemas: {
+            Input: { type: "object" },
+            Output: { type: "object", properties: { createdAt: { readOnly: true }, name: { type: "string" } } }
+          }
+        }
+      }),
+      ["createdAt"]
+    );
+
+    const service: any = new DomainService("DomainService", new DomainServiceParameters().load({}));
+    // Without URL parameter the key comes from the body, and is removed from it
+    const input = { uuid: "b", name: "x" };
+    assert.strictEqual(service.resolveUpdateKey(input, ["uuid"], {}), "b");
+    assert.deepStrictEqual(input, { name: "x" });
+
+    // An action input schema that is not an object is used as it is
+    const schema = { type: "string" };
+    useApplication().getSchemas()["WebdaDemo/Brand.rename.input"] = schema as any;
+    try {
+      assert.strictEqual(service.actionInput("WebdaDemo/Brand", "rename"), schema);
+    } finally {
+      delete useApplication().getSchemas()["WebdaDemo/Brand.rename.input"];
+    }
+  }
+
+  @test
+  async updateAndPatchOnAContextWithoutParameters() {
+    const { Brand, repo } = this.setupBrandRepo();
+    const uuid = "550e8400-e29b-41d4-a716-446655440042";
+    await Brand.create({ uuid, name: "Before" } as any);
+    for (const [operation, name] of [
+      ["Brand.Update", "Updated"],
+      ["Brand.Patch", "Patched"]
+    ]) {
+      const ctx = new FakeOpContext();
+      await ctx.init();
+      ctx.setParameters(undefined as any);
+      ctx.setInput(JSON.stringify({ uuid, name }));
+      await callOperation(ctx, operation);
+      assert.strictEqual(((await repo.get(uuid)) as any).name, name);
+    }
+  }
+
+  @test
+  async modelsDeclaringTheirOwnQueryAndUpdate() {
+    const { Brand } = this.setupBrandRepo();
+    const service = new DomainService("DomainService", new DomainServiceParameters().load({}));
+    const models = useApplication().getModels() as any;
+    class CustomCrud extends (Brand as any) {
+      static Metadata: any = {
+        ...(Brand as any).Metadata,
+        Identifier: "WebdaDemo/CustomCrud",
+        Plural: "CustomCruds",
+        PrimaryKey: undefined,
+        Relations: {},
+        Actions: { query: {}, update: {} }
+      };
+    }
+    models["WebdaDemo/CustomCrud"] = CustomCrud;
+    const operations = useInstanceStorage().operations!;
+    try {
+      service.initOperations();
+      // The model serves its own query and update: no generic Query nor Patch
+      assert.strictEqual(operations["CustomCruds.Query"], undefined);
+      assert.strictEqual(operations["CustomCrud.Patch"], undefined);
+      // Without declared primary key, the uuid is the key
+      assert.deepStrictEqual((operations["CustomCrud.Get"].context as any).pkFields, ["uuid"]);
+      assert.deepStrictEqual((operations["CustomCrud.Get"].rest as any).path, "{uuid}");
+    } finally {
+      delete models["WebdaDemo/CustomCrud"];
+      Object.keys(operations)
+        .filter(id => id.startsWith("CustomCrud"))
+        .forEach(id => delete operations[id]);
+    }
+  }
+
+  @test
+  async behaviorWithoutActionsRegistersNoOperation() {
+    const { Brand } = this.setupBrandRepo();
+    const service = new DomainService("DomainService", new DomainServiceParameters().load({}));
+    const app: any = useApplication();
+    const getBehaviorMetadata = app.getBehaviorMetadata;
+    app.getBehaviorMetadata = () => ({});
+    const before = Object.keys(useInstanceStorage().operations!).length;
+    try {
+      service.addBehaviorOperations(
+        Brand as any,
+        { Relations: { behaviors: [{ attribute: "logo", behavior: "WebdaDemo/NoActions" }] } },
+        "Brand"
+      );
+    } finally {
+      app.getBehaviorMetadata = getBehaviorMetadata;
+    }
+    assert.strictEqual(Object.keys(useInstanceStorage().operations!).length, before);
   }
 }

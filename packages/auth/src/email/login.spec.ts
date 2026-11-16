@@ -365,7 +365,8 @@ class EmailLoginTest extends EmailTest {
           links: [{ attribute: "lnk" }],
           queries: [{ attribute: "qry" }],
           maps: [{ attribute: "mp" }],
-          binaries: [{ attribute: "bin" }]
+          binaries: [{ attribute: "bin" }],
+          parent: { attribute: "prt" }
         }
       },
       configurable: true
@@ -375,7 +376,7 @@ class EmailLoginTest extends EmailTest {
       res = await this.op("Auth.Email.Register", {
         email: "pf@x.com",
         password: "longenough",
-        profile: { displayName: "P", locale: "fr", notAnAttribute: "x", password: "x", _avatar: "y" }
+        profile: { displayName: "P", locale: "fr", notAnAttribute: "x", password: "x", _avatar: "y", prt: "z" }
       });
     } finally {
       Object.defineProperty(UserModel, "Metadata", { value: meta, configurable: true });
@@ -383,9 +384,29 @@ class EmailLoginTest extends EmailTest {
     const user: any = await this.auth.getUserModel().ref(res.user.uuid).get();
     assert.strictEqual(user.displayName, "P");
     assert.strictEqual(user.locale, "fr");
+    // The parent relation is never set from the profile
+    assert.strictEqual(user.prt, undefined);
     assert.strictEqual(user.notAnAttribute, undefined);
     assert.notStrictEqual(user._avatar, "y");
     assert.ok(await user.password.verify("longenough"));
+
+    // A model without relations nor input schema (no behavior either) accepts no profile attribute
+    Object.defineProperty(UserModel, "Metadata", {
+      value: { ...meta, Relations: undefined, Schemas: undefined },
+      configurable: true
+    });
+    (this.auth as any).mfaMethods = () => [];
+    try {
+      res = await this.op("Auth.Email.Register", {
+        email: "pf3@x.com",
+        password: "longenough",
+        profile: { displayName: "P" }
+      });
+    } finally {
+      delete (this.auth as any).mfaMethods;
+      Object.defineProperty(UserModel, "Metadata", { value: meta, configurable: true });
+    }
+    assert.notStrictEqual(((await this.auth.getUserModel().ref(res.user.uuid).get()) as any).displayName, "P");
 
     // Registering when already logged in throws Gone (line 370)
     const loggedCtx = await this.ctx();

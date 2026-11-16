@@ -38,4 +38,29 @@ class AnthropicProviderUnitTest {
     expect(await p.complete("hello", { maxTokens: 100 })).toBe("mocked-claude");
     expect(await p.complete("empty")).toBe("");
   }
+
+  @test({ name: "complete() supports the named SDK export and the default model" })
+  async namedExportAndDefaultModel() {
+    const calls: any[] = [];
+    vi.doMock("@anthropic-ai/sdk", () => ({
+      default: undefined,
+      Anthropic: class {
+        constructor(public options: any) {}
+        messages = {
+          create: async (params: any) => {
+            calls.push(params);
+            return { content: [{ type: "text", text: "named-export" }] };
+          }
+        };
+      }
+    }));
+    try {
+      expect(await new AnthropicProvider({ apiKey: "sk-test" }).complete("hello")).toBe("named-export");
+      expect(calls).toEqual([
+        { model: "claude-haiku-4-5-20251001", max_tokens: 512, messages: [{ role: "user", content: "hello" }] }
+      ]);
+    } finally {
+      vi.doUnmock("@anthropic-ai/sdk");
+    }
+  }
 }

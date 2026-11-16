@@ -4,6 +4,8 @@ import { PROFILES, resolveProfile, scenarioFilter } from "./profile.js";
 import { BenchmarkRunner } from "./runner.js";
 import { delay, LatencyRecorder, ResourceSampler, captureEnv, withTimeout, nsToMs } from "./stats.js";
 import { diffMetrics, snapshotServiceMetrics } from "./metrics.js";
+import { ConsoleReporter } from "./reporters/console.js";
+import { JsonReporter } from "./reporters/json.js";
 import type { Reporter } from "./reporters/reporter.js";
 import type { BenchResult } from "./result.js";
 import { benchVitestOptions } from "./vitest.js";
@@ -355,5 +357,54 @@ class RunnerTest {
     assert.deepStrictEqual(result.serviceMetrics, { operations: 2, duration_count: 1, duration_sum: 0.5 });
     assert.deepStrictEqual(await snapshotServiceMetrics(undefined), {});
     assert.strictEqual(diffMetrics({}, {}), undefined);
+  }
+
+  @test
+  async defaults() {
+    const runner = new BenchmarkRunner({ suite: "test", backend: "Fake" });
+    assert.deepStrictEqual(runner.profile, resolveProfile());
+    assert.strictEqual(runner.shouldRun("any.scenario"), scenarioFilter()("any.scenario"));
+    assert.deepStrictEqual(
+      (runner as any).reporters.map(r => r.constructor),
+      [ConsoleReporter, JsonReporter]
+    );
+  }
+
+  @test
+  async nonErrorFailures() {
+    const runner = smokeRunner();
+    const failed = await runner.closedLoop({
+      name: "test.setup.string",
+      concurrency: 1,
+      setup: async () => {
+        throw "setup broke";
+      },
+      op: async () => {},
+      teardown: async () => {
+        throw "teardown broke";
+      }
+    });
+    assert.deepStrictEqual(failed.failures, ["scenario failed: setup broke"]);
+    assert.deepStrictEqual(failed.notes, ["teardown failed: teardown broke"]);
+    const rejected = await runner.closedLoop({
+      name: "test.op.string",
+      concurrency: 1,
+      ops: 1,
+      warmupOps: 0,
+      op: async () => {
+        throw "plain rejection";
+      }
+    });
+    assert.strictEqual(rejected.errors, 1);
+    assert.deepStrictEqual(rejected.notes, ["error: plain rejection"]);
+  }
+
+  @test
+  async metricsWithoutValues() {
+    // A counter sample without value counts for 0
+    const service = { metrics: { operations: { get: async () => ({ type: "counter", values: [{}, { value: 3 }] }) } } };
+    assert.deepStrictEqual(await snapshotServiceMetrics(service), { operations: 3 });
+    // A metric that appears during the scenario starts from 0
+    assert.deepStrictEqual(diffMetrics({}, { operations: 3, created: 1.5 }), { operations: 3, created: 1.5 });
   }
 }

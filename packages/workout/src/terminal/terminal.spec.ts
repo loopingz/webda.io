@@ -4,7 +4,7 @@ import chalk from "yoctocolors";
 import { stdin } from "mock-stdin";
 import { nextTick } from "process";
 import * as sinon from "sinon";
-import { WorkerMessage, WorkerOutput, WorkerProgress } from "../core.js";
+import { WorkerInputType, WorkerMessage, WorkerOutput, WorkerProgress } from "../core.js";
 import { Terminal } from "./terminal.js";
 
 // This is needed to trigger stdin within github-actions
@@ -200,5 +200,53 @@ describe("TerminalTest", () => {
     } finally {
       process.stdin.setRawMode = origRawMode;
     }
+  });
+
+  it("inputs", async () => {
+    output.setInteractive(true);
+    // Backspace on an empty input is a no-op
+    terminal.onData("\x7f");
+    assert.strictEqual(terminal.inputValue, "");
+    // A request without input is ignored
+    await terminal.router(new WorkerMessage("input.request", output));
+    assert.strictEqual(terminal.inputs.length, 0);
+
+    const password = output.requestInput("Password", WorkerInputType.PASSWORD);
+    output.requestInput("Name");
+    output.requestInput("City");
+    await new Promise(resolve => nextTick(resolve));
+    assert.strictEqual(terminal.inputs.length, 3);
+    const write = stubs["process.stdout.write"];
+    write.resetHistory();
+    terminal.onData("secret");
+    terminal.displayScreen();
+    // The password is masked
+    const prompt = String(write.lastCall.args[0]);
+    assert.ok(prompt.includes("Password: ") && prompt.endsWith("******"), `Got ${JSON.stringify(prompt)}`);
+    assert.ok(!prompt.includes("secret"));
+    // Answering the first input keeps the cursor visible while other inputs are pending
+    write.resetHistory();
+    terminal.onData("\x0d");
+    assert.strictEqual(await password, "secret");
+    assert.ok(terminal.inputs.length > 0);
+    assert.ok(!write.getCalls().some(c => c.args[0] === "\x1B[?25l"));
+  });
+
+  it("emptyMessages", async () => {
+    const size = terminal.history.length;
+    // Output without data is an empty line
+    await terminal.router(new WorkerMessage("output", output));
+    assert.deepStrictEqual(terminal.history.slice(size), [""]);
+    // Title without value
+    terminal.handleTitleMessage(new WorkerMessage("title.set", output));
+    assert.strictEqual(terminal.title, undefined);
+    // A stopped progress does not keep the progress footer
+    const progress = new WorkerProgress("done", 10, []);
+    progress.updateProgress(10);
+    await terminal.router(new WorkerMessage("progress.stop", output, { progresses: { done: progress } }));
+    assert.strictEqual(terminal.hasProgress, false);
+    // Progress without title
+    progress.title = undefined;
+    assert.ok(terminal.displayProgress(progress).includes("10/10 100.00%"));
   });
 });

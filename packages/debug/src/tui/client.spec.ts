@@ -4,6 +4,7 @@ import { createServer, Server, IncomingMessage, ServerResponse } from "node:http
 import { WebSocketServer, WebSocket } from "ws";
 import { AddressInfo } from "node:net";
 import { DebugClient } from "./client.js";
+import { WS_PROTOCOL, WS_TOKEN_PREFIX } from "../security.js";
 
 @suite
 class DebugClientHTTPMethodsTest {
@@ -362,6 +363,36 @@ class DebugClientWebSocketReconnectionTest {
       );
     } finally {
       client.disconnect();
+    }
+  }
+
+  @test
+  async sendsTheSessionTokenOverHttpAndWebSocket() {
+    let authorization: string | undefined;
+    const server = createServer((req: IncomingMessage, res: ServerResponse) => {
+      authorization = req.headers.authorization;
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end("[]");
+    });
+    const wss = new WebSocketServer({ server });
+    const offered = new Promise<string | undefined>(resolve =>
+      wss.on("connection", (_ws, req) => resolve(req.headers["sec-websocket-protocol"]))
+    );
+    await new Promise<void>(resolve => server.listen(0, () => resolve()));
+    const port = (server.address() as AddressInfo).port;
+
+    const client = new DebugClient(`http://localhost:${port}`, "s3cret");
+    try {
+      assert.deepStrictEqual(await client.getModels(), []);
+      assert.strictEqual(authorization, "Bearer s3cret");
+
+      client.connectWebSocket();
+      const protocols = ((await offered) || "").split(",").map(p => p.trim());
+      assert.deepStrictEqual(protocols, [WS_PROTOCOL, `${WS_TOKEN_PREFIX}s3cret`]);
+    } finally {
+      client.disconnect();
+      wss.close();
+      await new Promise<void>(resolve => server.close(() => resolve()));
     }
   }
 }

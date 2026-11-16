@@ -699,6 +699,55 @@ class TokenServiceTest extends WebdaApplicationTest {
   }
 
   @test
+  async issueDefaultsTheMfaLevelOfASessionWithoutOne() {
+    const s = this.session();
+    s.mfa = undefined as any;
+    const tokens = await this.service.issue(s);
+    assert.strictEqual((await this.service.verifyAccess(tokens.accessToken)).mfa, "none");
+    const stored = await RefreshToken.query(`family = '${tokens.family}'`);
+    assert.strictEqual(stored.results[0].mfa, "none");
+  }
+
+  @test
+  async missesAreNotCachedWithoutTtl() {
+    const svc: any = this.service;
+    svc.getParameters().revocationCacheTtl = 0;
+    assert.strictEqual(await svc.isRevoked({ fam: "never-revoked", amr: [], mfa: "none" }), false);
+    assert.strictEqual(svc.revocationMisses.size, 0);
+  }
+
+  @test
+  async undatedTokensAndRevocationsAreRejectedWhenInDoubt() {
+    const svc: any = this.service;
+    await svc.revokeUser("u1");
+    // A token that does not tell when it was issued is older than any revocation
+    assert.strictEqual(await svc.isRevoked({ sub: "u1", amr: [], mfa: "none" }), true);
+    // A user entry without notBefore rejects every token of the user
+    await RevokedAccess.create({ key: "user:u3", expiresAt: Date.now() + 60_000 } as any);
+    assert.strictEqual(await svc.isRevoked({ sub: "u3", iatMs: Date.now(), amr: [], mfa: "none" }), true);
+  }
+
+  @test
+  async denylistFailuresAndLegacyEntries() {
+    const svc: any = this.service;
+    // The entry cannot be created and does not exist: the storage error is raised
+    const create = RevokedAccess.create;
+    (RevokedAccess as any).create = async () => {
+      throw new Error("store down");
+    };
+    try {
+      await assert.rejects(() => svc.denylist("fam:store-down"), /store down/);
+    } finally {
+      (RevokedAccess as any).create = create;
+    }
+    assert.strictEqual(await RevokedAccess.ref({ key: "fam:store-down" } as any).exists(), false);
+    // An existing entry without expiry gets one
+    await RevokedAccess.create({ key: "fam:no-expiry" } as any);
+    await svc.denylist("fam:no-expiry");
+    assert.ok((await RevokedAccess.ref({ key: "fam:no-expiry" } as any).get()).expiresAt > Date.now());
+  }
+
+  @test
   async tokenWithoutSubjectSkipsUserLookup() {
     const svc: any = this.service;
     const looked: string[] = [];

@@ -319,4 +319,154 @@ class PgPoolTest extends WebdaApplicationTest {
       (pg as any).Client = origClient;
     }
   }
+
+  @test
+  async unitDefaultsAndGuards() {
+    // A missing config is keyed like an empty one: pg reads the PG* environment variables
+    assert.strictEqual(poolKey(undefined), poolKey({}));
+
+    const origClient = pg.Client;
+    const clients: any[] = [];
+    let failConnect = false;
+    class FakeClient extends EventEmitter {
+      queries: string[] = [];
+      async connect() {
+        clients.push(this);
+        if (failConnect) throw new Error("connect failed");
+      }
+      async query(sql: string) {
+        this.queries.push(sql);
+        return { rows: [], rowCount: 0 };
+      }
+      async end() {}
+    }
+    (pg as any).Client = FakeClient;
+    try {
+      // 1. PostgresListener: a stop during the reconnect delay cancels the reconnect, a second stop is a no-op
+      const listener = new PostgresListener(cfg, "chan_stop", {
+        name: "StoppedListener",
+        reconnectDelay: 0,
+        onNotification: () => {}
+      });
+      await listener.connect();
+      assert.strictEqual(clients.length, 1);
+      clients[0].emit("end");
+      assert.strictEqual(listener.connected, false);
+      await listener.stop();
+      await listener.stop();
+      await new Promise(r => setTimeout(r, 300));
+      assert.strictEqual(clients.length, 1, "no reconnect once stopped");
+
+      // 2. PostgresPubSubService: stopping a service that never listened nor published
+      const pubsub = new PostgresPubSubService("IdlePubSub", new PostgresPubSubParameters().load({}));
+      pubsub.consume(async () => {});
+      await pubsub.stop();
+      assert.strictEqual((pubsub as any).callbacks.size, 0);
+
+      // 3. PostgresQueueService without table creation, with several consumers on one LISTEN connection
+      clients.length = 0;
+      const queue = new PostgresQueueService(
+        "ManualQueue",
+        new PostgresQueueParameters().load({ usePool: false, autoCreateTable: false, waitTimeout: 0.05 })
+      );
+      this.registerService(queue as any, "ManualQueue");
+      await queue.resolve().init();
+      assert.deepStrictEqual(clients[0].queries, [], "no DDL without autoCreateTable");
+      const first = queue.consume(async () => {});
+      const second = queue.consume(async () => {});
+      await (queue as any).listening;
+      assert.strictEqual(clients.length, 2, "one client for the queue, one LISTEN connection for every consumer");
+      assert.deepStrictEqual(clients[1].queries, ["LISTEN webda_queue"]);
+      assert.strictEqual((queue as any).consumers, 2);
+      // Cancelling twice counts once
+      await first.cancel();
+      await first.cancel();
+      assert.strictEqual((queue as any).consumers, 1);
+      await second.cancel();
+      assert.strictEqual((queue as any).consumers, 0);
+      await queue.stop();
+
+      // A LISTEN connection failing after the queue stopped leaves the stopped state alone
+      const stopped = new PostgresQueueService(
+        "StoppedQueue",
+        new PostgresQueueParameters().load({ usePool: false, autoCreateTable: false })
+      );
+      await stopped.init();
+      failConnect = true;
+      (stopped as any).listen();
+      const listening = (stopped as any).listening;
+      await stopped.stop();
+      await listening;
+      failConnect = false;
+      assert.strictEqual((stopped as any).listener, undefined);
+
+      // 4. PostgresStore.createViews: models without usable metadata are skipped, untyped fields are not cast
+      const store = new PostgresStore(
+        "DefaultViewStore",
+        new PostgresParameters().load({ usePool: true, viewPrefix: "dv_", models: ["Webda/OwnerModel"] })
+      );
+      this.registerService(store as any, "DefaultViewStore");
+      store.resolve();
+      const queries: string[] = [];
+      store.client = {
+        query: async (sql: string) => {
+          queries.push(sql);
+          return { rows: [] };
+        }
+      } as any;
+      const modelsMap: any = useApplication().getModels();
+      const Stored = { properties: { uuid: { type: "string" }, misc: {}, age: { type: "number" } } };
+      class DefaultViewRoot {
+        static Metadata = { Identifier: "Test/DefaultViewRoot", PrimaryKey: ["uuid"], Schemas: { Stored } };
+      }
+      class DefaultViewChild extends DefaultViewRoot {
+        static Metadata = { Identifier: "Test/DefaultViewChild", PrimaryKey: ["uuid"], Schemas: { Stored } };
+      }
+      class NoIdentifier {
+        static Metadata = {};
+      }
+      class NoSchema {
+        static Metadata = { Identifier: "Test/DefaultViewNoSchema" };
+      }
+      class NoProperties {
+        static Metadata = { Identifier: "Test/DefaultViewNoProperties", Schemas: { Stored: {} } };
+      }
+      const fixtures: Record<string, any> = {
+        "Test/DefaultViewRoot": DefaultViewRoot,
+        "Test/DefaultViewChild": DefaultViewChild,
+        "Test/DefaultViewGone": undefined,
+        "Test/DefaultViewNoIdentifier": NoIdentifier,
+        "Test/DefaultViewNoSchema": NoSchema,
+        "Test/DefaultViewNoProperties": NoProperties
+      };
+      Object.assign(modelsMap, fixtures);
+      store.handleModel = (m: any) =>
+        m === DefaultViewRoot ? 0 : m === DefaultViewChild ? 1 : [NoSchema, NoProperties].includes(m) ? 0 : -1;
+      try {
+        // Every model matches when `views` is not set
+        store.getParameters().views = undefined;
+        await store.createViews();
+        assert.deepStrictEqual(
+          queries.filter(q => q.startsWith("CREATE")),
+          [
+            "CREATE OR REPLACE VIEW dv_defaultviewroots AS SELECT uuid,(data->>'misc') as misc,(data->>'age')::bigint as age FROM test_defaultviewroot",
+            "CREATE OR REPLACE VIEW dv_defaultviewchilds AS SELECT uuid,(data->>'misc') as misc,(data->>'age')::bigint as age FROM test_defaultviewchild WHERE (data#>>'{__type}') = 'Test/DefaultViewChild'"
+          ]
+        );
+        // Only the models matching `views` get a view
+        queries.length = 0;
+        store.getParameters().views = ["^Test/DefaultViewChild$"];
+        await store.createViews();
+        assert.deepStrictEqual(queries.slice(0, 1), ["DROP VIEW IF EXISTS dv_defaultviewchilds"]);
+        assert.strictEqual(queries.length, 2);
+      } finally {
+        for (const name of Object.keys(fixtures)) {
+          delete modelsMap[name];
+        }
+        store.client = undefined;
+      }
+    } finally {
+      (pg as any).Client = origClient;
+    }
+  }
 }

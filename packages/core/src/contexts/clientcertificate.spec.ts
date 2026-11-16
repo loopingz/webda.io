@@ -30,6 +30,11 @@ class ClientCertificateTest {
     assert.deepStrictEqual(attributes, { O: "Webda", OU: ["dev", "ops"], CN: "alice" });
     assert.strictEqual(dn, "O=Webda, OU=dev, OU=ops, CN=alice");
     assert.deepStrictEqual(parseDistinguishedName(undefined as any), { attributes: {}, dn: "" });
+    // More than two values of the same attribute
+    assert.deepStrictEqual(parseDistinguishedName("OU=dev\nOU=ops\nOU=qa\nCN=alice").attributes, {
+      OU: ["dev", "ops", "qa"],
+      CN: "alice"
+    });
     // Node.js quotes values with special characters
     assert.deepStrictEqual(parseDistinguishedName('CN="a, b"').attributes, { CN: "a, b" });
     // Invalid JSON escape inside quotes falls back to stripping quotes
@@ -43,6 +48,8 @@ class ClientCertificateTest {
       parseSubjectAltName('DNS:a.example.com, email:a@example.com, URI:"spiffe://x/a,b", URI:"spiffe://x/a\\"b"'),
       ["DNS:a.example.com", "email:a@example.com", "URI:spiffe://x/a,b", 'URI:spiffe://x/a"b']
     );
+    // A name without type is kept as is
+    assert.deepStrictEqual(parseSubjectAltName("DNS:a.example.com, othername"), ["DNS:a.example.com", "othername"]);
   }
 
   @test
@@ -93,6 +100,8 @@ class ClientCertificateTest {
     const value = `${element(certs.untrusted.pem)},${element(certs.client.pem)}`;
     assert.ok(parseClientCertificateHeader(value, "xfcc")?.subject.endsWith("CN=alice"));
     assert.strictEqual(parseClientCertificateHeader("By=spiffe://x;Hash=abc", "xfcc"), undefined);
+    // Only separators: no element at all
+    assert.strictEqual(parseClientCertificateHeader(" , ,", "xfcc"), undefined);
   }
 
   @test

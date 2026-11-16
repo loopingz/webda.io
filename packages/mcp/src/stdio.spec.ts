@@ -3,7 +3,7 @@ import * as assert from "assert";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { useService } from "@webda/core";
+import { useApplication, useService } from "@webda/core";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { FIXTURE_SERVICES, McpFixtureTest, registerFixture } from "../test/fixture.js";
@@ -130,5 +130,43 @@ class McpStdioTest extends McpFixtureTest {
       process.stdin.emit("end");
     });
     await p;
+  }
+
+  @test
+  async serverInfoDefaultsWithoutPackageDescription() {
+    const app = useApplication() as any;
+    const original = app.getPackageDescription;
+    app.getPackageDescription = () => undefined;
+    try {
+      const info = (await this.connect()).getServerVersion();
+      assert.strictEqual(info.name, "webda");
+      assert.strictEqual(info.version, "0.0.0");
+    } finally {
+      app.getPackageDescription = original;
+    }
+  }
+
+  @test
+  async mcpCommandDefaultsToTheConfiguredUser() {
+    registerFixture();
+    const service = useService("Mcp" as any) as unknown as McpService;
+    const users: (string | undefined)[] = [];
+    const serveStdio = service.serveStdio.bind(service);
+    service.serveStdio = (transport, user) => {
+      users.push(user);
+      return serveStdio(transport, user);
+    };
+    service.getParameters().stdio.user = "alice";
+    try {
+      const p = service.mcp();
+      setImmediate(() => {
+        process.stdin.emit("end");
+      });
+      await p;
+      assert.deepStrictEqual(users, ["alice"]);
+    } finally {
+      delete service.getParameters().stdio.user;
+      delete (service as any).serveStdio;
+    }
   }
 }

@@ -1055,4 +1055,190 @@ class CacheTest {
     assert.strictEqual(stats.evictions, 1);
     assert.strictEqual(stats.sets, 2); // Original + new one after eviction
   }
+
+  @test
+  async garbageCollectKeepsFreshEntries() {
+    // Without TTL, garbage collection is a no-op
+    const noTtl = new CacheStorage();
+    noTtl.setCachedMethod("a", [], 1);
+    noTtl.garbageCollect();
+    assert.strictEqual(noTtl.size, 1);
+    const noTtlOptions = new CacheStorage({ maxSize: 10 });
+    noTtlOptions.setCachedMethod("a", [], 1);
+    noTtlOptions.garbageCollect();
+    assert.strictEqual(noTtlOptions.size, 1);
+
+    // With TTL, only the expired entries are removed
+    const withTtl = new CacheStorage({ ttl: 40, enableStats: true });
+    withTtl.setCachedMethod("old", [], 1);
+    await new Promise(resolve => setTimeout(resolve, 60));
+    withTtl.setCachedMethod("fresh", [], 2);
+    withTtl.garbageCollect();
+    assert.deepStrictEqual(Array.from(withTtl.keys()), ["fresh"]);
+    assert.strictEqual(withTtl.getStats().evictions, 1);
+  }
+
+  @test
+  autoGCTimerEdgeCases() {
+    // Stopping when no timer was started is harmless
+    const noTimer = new CacheMap();
+    noTimer.stopAutoGC();
+    assert.strictEqual(noTimer["gcTimer"], undefined);
+
+    // Browser-like timer handles do not expose unref()
+    const original = globalThis.setInterval;
+    let handle: any;
+    (globalThis as any).setInterval = (fn: any, ms: number) => {
+      handle = original(fn, ms);
+      return { handle };
+    };
+    let map: CacheMap;
+    try {
+      map = new CacheMap({ gcInterval: 10000 });
+    } finally {
+      globalThis.setInterval = original;
+      clearInterval(handle);
+    }
+    assert.deepStrictEqual(map["gcTimer"], { handle });
+    map["gcTimer"] = undefined;
+  }
+
+  @test
+  async nonCacheableArguments() {
+    const host = {};
+    const SimpleCache = createCacheAnnotation(() => host, { hashStrategy: "simple" });
+    const DefaultCache = createCacheAnnotation(() => host);
+
+    class Service {
+      count = 0;
+
+      @SimpleCache()
+      sync(arg: any) {
+        return ++this.count;
+      }
+
+      @DefaultCache()
+      async asyncOk(arg: any) {
+        return ++this.count;
+      }
+
+      @DefaultCache()
+      async asyncFail(arg: any) {
+        this.count++;
+        throw new Error("failed");
+      }
+    }
+    const svc = new Service();
+    // An object without prototype cannot be turned into a key
+    const weird = Object.create(null);
+    assert.strictEqual(svc.sync(weird), 1);
+    assert.strictEqual(svc.sync(weird), 2);
+    assert.strictEqual(await svc.asyncOk(weird), 3);
+    assert.strictEqual(await svc.asyncOk(weird), 4);
+    await assert.rejects(() => svc.asyncFail(weird), /failed/);
+    await assert.rejects(() => svc.asyncFail(weird), /failed/);
+    assert.strictEqual(svc.count, 6);
+    // Nothing was stored
+    assert.strictEqual(host["caches"].has(svc), false);
+  }
+
+  @test
+  async instanceClearedWhilePending() {
+    const host = {};
+    const Cache = createCacheAnnotation(() => host, { shouldCache: r => r !== "skip" });
+
+    class Service {
+      count = 0;
+
+      @Cache()
+      async skip() {
+        this.count++;
+        await new Promise(resolve => setTimeout(resolve, 5));
+        return "skip";
+      }
+
+      @Cache()
+      async fail() {
+        this.count++;
+        await new Promise(resolve => setTimeout(resolve, 5));
+        throw new Error("failed");
+      }
+    }
+    const svc = new Service();
+    // The whole instance cache is dropped while the promises are pending
+    const skipped = svc.skip();
+    const failed = svc.fail();
+    assert.strictEqual(host["caches"].get(svc).size, 2);
+    Cache.clearAll(svc);
+    assert.strictEqual(await skipped, "skip");
+    await assert.rejects(failed, /failed/);
+    assert.strictEqual(host["caches"].has(svc), false);
+    assert.strictEqual(svc.count, 2);
+  }
+
+  @test
+  decoratorOptionsUndefinedGenerators() {
+    const host = {};
+    const Cache = createCacheAnnotation(() => host);
+
+    class Service {
+      count = 0;
+
+      // Explicit undefined generators fall back to the annotation-level ones
+      @Cache({ methodKeyGenerator: undefined, classKeyGenerator: undefined })
+      compute(x: number) {
+        return ++this.count;
+      }
+    }
+    const svc = new Service();
+    assert.strictEqual(svc.compute(1), 1);
+    assert.strictEqual(svc.compute(1), 1);
+    assert.strictEqual(svc.compute(2), 2);
+    Cache.clear(svc, "compute", 1);
+    assert.strictEqual(svc.compute(1), 3);
+    assert.strictEqual(svc.compute(2), 2);
+  }
+
+  @test
+  clearWithoutCache() {
+    // Source disabled: every helper is a no-op
+    const Disabled = createCacheAnnotation(() => null);
+    class DisabledService {
+      count = 0;
+
+      @Disabled()
+      compute() {
+        return ++this.count;
+      }
+    }
+    const disabled = new DisabledService();
+    assert.strictEqual(disabled.compute(), 1);
+    assert.strictEqual(disabled.compute(), 2);
+    Disabled.clear(disabled, "compute");
+    Disabled.clearAll(disabled);
+    Disabled.resetStats();
+    Disabled.garbageCollect();
+    assert.deepStrictEqual(Disabled.getStats(), { hits: 0, misses: 0, evictions: 0, sets: 0 });
+
+    // Instance never cached: clear and clearAll do not create anything
+    const host = {};
+    const Cache = createCacheAnnotation(() => host);
+    class Service {
+      @Cache()
+      compute() {
+        return 1;
+      }
+    }
+    const svc = new Service();
+    Cache.clear(svc, "compute");
+    Cache.clearAll(svc);
+    Cache.clearAll(svc, "compute");
+    assert.strictEqual(host["caches"].size, 0);
+
+    // Target without constructor (no prototype)
+    const bare = Object.create(null);
+    Cache.clear(bare, "compute");
+    Cache.clearAll(bare, "compute");
+    assert.strictEqual(host["caches"].size, 0);
+  }
 }

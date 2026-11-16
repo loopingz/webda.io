@@ -230,6 +230,26 @@ class FileQueueUnitTest {
   }
 
   @test
+  async unsetWaitParametersUseDefaults() {
+    // Parameters built without load(): expire defaults to 30s
+    const raw = new FileQueueParameters();
+    raw.default();
+    assert.strictEqual(raw.expire, 30000);
+    // Timeout and poll interval removed after load: the receiver still waits and is woken up by a send
+    const queue = createFileQueue(this.tmpDir);
+    queue.getParameters().timeout = undefined;
+    queue.getParameters().pollInterval = undefined;
+    const start = Date.now();
+    setTimeout(() => queue.sendMessage({ wake: "default" }), 20);
+    const messages = await queue.receiveMessage();
+    assert.deepStrictEqual(
+      messages.map(m => m.Message),
+      [{ wake: "default" }]
+    );
+    assert.ok(Date.now() - start < 1000);
+  }
+
+  @test
   async emptyQueueReturnsAfterTimeout() {
     const queue = createFileQueue(this.tmpDir, { timeout: 0.05, pollInterval: 10 });
     let start = Date.now();

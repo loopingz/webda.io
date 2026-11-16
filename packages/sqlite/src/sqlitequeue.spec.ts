@@ -191,4 +191,22 @@ class SQLiteQueueTest extends WebdaApplicationTest {
     const bad = new SQLiteQueueService("bad", new SQLiteQueueParameters().load({ table: "bad-table" }));
     await assert.rejects(() => bad.resolve().init(), /Invalid table name/);
   }
+
+  @test
+  async tableIsNotCreatedWithoutAutoCreateTable() {
+    const q = await this.makeQueue("manual", { autoCreateTable: false });
+    await assert.rejects(() => q.sendMessage({}), /no such table/);
+  }
+
+  @test
+  async emptyReceiveIsNotWokenUpByAnotherTable() {
+    const q = await this.makeQueue("q", { database: { name: "shared" }, table: "queue_a", waitTime: 0.2 });
+    const other = await this.makeQueue("other", { database: { name: "shared" }, table: "queue_b" });
+    const started = Date.now();
+    const pending = q.receiveMessage();
+    setTimeout(() => other.sendMessage({ other: true }), 20);
+    assert.deepStrictEqual(await pending, []);
+    assert.ok(Date.now() - started >= 150, "the send on another table does not end the wait");
+    assert.strictEqual(await other.size(), 1);
+  }
 }

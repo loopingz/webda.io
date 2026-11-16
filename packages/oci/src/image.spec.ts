@@ -7,6 +7,7 @@ import { join } from "node:path";
 import { gunzipSync } from "node:zlib";
 import { FakeRegistry } from "../test/registry.js";
 import {
+  createRegistryClient,
   buildImage,
   createImageConfiguration,
   isPinnedBaseImage,
@@ -15,7 +16,7 @@ import {
   SCRATCH,
   writeLayoutArchive
 } from "./image.js";
-import { MediaTypes, parsePlatform, platformMatches, sha256 } from "./oci.js";
+import { MediaTypes, parsePlatform, platformMatches, sha256, toOciMediaType } from "./oci.js";
 import { parseImageReference } from "./reference.js";
 import { RegistryClient } from "./registry.js";
 import type { TarEntry } from "./tar.js";
@@ -148,6 +149,29 @@ class ImageTest {
     );
     assert.ok(!platformMatches(undefined, { os: "linux", architecture: "amd64" }));
     assert.throws(() => parsePlatform("linux"), /Invalid platform/);
+    // arm64/v8 matches entries with or without the v8 variant only
+    const arm64v8 = parsePlatform("linux/arm64/v8");
+    assert.deepStrictEqual(arm64v8, { os: "linux", architecture: "arm64", variant: "v8" });
+    assert.ok(platformMatches({ os: "linux", architecture: "arm64", variant: "v8" }, arm64v8));
+    assert.ok(!platformMatches({ os: "linux", architecture: "arm64", variant: "v9" }, arm64v8));
+    // Only the Docker media types are converted
+    assert.strictEqual(toOciMediaType(MediaTypes.DOCKER_LAYER_GZIP), MediaTypes.OCI_LAYER_GZIP);
+    assert.strictEqual(
+      toOciMediaType("application/vnd.oci.image.layer.v1.tar+zstd"),
+      "application/vnd.oci.image.layer.v1.tar+zstd"
+    );
+    // A base configuration without layers
+    const fromEmpty = createImageConfiguration({ architecture: "amd64", os: "linux" } as any, "sha256:app", {
+      baseImage: SCRATCH
+    });
+    assert.deepStrictEqual(fromEmpty.rootfs, { type: "layers", diff_ids: ["sha256:app"] });
+    // Plain http for the registries declared insecure
+    const registryOptions = { dockerConfig: {}, insecureRegistries: ["registry.local:5000"] };
+    assert.strictEqual(
+      createRegistryClient("registry.local:5000", registryOptions).baseUrl,
+      "http://registry.local:5000"
+    );
+    assert.strictEqual(createRegistryClient("ghcr.io", registryOptions).baseUrl, "https://ghcr.io");
   }
 
   @test
@@ -178,6 +202,22 @@ class ImageTest {
     assert.strictEqual(sha256(gunzipSync(layer)), first.images[0].config.rootfs.diff_ids[0]);
     const other = await buildImage(this.folder(), ENTRIES, { baseImage: SCRATCH, mtime: 10 });
     assert.notStrictEqual(other.root.digest, first.root.digest);
+    // Several platforms from scratch: an index, with the annotations when there are some
+    const multi = await buildImage(this.folder(), ENTRIES, {
+      baseImage: SCRATCH,
+      platforms: ["linux/amd64", "linux/arm64/v8"],
+      annotations: { "org.opencontainers.image.title": "app" }
+    });
+    assert.strictEqual(multi.root.mediaType, MediaTypes.OCI_INDEX);
+    assert.deepStrictEqual(multi.index.annotations, { "org.opencontainers.image.title": "app" });
+    assert.strictEqual(multi.images[0].config.variant, undefined);
+    assert.strictEqual(multi.images[1].config.variant, "v8");
+    const bare = await buildImage(this.folder(), ENTRIES, {
+      baseImage: SCRATCH,
+      platforms: ["linux/amd64", "linux/arm64"],
+      annotations: {}
+    });
+    assert.strictEqual(bare.index.annotations, undefined);
   }
 
   @test
@@ -194,6 +234,10 @@ class ImageTest {
   async archive() {
     const folder = this.folder();
     const built = await buildImage(join(folder, "layout"), ENTRIES, { baseImage: SCRATCH });
+    // The layout is kept by default
+    await writeLayoutArchive(built.layout.path, join(folder, "kept.tar"));
+    assert.ok(existsSync(join(folder, "layout", "index.json")));
+    assert.ok(existsSync(join(folder, "kept.tar")));
     await writeLayoutArchive(built.layout.path, join(folder, "image.tar"), true);
     assert.ok(!existsSync(join(folder, "layout")));
     const listing = spawnSync("tar", ["-tf", join(folder, "image.tar")], { encoding: "utf8" });
@@ -237,6 +281,14 @@ class ImageTest {
         );
       }
       assert.ok(registry.scopes.includes("repository:base/node:pull"));
+      // The base layers already in the layout are not pulled again
+      registry.requests = [];
+      const again = await buildImage(built.layout.path, ENTRIES, options);
+      assert.strictEqual(again.root.digest, built.root.digest);
+      assert.deepStrictEqual(
+        registry.requests.filter(request => Object.values(layers).some(layer => request.includes(layer))),
+        []
+      );
 
       await assert.rejects(
         () => buildImage(this.folder(), ENTRIES, { ...options, platforms: ["linux/s390x"] }),
@@ -441,6 +493,68 @@ class ImageTest {
     assert.strictEqual((await basic.request("GET", "/v2/", [])).status, 200);
     const anonymous = new RegistryClient("registry.example.com", { fetch: basicFetch });
     assert.strictEqual((await anonymous.request("GET", "/v2/", [])).status, 401);
+
+    // A user name without password, for a basic then a bearer challenge
+    const userOnly = `Basic ${Buffer.from("u:").toString("base64")}`;
+    calls.length = 0;
+    const recordingBasicFetch: any = async (url: any, init: any = {}) => {
+      calls.push({ url: `${url}`, init });
+      return basicFetch(url, init);
+    };
+    const basicUser = new RegistryClient("registry.example.com", {
+      credentials: { username: "u" },
+      fetch: recordingBasicFetch
+    });
+    assert.strictEqual((await basicUser.request("GET", "/v2/", [])).status, 200);
+    assert.strictEqual(calls.at(-1).init.headers.authorization, userOnly);
+    calls.length = 0;
+    // The token service has no service name
+    const bareRealmFetch: any = async (url: any, init: any = {}) => {
+      calls.push({ url: `${url}`, init });
+      if (`${url}`.startsWith("https://auth.example.com")) {
+        return new Response(JSON.stringify({ token: "oauth" }), { status: 200 });
+      }
+      return init.headers?.authorization === "Bearer oauth"
+        ? new Response("{}", { status: 200 })
+        : new Response("", {
+            status: 401,
+            headers: { "www-authenticate": 'Bearer realm="https://auth.example.com/token"' }
+          });
+    };
+    const bearerUser = new RegistryClient("registry.example.com", {
+      credentials: { username: "u" },
+      fetch: bareRealmFetch
+    });
+    assert.strictEqual((await bearerUser.request("GET", "/v2/", ["repository:a:pull"])).status, 200);
+    let token = calls.find(call => call.url.startsWith("https://auth.example.com"));
+    assert.strictEqual(token.url, "https://auth.example.com/token?scope=repository%3Aa%3Apull");
+    assert.strictEqual(token.init.headers.authorization, userOnly);
+    // An identity token without service nor scope
+    calls.length = 0;
+    const bareIdentity = new RegistryClient("registry.example.com", {
+      credentials: { identityToken: "refresh" },
+      fetch: bareRealmFetch
+    });
+    assert.strictEqual((await bareIdentity.request("GET", "/v2/", [])).status, 200);
+    token = calls.find(call => call.url.startsWith("https://auth.example.com"));
+    assert.strictEqual(`${token.init.body}`, "grant_type=refresh_token&refresh_token=refresh&client_id=webda");
+
+    // A manifest without media type has the one of the response, a put without digest header the computed one
+    const manifestBytes = Buffer.from('{"schemaVersion":2}');
+    const headerOnly = new RegistryClient("registry.example.com", {
+      fetch: (async (_url: any, init: any = {}) =>
+        init.method === "PUT"
+          ? new Response("", { status: 201 })
+          : new Response(manifestBytes, {
+              status: 200,
+              headers: { "content-type": `${MediaTypes.OCI_MANIFEST}; charset=utf-8` }
+            })) as any
+    });
+    assert.strictEqual((await headerOnly.getManifest("app", "1")).mediaType, MediaTypes.OCI_MANIFEST);
+    assert.strictEqual(
+      await headerOnly.putManifest("app", "1", manifestBytes, MediaTypes.OCI_MANIFEST),
+      sha256(manifestBytes)
+    );
 
     // Edge cases in RegistryClient
     const staticChallengeClient = new RegistryClient("registry.example.com", {

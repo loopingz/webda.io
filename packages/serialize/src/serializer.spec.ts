@@ -1225,4 +1225,55 @@ class Serializer {
     assert.strictEqual(restored.name, "x");
     assert.strictEqual(restored.nested.b, undefined);
   }
+
+  @test
+  testUnregisterUnknownSerializer() {
+    const context = new SerializerContext();
+    // Unregistering a type that was never registered is a chainable no-op
+    assert.strictEqual(context.unregisterSerializer("neverRegistered"), context);
+    assert.deepStrictEqual(context.deserialize(context.serialize({ d: new Date(10) })), { d: new Date(10) });
+  }
+
+  @test
+  testNameOnlyArraySerializer() {
+    // An "array" serializer registered by name only (no constructor) is still used for arrays
+    const context = new SerializerContext();
+    const { serializer, deserializer } = context.getSerializer("array");
+    context.unregisterSerializer("array");
+    context.registerSerializer("array", { serializer, deserializer });
+    const restored: any = context.deserialize(context.serialize({ list: [1, new Date(10), "a"] }));
+    assert.deepStrictEqual(restored, { list: [1, new Date(10), "a"] });
+  }
+
+  @test
+  testDeserializeWithUnknownTypeName() {
+    assert.throws(
+      () => new SerializerContext().deserialize("{}", "ghost" as any),
+      /Serializer for type 'ghost' not found. Did you forget to call registerSerializer\(ghost, ...\)\?/
+    );
+  }
+
+  @test
+  testToJSONFallbackIsOnlyUsedForPlainObjects() {
+    // toJSON() results that are not a distinct plain object add no extra keys
+    for (const json of [null, [1, 2], "text"]) {
+      const obj = { a: 1 };
+      Object.defineProperty(obj, "toJSON", { value: () => json, enumerable: false });
+      assert.deepStrictEqual(serializeRaw(obj), { a: 1 });
+    }
+    const self: any = { a: 1 };
+    Object.defineProperty(self, "toJSON", { value: () => self, enumerable: false });
+    assert.deepStrictEqual(serializeRaw(self), { a: 1 });
+  }
+
+  @test
+  testToJSONOnlyKeyWithoutSerializerIsDropped() {
+    // `hidden` is only visible through toJSON(); without a "null" serializer it cannot be emitted
+    const obj: any = { a: 1 };
+    Object.defineProperty(obj, "hidden", { get: () => null, enumerable: false });
+    Object.defineProperty(obj, "toJSON", { value: () => ({ a: 1, hidden: null }), enumerable: false });
+    assert.deepStrictEqual(deserialize(serialize(obj)), { a: 1, hidden: null });
+    const context = new SerializerContext().unregisterSerializer("null");
+    assert.deepStrictEqual(context.serializeRaw(obj), { a: 1 });
+  }
 }

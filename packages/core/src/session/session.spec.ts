@@ -6,7 +6,13 @@ import { registerCertificateResolver, registerUserResolver, useService } from ".
 import { useModel } from "../application/hooks.js";
 import { useCrypto } from "../services/cryptoservice.service.js";
 import { OwnerModel } from "../models/ownermodel.model.js";
-import { type BearerTokenResolver, registerBearerResolver, useBearerResolvers } from "./manager.model.js";
+import {
+  type BearerTokenResolver,
+  registerBearerResolver,
+  unregisterBearerResolver,
+  useBearerResolvers
+} from "./manager.model.js";
+import { SimpleOperationContext } from "../contexts/simplecontext.js";
 
 @suite
 class SessionTest {
@@ -22,6 +28,23 @@ class SessionTest {
     assert.deepStrictEqual(session.amr, []);
     session.logout();
     assert.ok(!session.isLogged());
+  }
+
+  @test
+  transientAmr() {
+    // A method proved by the request only (a client certificate) is never persisted
+    const session = new Session();
+    assert.deepStrictEqual(session.getPersistentAmr(), []);
+    session.addTransientAmr("mtls");
+    session.addTransientAmr("mtls");
+    assert.deepStrictEqual(session.amr, ["mtls"]);
+    assert.deepStrictEqual(session.getPersistentAmr(), []);
+    // A method the session already holds stays persistent
+    session.login("user1", "a@b.c:email", { provider: "email", amr: ["pwd"] });
+    session.addTransientAmr("pwd");
+    session.addTransientAmr("mtls");
+    assert.deepStrictEqual(session.amr, ["pwd", "mtls"]);
+    assert.deepStrictEqual(session.getPersistentAmr(), ["pwd"]);
   }
 
   @test
@@ -719,5 +742,40 @@ class BearerResolverTest extends WebdaApplicationTest {
     } finally {
       manager.sessionModel = prevModel;
     }
+  }
+
+  @test
+  async contextsWithoutHttpCarryNoCertificate() {
+    const manager = useService("SessionManager");
+    let asked = 0;
+    registerCertificateResolver({
+      resolveCertificate: async () => {
+        asked++;
+        return { userId: "u1", identId: "fp:certificate" };
+      }
+    });
+    try {
+      const context: any = new SimpleOperationContext();
+      assert.strictEqual(await manager.loadFromCertificate(context), undefined);
+      const session = new Session();
+      session.login("u1", "a@b.c:email");
+      assert.strictEqual(await manager.addCertificateFactor(context, session), session);
+      assert.strictEqual(asked, 0);
+    } finally {
+      registerCertificateResolver(undefined);
+    }
+    // Unregistering a resolver that was never registered leaves the others
+    const resolver = this.register();
+    unregisterBearerResolver({ resolveBearer: async () => undefined });
+    assert.ok(useBearerResolvers().includes(resolver));
+  }
+
+  @test
+  async requestWithOnlyOtherCookiesIsAnonymous() {
+    const ctx = await this.newContext();
+    ctx.getHttpContext().cookies = { unrelated: "value" };
+    const session = await useService("SessionManager").load(ctx);
+    assert.ok(!session.isLogged());
+    assert.strictEqual(session.userId, undefined);
   }
 }

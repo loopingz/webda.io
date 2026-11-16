@@ -18,6 +18,9 @@ vi.mock("node:child_process", () => ({
   })
 }));
 
+// Listeners present before any Fork call, a child-mode Fork registers one that is never removed
+const initialMessageListeners = process.listeners("message");
+
 describe("Fork", () => {
   it("ForkParentLogger handles non-forked, forked, error, and flush", async () => {
     const output = new WorkerOutput();
@@ -175,6 +178,82 @@ describe("Fork", () => {
       );
       await assert.rejects(() => pFail, /Child process exited with code 2/);
     } finally {
+      if (origSend) {
+        process.send = origSend;
+      }
+    }
+  });
+
+  it("Fork in child mode ignores parent messages that are not an answered input", async () => {
+    const origSend = process.send;
+    const origExit = process.exit;
+    try {
+      useWorkerOutput().setInteractive(true);
+      (process as any).send = vi.fn((_msg: string, cb?: () => void) => {
+        cb?.();
+        return true;
+      });
+      (process as any).exit = vi.fn();
+      // Drop the listeners of the previous child-mode Fork: they only know the inputs of their own output
+      process
+        .listeners("message")
+        .filter(l => !initialMessageListeners.includes(l))
+        .forEach(l => process.removeListener("message", l));
+      await Fork(async () => {
+        const out = useWorkerOutput();
+        const inputPromise = out.requestInput("Name");
+        const [uuid] = Object.keys(out.inputs);
+        const send = (type: string, value?: string) =>
+          process.emit(
+            "message" as any,
+            "ForkParentLogger:" +
+              JSON.stringify({
+                type,
+                pid: process.pid + 1,
+                groups: [],
+                progresses: {},
+                timestamp: Date.now(),
+                input: { uuid, title: "Name", type: WorkerInputType.STRING, value, validators: [] }
+              })
+          );
+        // Neither a timeout nor an input without value answers the request
+        send("input.timeout", "Timeout");
+        send("input.received");
+        assert.ok(out.inputs[uuid], "input should still be pending");
+        send("input.received", "Bob");
+        assert.strictEqual(await inputPromise, "Bob");
+      });
+      assert.deepStrictEqual((process.exit as any).mock.calls, [[0]]);
+    } finally {
+      if (origSend) {
+        process.send = origSend;
+      } else {
+        delete (process as any).send;
+      }
+      process.exit = origExit;
+    }
+  });
+
+  it("Fork in parent mode defaults to the global output without parent callback", async () => {
+    const origSend = process.send;
+    delete (process as any).send;
+    const previous = useWorkerOutput();
+    const globalOutput = useWorkerOutput(new WorkerOutput());
+    try {
+      const forwarded: WorkerMessage[] = [];
+      globalOutput.on("message", msg => forwarded.push(msg));
+      const p = Fork(() => {});
+      const childMsg = new WorkerMessage("log", new WorkerOutput(), { log: new WorkerLog("INFO", "from child") });
+      (childMsg as any).pid = process.pid + 99;
+      currentMockChild.emit("message", "ForkParentLogger:" + JSON.stringify(childMsg));
+      currentMockChild.emit("exit", 0);
+      await p;
+      assert.deepStrictEqual(
+        forwarded.filter(m => m.type === "log").map(m => m.log.args),
+        [["from child"]]
+      );
+    } finally {
+      useWorkerOutput(previous);
       if (origSend) {
         process.send = origSend;
       }

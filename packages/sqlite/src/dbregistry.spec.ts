@@ -130,6 +130,42 @@ class DbRegistryTest {
   }
 
   @test
+  async conflictMessageDescribesBothSides() {
+    const path = join(this.dir, "described.sqlite");
+    releaseDatabase(await acquireDatabase({ persistence: { path } }, "create"));
+    const ro = await acquireDatabase({ persistence: { path, readOnly: true }, database: { name: "described" } }, "ro");
+    await assert.rejects(
+      () => acquireDatabase({ database: { name: "described" } }, "memory"),
+      (err: any) =>
+        err.getCode() === "SQLITE_CONFLICTING_DATABASE" &&
+        err.message.includes(`is already open on ${path} (read-only): memory asks for memory`)
+    );
+    releaseDatabase(ro);
+  }
+
+  @test
+  async walCanBeDisabled() {
+    const handle = await acquireDatabase({ persistence: { path: join(this.dir, "nowal.sqlite"), wal: false } }, "s");
+    assert.notStrictEqual((await handle.client.query("PRAGMA journal_mode")).rows[0].journal_mode, "wal");
+    // FULL is the default without write-ahead log
+    assert.strictEqual((await handle.client.query("PRAGMA synchronous")).rows[0].synchronous, 2);
+    releaseDatabase(handle);
+  }
+
+  @test
+  async releasingTwiceIsIgnored() {
+    const first = await acquireDatabase({ database: { name: "twice" } }, "a");
+    releaseDatabase(first);
+    const second = await acquireDatabase({ database: { name: "twice" } }, "b");
+    // The stale handle of a closed database does not release the new one
+    releaseDatabase(first);
+    assert.strictEqual(second.refCount, 1);
+    assert.strictEqual((await second.client.query("SELECT 1 AS one")).rows[0].one, 1);
+    releaseDatabase(second);
+    releaseDatabase(second);
+  }
+
+  @test
   async customPragmasAreValidated() {
     const handle = await acquireDatabase({ pragmas: { cache_size: -2000 } }, "s");
     assert.strictEqual((await handle.client.query("PRAGMA cache_size")).rows[0].cache_size, -2000);

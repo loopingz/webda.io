@@ -565,6 +565,76 @@ class ApplicationTest extends WebdaInternalTest {
 @suite
 class ApplicationDefaultOutputTest {
   @test
+  async applicationWithoutProjectInformation() {
+    const cachedModules = () => ({ project: {}, moddas: {}, models: {}, schemas: {}, beans: {}, deployers: {} });
+    const app: any = new Application({
+      version: 4,
+      parameters: {},
+      services: {},
+      cachedModules: cachedModules()
+    } as any);
+    // Nothing packaged: the framework namespace, an empty package and the deployment that was set
+    assert.deepStrictEqual(app.getPackageWebda(), { namespace: "Webda" });
+    assert.deepStrictEqual(app.getPackageDescription(), {});
+    assert.strictEqual(app.setCurrentDeployment("dev").getCurrentDeployment(), "dev");
+
+    // A model registered without metadata keeps what its class declares
+    class Declared extends CoreModel {}
+    const declared = (Declared as any).Metadata;
+    app.addModel("WebdaTest/Declared", Declared, null);
+    assert.strictEqual(app.getModels()["WebdaTest/Declared"], Declared);
+    assert.strictEqual((Declared as any).Metadata, declared);
+
+    // Without configuration file nor object the configuration is empty
+    const empty: any = new Application({ version: 4, parameters: {}, services: {} });
+    empty.baseConfiguration = undefined;
+    await empty.loadConfiguration(undefined);
+    assert.deepStrictEqual(empty.baseConfiguration, {});
+  }
+
+  @test
+  async ignoredBeansAreNotRegistered() {
+    const beans = { "Beans/One": { Import: "./one.js" }, "Beans/Two": { Import: "./two.js" } };
+    const load = async (ignoreBeans: any) => {
+      const app: any = new Application({
+        version: 4,
+        parameters: { ignoreBeans },
+        services: {},
+        cachedModules: { project: {}, moddas: {}, models: {}, schemas: {}, beans: {}, deployers: {} }
+      } as any);
+      // Only the registration is under test: the bean files do not exist
+      app.importFile = async () => undefined;
+      await app.loadModule({ beans, moddas: {}, models: {}, schemas: {} }, "");
+      return Object.keys(app.baseConfiguration.cachedModules.beans);
+    };
+    assert.deepStrictEqual(await load(undefined), ["Beans/One", "Beans/Two"]);
+    assert.deepStrictEqual(await load(["Beans/One"]), ["Beans/Two"]);
+    assert.deepStrictEqual(await load(true), []);
+  }
+
+  @test
+  async loadLocalModuleWithoutModuleFile() {
+    const app: any = new Application({ version: 4, parameters: {}, services: {} });
+    const root = mkdtempSync(path.join(tmpdir(), "webda-app-nomodule-"));
+    const cwd = process.cwd;
+    let loaded = 0;
+    app.loadModule = async () => {
+      loaded++;
+    };
+    process.cwd = () => root;
+    try {
+      await app.loadLocalModule();
+      assert.strictEqual(loaded, 0);
+      writeFileSync(path.join(root, "webda.module.json"), JSON.stringify({ moddas: {}, models: {}, schemas: {} }));
+      await app.loadLocalModule();
+      assert.strictEqual(loaded, 1);
+    } finally {
+      process.cwd = cwd;
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
+
+  @test
   async servicesLogToGlobalOutput() {
     const app = new Application({ version: 4, parameters: {}, services: {} });
     assert.strictEqual(app.getWorkerOutput(), useWorkerOutput());

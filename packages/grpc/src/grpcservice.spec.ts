@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 
 // Tracked operations map for the mock
 const mockOperations: Record<string, any> = {};
-const mockSchemas: Record<string, any> = {};
+let mockSchemas: Record<string, any> = {};
 const coreEventCallbacks: Record<string, Function> = {};
 const mockCallOperationResult: any = {};
 const mockCallOperationError: any = null;
@@ -410,6 +410,27 @@ class GrpcServiceGenerateProtoTest {
   }
 
   @test
+  async buildsWithoutSchemasOrModels() {
+    mockOperations["Post.Create"] = { input: "MyApp/Post" };
+    const previous = { schemas: mockSchemas, models: mockModels };
+    // An application exposing neither schemas nor models
+    mockSchemas = undefined as any;
+    mockModels = undefined as any;
+    try {
+      const outPath = join(this.tmpDir, "bare.proto");
+      const service = new GrpcService("testGrpc", new GrpcServiceParameters().load({ protoFile: outPath }));
+      await service.build();
+      const content = readFileSync(outPath, "utf-8");
+      // The input schema is unknown: the rpc takes an empty message
+      assert.ok(content.includes("rpc Create(google.protobuf.Empty) returns (google.protobuf.Empty);"), content);
+      assert.ok(!content.includes("message "));
+    } finally {
+      mockSchemas = previous.schemas;
+      mockModels = previous.models;
+    }
+  }
+
+  @test
   async emptyOperationsStillProducesValidProto() {
     const outPath = join(this.tmpDir, "empty.proto");
     const service = new GrpcService("testGrpc", new GrpcServiceParameters().load({ protoFile: outPath }));
@@ -624,6 +645,8 @@ class GrpcServiceInitTest {
     const req = { headers: { "content-type": "text/html" } };
     const res = {};
     assert.strictEqual(interceptorsA[0](req, res), false);
+    // ... and requests without any content type
+    assert.strictEqual(interceptorsA[0]({ headers: {} }, res), false);
 
     // Interceptor claims application/grpc requests and runs handleGrpcRequest
     let handleCalled = false;

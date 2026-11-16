@@ -3,6 +3,7 @@ import * as assert from "assert";
 import { HttpContext, registerOperation, useApplication, useService } from "@webda/core";
 import { HttpServer } from "@webda/core/lib/services/httpserver.service.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { ToolListChangedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
 import {
@@ -423,6 +424,9 @@ class McpHttpTest extends McpFixtureTest {
     };
     const webReq = await toRequest(fakeCtx);
     assert.strictEqual(webReq.headers.get("x-multi"), "a, b");
+    // a request target without its leading slash is still resolved against the origin
+    const bareCtx: any = { getHttpContext: () => new HttpContext("localhost", "POST", "mcp", "http", 8080, {}) };
+    assert.strictEqual(toRequest(bareCtx, "{}", new URL("http://localhost:8080")).url, "http://localhost:8080/mcp");
 
     // 2. resolve() when authenticator does not implement authenticate()
     const mcp = useService<McpService>("Mcp");
@@ -469,5 +473,71 @@ class McpHttpTest extends McpFixtureTest {
     });
     assert.strictEqual(batchRes.status, 200);
     await batchRes.body?.cancel();
+  }
+
+  @test
+  async requestsWithoutUsableHost() {
+    const mcp = useService<McpService>("Mcp");
+    // No Host header at all: no origin, refused unless every host is allowed
+    const noHost: any = { getHttpContext: () => new HttpContext("localhost", "POST", "/mcp", "http", 8080, {}) };
+    assert.strictEqual((mcp as any).requestOrigin(noHost), undefined);
+    assert.strictEqual((mcp as any).isHostAllowed(noHost), false);
+    assert.strictEqual(await this.rawPost({ host: "bad:host:port" }, INIT), 403);
+    const allowedHosts = mcp.getParameters().allowedHosts;
+    mcp.getParameters().allowedHosts = ["*"];
+    try {
+      // The session is created without any allowed origin of its own
+      assert.strictEqual(await this.rawPost({ host: "bad:host:port" }, INIT), 200);
+    } finally {
+      mcp.getParameters().allowedHosts = allowedHosts;
+    }
+  }
+
+  @test
+  async forwardedRequestKeepsTheLastValueOfARepeatedHeader() {
+    const mcp = useService<McpService>("Mcp");
+    mcp.getParameters().forwardHeaders = ["X-Example-Key", "x-missing"];
+    try {
+      const http = new HttpContext("mcp.example.com", "POST", "/mcp", "https", 8443, {
+        "x-example-key": ["first", "last"] as any
+      });
+      assert.deepStrictEqual((mcp as any).forwardedRequest({ getHttpContext: () => http }), {
+        hostname: "mcp.example.com",
+        protocol: "https",
+        port: http.getPort(),
+        uri: "/mcp",
+        headers: { "x-example-key": "last" }
+      });
+    } finally {
+      mcp.getParameters().forwardHeaders = [];
+    }
+  }
+
+  @test
+  async stdioOnlyServiceWithoutResources() {
+    const bound: string[] = [];
+    const auth = useService("TestAuth" as any) as any;
+    auth.bindResource = (path: string) => bound.push(path);
+    try {
+      const service = await this.addService(
+        McpService,
+        McpService.createConfiguration({ url: false, resources: false, authenticator: "TestAuth" }),
+        "McpStdioOnly"
+      );
+      // Without an HTTP endpoint there is no resource to bind to the authenticator
+      assert.deepStrictEqual(bound, []);
+      assert.strictEqual(service.getParameters().resources, false);
+      registerFixture();
+      const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+      await service.serveStdio(serverTransport);
+      const client = new Client({ name: "spec", version: "1.0.0" });
+      await client.connect(clientTransport);
+      assert.strictEqual(client.getServerCapabilities().resources, undefined);
+      assert.ok((await client.listTools()).tools.some(t => t.name === "Fixture.Echo"));
+      await client.close();
+      await service.stop();
+    } finally {
+      delete auth.bindResource;
+    }
   }
 }

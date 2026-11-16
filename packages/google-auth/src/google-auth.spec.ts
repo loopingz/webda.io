@@ -289,6 +289,10 @@ class GoogleAuthTest extends AuthTest {
     this.google.getParameters().audiences = [];
     await this.op("Auth.Google.Token", { token: "idt-u3" });
     assert.deepStrictEqual(this.verifyIdToken.mock.calls[1][0], { idToken: "idt-u3", audience: WEB });
+    // Parameters built without the defaults have no additional audience at all
+    this.google.getParameters().audiences = undefined;
+    await this.op("Auth.Google.Token", { token: "idt-u3" });
+    assert.deepStrictEqual(this.verifyIdToken.mock.calls[2][0], { idToken: "idt-u3", audience: WEB });
   }
 
   @test

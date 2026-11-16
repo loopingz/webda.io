@@ -56,4 +56,15 @@ class VersionsTest {
     assert.strictEqual(resolve("sinon"), "^21.0.3");
     assert.strictEqual(resolve("@webda/unknown"), undefined);
   }
+
+  @test
+  async workspaceCoreWithoutDevDependenciesHasNoTools() {
+    const root = mkdtempSync(join(tmpdir(), "webda-repo-"));
+    mkdirSync(join(root, "packages/core"), { recursive: true });
+    mkdirSync(join(root, "packages/empty"), { recursive: true });
+    writeFileSync(join(root, "packages/core/package.json"), JSON.stringify({ name: "@webda/core" }));
+    const resolve = await fromWorkspace(root);
+    assert.strictEqual(resolve("@webda/core"), `link:${join(root, "packages/core")}`);
+    assert.strictEqual(resolve("typescript"), undefined);
+  }
 }

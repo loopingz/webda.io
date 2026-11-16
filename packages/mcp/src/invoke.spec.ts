@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { Session, WebdaError } from "@webda/core";
+import { registerOperation, Session, useService, WebdaError } from "@webda/core";
 import { McpFixtureTest, registerFixture } from "../test/fixture.js";
 import { CancelledError, errorToToolResult, runOperation, toToolResult, truncateUtf8 } from "./invoke.js";
 import { operationToTool } from "./tools.js";
@@ -74,6 +74,23 @@ class InvokeTest extends McpFixtureTest {
     });
     assert.deepStrictEqual(streamed.value, [expected]);
     assert.deepStrictEqual(seen, [expected]);
+  }
+
+  @test
+  async streamedUndefinedChunksAreKept() {
+    registerFixture();
+    (useService("Fixture" as any) as any).sparse = async function* sparse() {
+      yield undefined;
+      yield { a: 1, __x: "s" };
+    };
+    registerOperation("Fixture.Sparse", { service: "Fixture", method: "sparse", input: "void", output: "void" });
+    const seen: unknown[] = [];
+    const streamed = await runOperation("Fixture.Sparse", {
+      session: new Session(),
+      onChunk: chunk => seen.push(chunk)
+    });
+    assert.deepStrictEqual(streamed.value, [undefined, { a: 1 }]);
+    assert.deepStrictEqual(seen, [undefined, { a: 1 }]);
   }
 
   @test
@@ -171,6 +188,11 @@ class InvokeTest extends McpFixtureTest {
       content: [{ type: "text", text: "BAD_REQUEST: nope" }]
     });
     assert.deepStrictEqual(errorToToolResult(new Error("secret db password")), {
+      isError: true,
+      content: [{ type: "text", text: "Internal error" }]
+    });
+    // Server errors are masked, even when they carry a code
+    assert.deepStrictEqual(errorToToolResult(new WebdaError.ServiceUnavailable("db-1 is down")), {
       isError: true,
       content: [{ type: "text", text: "Internal error" }]
     });

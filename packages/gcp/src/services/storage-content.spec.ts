@@ -422,6 +422,39 @@ class GCSStorageContentTest extends WebdaApplicationTest {
     const getFiles = vi.fn().mockResolvedValue([[{ name: "empty", getMetadata: async () => [{}] }], null]);
     (this.storage as any)._storage = { bucket: () => ({ getFiles }) };
     assert.deepStrictEqual(await this.storage.getBucketSize(), { size: 0, count: 1 });
+    // Head and upload results without content type, metadata nor update date
+    const url = `gs://${TEST_BUCKET}/empty.txt`;
+    assert.deepStrictEqual(await this.storage.headContent(url), {
+      url,
+      size: NaN,
+      etag: undefined,
+      contentType: undefined,
+      metadata: undefined,
+      lastModified: undefined
+    });
+    vi.mocked(this.storage.getStorageBucket).mockReturnValue({
+      file: () => ({
+        getMetadata: async () => [{ size: "4" }],
+        createWriteStream: () => new Writable({ write: (_chunk, _encoding, callback) => callback() })
+      })
+    } as any);
+    assert.deepStrictEqual(await this.storage.putContent(url, "body", { metadata: { owner: "unit" } }), {
+      url,
+      size: 4,
+      etag: undefined,
+      contentType: "text/plain",
+      metadata: { owner: "unit" },
+      lastModified: undefined
+    });
+    // A missing object reported with a status only is not an error on delete
+    vi.mocked(this.storage.getStorageBucket).mockReturnValue({
+      file: () => ({
+        delete: async () => {
+          throw Object.assign(new Error("Not Found"), { status: 404 });
+        }
+      })
+    } as any);
+    await this.storage.deleteContent(url);
   }
 
   @test

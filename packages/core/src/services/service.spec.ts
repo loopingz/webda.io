@@ -5,6 +5,7 @@ import {
   Inject,
   listOperations,
   Operation,
+  Route,
   registerOperation,
   Service,
   ServiceParameters,
@@ -14,6 +15,8 @@ import {
   WebdaError
 } from "../index.js";
 import { existsSync, readFileSync, unlinkSync } from "node:fs";
+import { getMetadata } from "@webda/decorators";
+import { useMetric } from "../metrics/metrics.js";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 // Updated to use barrel index from test folder
@@ -108,6 +111,22 @@ class FakeOperationContext extends OperationContext {
   }
 }
 
+class NamedAfterService extends Service {
+  // Without name, the service named like the attribute is injected
+  @Inject()
+  SampleService!: Service;
+
+  constructor(name: string) {
+    super(name, new ServiceParameters().load({}));
+  }
+
+  @Operation({ id: "Billing.Charge", input: "void", output: "void" })
+  charge() {}
+
+  @Route("/named-after", "GET")
+  serve() {}
+}
+
 @suite
 class ServiceTest extends WebdaApplicationTest {
   getTestConfiguration() {
@@ -133,6 +152,28 @@ class ServiceTest extends WebdaApplicationTest {
     service = await this.registerService(new FakeService("plop", { bean: "SampleService" }));
     assert.strictEqual(service.serv, undefined);
     assert.throws(() => new FakeService2("kf").resolve(), /Injector did not found bean 'SampleService2' for 'kf'/);
+  }
+
+  @test
+  async decoratorDefaults() {
+    const service = await this.registerService(new NamedAfterService("namedAfter"));
+    service.resolve();
+    assert.strictEqual(service.SampleService, this.webda.getServices()["SampleService"]);
+    // A qualified operation id is not prefixed with the service name
+    service.initOperations();
+    const operations = listOperations();
+    assert.ok(operations["Billing.Charge"]);
+    assert.strictEqual(operations["NamedAfter.Billing.Charge"], undefined);
+    // A single HTTP method is stored as a list
+    const routes: any = getMetadata(NamedAfterService as any)["webda.route"];
+    assert.deepStrictEqual(routes["/named-after"][0].methods, ["GET"]);
+    // A metric without labels only gets the global ones
+    const { Counter } = await import("prom-client");
+    const counter: any = useMetric(Counter, { name: "service_spec_unlabelled_total", help: "No label" });
+    assert.deepStrictEqual(
+      counter.labelNames,
+      Object.keys(useApplication().getConfiguration().parameters.metrics.labels)
+    );
   }
 
   @test

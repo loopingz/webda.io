@@ -17,6 +17,7 @@ import {
   sanitizeString,
   sanitizeMarkdown,
   SanitizerUnavailable,
+  SANITIZE_DEEP,
   SANITIZE_KEYWORD
 } from "../contexts/sanitize.js";
 import { callOperation, readOperationBody, registerOperation } from "../core/operations.js";
@@ -101,7 +102,7 @@ const TEAM_SCHEMA: any = {
     nickname: { anyOf: [{ type: "string" }, { type: "null" }], ...NONE },
     profile: { $ref: "#/definitions/Profile" },
     members: { type: "array", items: { $ref: "#/definitions/Member" } },
-    // Safety rail: the keyword is ignored on anything but texts
+    // A free-form value: the keyword covers it whole; it is ignored on a number
     meta: { type: "object", ...NONE },
     count: { type: "number", ...NONE },
     owner: { type: "string", ...NONE },
@@ -419,7 +420,7 @@ class DomainServiceSanitizeTest extends WebdaApplicationTest {
 
   @test
   async safetyRails() {
-    // The keyword does nothing on a free-form object or a number
+    // The keyword does nothing on a number; on a free-form object it covers the whole value (`meta.**`)
     assert.deepStrictEqual(getModelSanitizeModes(Team), {
       displayName: "none",
       notes: "markdown",
@@ -430,7 +431,8 @@ class DomainServiceSanitizeTest extends WebdaApplicationTest {
       nickname: "none",
       "profile.bio": "none",
       "members.*.name": "none",
-      owner: "none"
+      owner: "none",
+      "meta.**": "none"
     });
     const res = await this.request("POST", "/s/teams", {
       displayName: "R&D",
@@ -440,7 +442,9 @@ class DomainServiceSanitizeTest extends WebdaApplicationTest {
     });
     assert.strictEqual(res.status, 200, JSON.stringify(res.body));
     const stored: any = await Team.ref(res.body.uuid).get();
-    assert.deepStrictEqual(stored.meta, { html: "R&amp;D", deep: { text: "x" } });
+    // A free-form attribute tagged `none` is stored as sent, at any depth: an explicit opt-in, its reader must never
+    // render it as HTML
+    assert.deepStrictEqual(stored.meta, { html: "<script>alert(1)</script>R&D", deep: { text: "<b>x</b>" } });
     // Protected and private attributes are stripped, tagged or not
     assert.strictEqual(stored.owner, undefined);
     assert.strictEqual(stored.__hash, undefined);
@@ -554,7 +558,9 @@ class DomainServiceSanitizeTest extends WebdaApplicationTest {
       "index.*.*": "none",
       mixed: "none",
       loose: "none",
-      "either.text": "none"
+      "either.text": "none",
+      // A free-form value has no schema below to name a text: the mode covers it whole
+      "open.**": "none"
     });
     assert.deepStrictEqual(await sanitizeInput({ mixed: { html: "<b>x</b>" } }, { modes: { mixed: "none" } }), {
       mixed: { html: "x" }
@@ -590,6 +596,81 @@ class DomainServiceSanitizeTest extends WebdaApplicationTest {
     }
     cursor.items = { type: "string" };
     assert.deepStrictEqual(getSanitizeModes({ type: "object", properties: { deep } }), {});
+  }
+
+  @test
+  async freeFormModes() {
+    const schema: any = {
+      type: "object",
+      properties: {
+        // Free-form values: `{}`, an untyped schema, an open object, a record of free-form values
+        any: { ...NONE },
+        loose: { description: "anything", ...NONE },
+        open: { type: "object", additionalProperties: {}, ...NONE },
+        files: { type: "object", additionalProperties: { $ref: "#/definitions/Unknown" }, ...NONE },
+        // The items of an array inherit the mode, then cover their whole value
+        elements: { type: "array", items: {}, ...NONE },
+        // The keyword next to a `$ref` is the one of the attribute
+        scene: { $ref: "#/definitions/Unknown", ...NONE },
+        name: { $ref: "#/definitions/Name", ...NONE },
+        // An object with declared properties is still tagged attribute by attribute
+        box: { type: "object", properties: { text: { type: "string" }, extra: {} }, ...NONE },
+        // ... and its free-form attributes on their own
+        drawing: {
+          type: "object",
+          properties: { appState: { ...NONE }, elements: { type: "array", items: {}, ...NONE } }
+        },
+        // Not free-form: a closed object, a typed value, a union
+        closed: { type: "object", additionalProperties: false, ...NONE },
+        count: { type: "number", ...NONE },
+        either: { anyOf: [{ type: "number" }, {}], ...NONE }
+      },
+      definitions: { Unknown: {}, Name: { type: "string" } }
+    };
+    const modes = getSanitizeModes(schema);
+    assert.deepStrictEqual(modes, {
+      [`any.${SANITIZE_DEEP}`]: "none",
+      "loose.**": "none",
+      "open.**": "none",
+      "files.**": "none",
+      "elements.*.**": "none",
+      "scene.**": "none",
+      name: "none",
+      "drawing.appState.**": "none",
+      "drawing.elements.*.**": "none"
+    });
+    // Every text below the path is kept, at any depth, and the value at the path itself
+    assert.deepStrictEqual(
+      await sanitizeInput(
+        {
+          any: "a && <b>",
+          scene: { elements: [{ text: "A-->B", nested: [{ label: "<ID>" }] }] },
+          elements: ["<i>x</i>", { text: "a < b" }],
+          box: { text: "<b>x</b>", extra: { text: "<b>x</b>" } },
+          drawing: { appState: { name: "R&D" }, other: "R&D" }
+        },
+        { modes }
+      ),
+      {
+        any: "a && <b>",
+        scene: { elements: [{ text: "A-->B", nested: [{ label: "<ID>" }] }] },
+        elements: ["<i>x</i>", { text: "a < b" }],
+        box: { text: "x", extra: { text: "x" } },
+        drawing: { appState: { name: "R&D" }, other: "R&amp;D" }
+      }
+    );
+    // The keys that could reach a prototype are still dropped below a deep mode
+    const unsafe = JSON.parse(`{"any": {"__proto__": {"x": 1}, "ok": "<b>"}}`);
+    assert.deepStrictEqual(await sanitizeInput(unsafe, { modes }), { any: { ok: "<b>" } });
+    // A mode named for a path below a deep one overrides it; the deepest deep mode wins
+    const nested = { "meta.**": "none", "meta.html": "html", "meta.inner.**": "markdown" };
+    assert.strictEqual(getSanitizeMode(nested, ["meta"]), "none");
+    assert.strictEqual(getSanitizeMode(nested, ["meta", "a", "b"]), "none");
+    assert.strictEqual(getSanitizeMode(nested, ["meta", "html"]), "html");
+    assert.strictEqual(getSanitizeMode(nested, ["meta", "inner", "x"]), "markdown");
+    assert.strictEqual(getSanitizeMode(nested, ["other"]), undefined);
+    assert.strictEqual(getSanitizeMode({ "items.*.**": "none" }, ["items", "3", "label"]), "none");
+    assert.strictEqual(getSanitizeMode({ "items.*.**": "none" }, ["items"]), undefined);
   }
 
   /**

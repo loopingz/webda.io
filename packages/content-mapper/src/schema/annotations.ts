@@ -96,7 +96,8 @@ export function secretKeywordValue(text: string): true | string[] {
  *   `micromark` and `micromark-util-decode-string` packages in the application: `@webda/compiler` fails the build
  *   without them.
  *
- * The mode is copied as written: the runtime sanitizes a mode it does not know like `text`.
+ * On a free-form property (`any`, `unknown`, `Record<string, unknown>`) the runtime applies the mode to every text of
+ * the value, at any depth. The mode is copied as written: the runtime sanitizes a mode it does not know like `text`.
  */
 export const SANITIZE_KEYWORD = "x-webda-sanitize";
 

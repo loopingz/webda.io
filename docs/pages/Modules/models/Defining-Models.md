@@ -163,7 +163,9 @@ export class Team extends UuidModel {
 
 The compiler writes `"x-webda-sanitize": "<mode>"` on the property in the model schemas. Rules:
 
-- a mode applies to a `string`, an array of strings or a record of strings (`Record<string, string>`). On any other type the tag is ignored: an object or a free-form value (`Record<string, unknown>`, `any`) is always sanitized as `text`. In a nested object or an array of objects, tag the attributes of that object;
+- a mode applies to a `string`, an array of strings or a record of strings (`Record<string, string>`);
+- on a free-form value (`any`, `unknown`, `Record<string, unknown>`, an array of those), whose content no schema describes, the mode applies to every text of the value, at any depth (a JSON document from a third-party editor, a drawing scene). Use it only for data that is never rendered as HTML;
+- on any other type the tag is ignored: an object with declared properties is tagged attribute by attribute (tag the attributes of a nested object or of the items of an array of objects), and in a union of a text and something else only the text takes the mode;
 - the text is validated as it is stored: `@pattern`, `@maxLength`... see the sanitized text, which for `none` is what the client sent. A text kept as sent can hold `<script>`: escape it wherever it is rendered, and constrain it with `@pattern` when it must not hold control characters;
 - private (`__`), server-managed (`_`), protected and `@readOnly` attributes are still removed from client input, tagged or not (see [Client input](./Permissions.md#client-input));
 - a mode this version does not know is sanitized like `text`.

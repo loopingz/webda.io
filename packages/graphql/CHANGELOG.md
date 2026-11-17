@@ -134,6 +134,20 @@
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-rc.2](https://github.com/loopingz/webda.io/compare/graphql-v4.0.0-rc.1...graphql-v4.0.0-rc.2) (2026-11-17)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-rc.2
+    * @webda/ql bumped to 4.0.0-rc.2
+    * @webda/runtime bumped to 4.0.0-rc.2
+    * @webda/utils bumped to 4.0.0-rc.2
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-rc.2
+
 ## [4.0.0-rc.1](https://github.com/loopingz/webda.io/compare/graphql-v4.0.0-beta.14...graphql-v4.0.0-rc.1) (2026-11-14)
 
 

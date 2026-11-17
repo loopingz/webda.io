@@ -96,6 +96,28 @@
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-rc.2](https://github.com/loopingz/webda.io/compare/postgres-v4.0.0-rc.1...postgres-v4.0.0-rc.2) (2026-11-17)
+
+
+### Bug Fixes
+
+* **postgres:** survive lost connections and reconnect in single-connection mode ([#1092](https://github.com/loopingz/webda.io/issues/1092)) ([f6585a7](https://github.com/loopingz/webda.io/commit/f6585a7aa8244921b0c29b85af50ebc43a5a25c7)), closes [#1091](https://github.com/loopingz/webda.io/issues/1091)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-rc.2
+    * @webda/ql bumped to 4.0.0-rc.2
+    * @webda/sql bumped to 4.0.0-rc.2
+    * @webda/sql-schema bumped to 4.0.0-rc.2
+    * @webda/utils bumped to 4.0.0-rc.2
+  * devDependencies
+    * @webda/bench bumped to 4.0.0-rc.2
+    * @webda/compiler bumped to 4.0.0-rc.2
+    * @webda/models bumped to 4.0.0-rc.2
+
 ## [4.0.0-rc.1](https://github.com/loopingz/webda.io/compare/postgres-v4.0.0-beta.14...postgres-v4.0.0-rc.1) (2026-11-14)
 
 

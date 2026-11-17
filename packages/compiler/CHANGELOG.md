@@ -1,5 +1,15 @@
 # Changelog
 
+## [4.0.0-rc.2](https://github.com/loopingz/webda.io/compare/compiler-v4.0.0-rc.1...compiler-v4.0.0-rc.2) (2026-11-17)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/content-mapper bumped to 4.0.0-rc.2
+    * @webda/utils bumped to 4.0.0-rc.2
+
 ## [4.0.0-rc.1](https://github.com/loopingz/webda.io/compare/compiler-v4.0.0-beta.14...compiler-v4.0.0-rc.1) (2026-11-14)
 
 

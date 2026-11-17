@@ -1,6 +1,6 @@
 {
   "name": "@webda/sqlite",
-  "version": "4.0.0-rc.1",
+  "version": "4.0.0-rc.2",
   "description": "SQLite store, queue and pub/sub for webda on node:sqlite (in memory or file)",
   "keywords": [
     "sqlite",

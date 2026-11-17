@@ -1,4 +1,5 @@
 import { SecretString } from "@webda/core";
+import { useLog } from "@webda/workout";
 import pg, { PoolConfig } from "pg";
 
 /**
@@ -87,8 +88,50 @@ export function acquirePool(config: PoolConfig | undefined): pg.Pool {
     entry.refCount++;
     return entry.pool;
   }
-  const pool = new pg.Pool(SecretString.unwrap(config));
+  const pool = createPool(config);
   registry.set(key, { pool, refCount: 1 });
+  return pool;
+}
+
+/**
+ * Create a `pg.Pool` that survives the loss of its connections.
+ *
+ * `pg.Pool` emits `error` when one of its idle connections dies (server restart, failover, terminated backend):
+ * without a listener, the event crashes the process. The pool already drops the dead connection and opens a new one
+ * on next use, so logging is enough.
+ *
+ * {@link SecretString} values in the config are replaced by their plain value.
+ *
+ * @param config - the pg pool config
+ * @returns the pool, not registered
+ */
+export function createPool(config: PoolConfig | undefined): pg.Pool {
+  const pool = new pg.Pool(SecretString.unwrap(config));
+  pool.on("error", err => useLog("WARN", `PostgreSQL idle connection lost, reconnecting on next use: ${err.message}`));
+  return pool;
+}
+
+/**
+ * Open a private pool of one connection: the `usePool: false` mode of the stores and queues.
+ *
+ * A bare `pg.Client` cannot come back once its connection is lost; a pool of one keeps the single connection
+ * semantics (one statement at a time, one session) while reconnecting on next use. The connection is kept open while
+ * idle, like a client, unless `idleTimeoutMillis` is configured, and is checked once so a wrong configuration or an
+ * unreachable server fails right away.
+ *
+ * @param config - the pg config, `max` is forced to 1
+ * @returns the connected pool, ended by its owner
+ */
+export async function connectSingleConnectionPool(config: PoolConfig | undefined): Promise<pg.Pool> {
+  const pool = createPool({ idleTimeoutMillis: 0, ...config, max: 1 });
+  try {
+    (await pool.connect()).release();
+  } catch (err) {
+    await pool.end().catch(() => {
+      /* never connected */
+    });
+    throw err;
+  }
   return pool;
 }
 

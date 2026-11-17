@@ -160,20 +160,19 @@ export class PostgresRelationalStore<
   }
 
   /**
-   * Run statements on one connection: a connection of the pool, or the client
+   * Run statements on one connection checked out of the pool: the shared one, or the pool of one connection
+   * (`usePool: false`). A connection lost meanwhile is dropped by the pool on release: the statements never continue
+   * on a new connection, outside their transaction or session
    * @param fn - the statements
    * @returns the function result
    */
   protected async withConnection<R>(fn: (client: SQLClient) => Promise<R>): Promise<R> {
-    if (this.parameters.usePool) {
-      const connection = await (this.client as pg.Pool).connect();
-      try {
-        return await fn(connection);
-      } finally {
-        connection.release();
-      }
+    const connection = await this.client.connect();
+    try {
+      return await fn(connection);
+    } finally {
+      connection.release();
     }
-    return fn(this.client);
   }
 
   /**
@@ -209,7 +208,7 @@ export class PostgresRelationalStore<
     if (this.parameters.usePool) {
       return this.withConnection(connection => runTransaction(connection, fn));
     }
-    return this.writeMutex.run(() => runTransaction(this.client, fn));
+    return this.writeMutex.run(() => this.withConnection(connection => runTransaction(connection, fn)));
   }
 
   /**

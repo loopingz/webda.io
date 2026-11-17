@@ -1,10 +1,10 @@
-import { Command, SecretString, useApplication, useCore, useModelMetadata, WebdaError } from "@webda/core";
+import { Command, useApplication, useCore, useModelMetadata, WebdaError } from "@webda/core";
 import type { MigratableStore, ModelClass } from "@webda/core";
 import type { SQLDialect, SQLTransactionConnection } from "@webda/sql";
 import { JSONSchema7 } from "json-schema";
 import pg, { ClientConfig, PoolConfig } from "pg";
 import { PostgresDialect } from "./dialect.js";
-import { acquirePool, releasePool } from "./pgpool.js";
+import { acquirePool, connectSingleConnectionPool, releasePool } from "./pgpool.js";
 import { PostgresRepository, SQLStore, SQLStoreParameters } from "./sqlstore.js";
 
 /*
@@ -30,7 +30,9 @@ const ISOLATION_LEVELS: PostgresIsolationLevel[] = ["READ COMMITTED", "REPEATABL
  */
 export class PostgresParameters extends SQLStoreParameters {
   /**
-   * Use a shared pool of connections rather than a single client: required by `transaction: "operation"`
+   * Use a shared pool of connections rather than a single connection: required by `transaction: "operation"`
+   *
+   * Both modes reconnect on next use when the connection is lost; the statement in flight then fails.
    * @default false
    */
   usePool?: boolean;
@@ -98,9 +100,9 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters>
   implements MigratableStore
 {
   /**
-   * Client
+   * Client: the shared pool (`usePool`), or a private pool of one connection that reconnects once lost
    */
-  client: pg.Client | pg.Pool;
+  client: pg.Pool;
   /**
    * True when {@link client} is a shared pool acquired from the registry.
    * Tracked so {@link stop} only releases pools it took a refcount on.
@@ -155,7 +157,7 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters>
    */
   protected async openTransaction(): Promise<SQLTransactionConnection> {
     this.checkTransactionSupport();
-    const client = await (this.client as pg.Pool).connect();
+    const client = await this.client.connect();
     // The pool only listens to the errors of its idle clients: without a listener, a connection lost while checked out
     // (server restart, terminated backend) would crash the process. The pending statement fails with it anyway.
     const onError = (err: Error) => this.log("WARN", "Transaction connection lost", err.message);
@@ -212,8 +214,7 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters>
       this.client = acquirePool(this.parameters.postgresqlServer as PoolConfig);
       this.ownsPool = true;
     } else {
-      this.client = new pg.Client(SecretString.unwrap(this.parameters.postgresqlServer as ClientConfig));
-      await this.client.connect();
+      this.client = await connectSingleConnectionPool(this.parameters.postgresqlServer as PoolConfig);
     }
     await this.checkTable();
     await super.init();
@@ -227,8 +228,8 @@ export class PostgresStore<K extends PostgresParameters = PostgresParameters>
     if (this.ownsPool) {
       this.ownsPool = false;
       await releasePool(this.parameters.postgresqlServer as PoolConfig);
-    } else if (this.client && "end" in this.client) {
-      await (this.client as pg.Client).end().catch(() => {
+    } else if (this.client) {
+      await this.client.end().catch(() => {
         /* already ended */
       });
     }

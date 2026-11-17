@@ -5,7 +5,7 @@ import { EventEmitter } from "node:events";
 import * as assert from "node:assert";
 import pg from "pg";
 import { PostgresListener } from "./pglisten.js";
-import { __resetPools, acquirePool, poolKey, releasePool } from "./pgpool.js";
+import { __resetPools, acquirePool, connectSingleConnectionPool, poolKey, releasePool } from "./pgpool.js";
 import PostgresPubSubService, { PostgresPubSubParameters } from "./postgrespubsub.service.js";
 import PostgresQueueService, { PostgresQueueParameters } from "./postgresqueue.service.js";
 import PostgresRelationalStore, { PostgresRelationalParameters } from "./postgresrelationalstore.service.js";
@@ -29,6 +29,95 @@ class PgPoolTest extends WebdaApplicationTest {
   async afterEach() {
     await __resetPools();
     await super.afterEach();
+  }
+
+  /**
+   * Kill the connection of a pool of one connection from another session, as a server restart or a failover would,
+   * and wait for the pool to drop it.
+   *
+   * It waits on `remove` with a plain listener, never on `error` (nor `events.once`, which listens to `error` too):
+   * that would hide a pool without its own listener, whose unhandled `error` event crashes the process
+   * @param pool - the pool, holding one idle connection
+   * @returns the process id of the killed backend
+   */
+  async loseConnection(pool: pg.Pool): Promise<number> {
+    const { rows } = await pool.query("SELECT pg_backend_pid() AS pid");
+    const pid = rows[0].pid;
+    const removed = new Promise(resolve => pool.once("remove", resolve));
+    const admin = new pg.Client(cfg);
+    await admin.connect();
+    try {
+      await admin.query("SELECT pg_terminate_backend($1)", [pid]);
+    } finally {
+      await admin.end();
+    }
+    await removed;
+    return pid;
+  }
+
+  /**
+   * The process id of the backend serving the next statement of a pool
+   * @param pool - the pool
+   * @returns the process id
+   */
+  async backendPid(pool: pg.Pool): Promise<number> {
+    return (await pool.query("SELECT pg_backend_pid() AS pid")).rows[0].pid;
+  }
+
+  @test
+  async sharedPoolSurvivesALostConnection() {
+    const pool = acquirePool(cfg);
+    const lost = await this.loseConnection(pool);
+    assert.notStrictEqual(await this.backendPid(pool), lost, "the pool opens a new connection");
+    await releasePool(cfg);
+  }
+
+  @test
+  async singleConnectionPoolFailsFastAndKeepsItsConnection() {
+    await assert.rejects(() => connectSingleConnectionPool({ ...cfg, port: 1 }), "an unreachable server fails at init");
+    const pool = await connectSingleConnectionPool({ ...cfg, max: 5 });
+    try {
+      assert.strictEqual(pool.options.max, 1);
+      assert.strictEqual(pool.totalCount, 1, "connected at creation");
+      assert.strictEqual(pool.options.idleTimeoutMillis, 0, "kept open while idle, like a client");
+    } finally {
+      await pool.end();
+    }
+  }
+
+  @test
+  async singleConnectionStoreReconnects() {
+    const store = await this.addService(
+      PostgresStore,
+      { postgresqlServer: cfg, usePool: false, autoCreateTable: false, table: "idents", models: ["Webda/OwnerModel"] },
+      "reconnectStore"
+    );
+    try {
+      const lost = await this.loseConnection(store.getClient());
+      assert.notStrictEqual(await this.backendPid(store.getClient()), lost, "the store opens a new connection");
+    } finally {
+      await store.stop();
+    }
+  }
+
+  @test
+  async singleConnectionQueueReconnects() {
+    const queue = new PostgresQueueService(
+      "reconnectQueue",
+      new PostgresQueueParameters().load({ postgresqlServer: cfg, usePool: false, table: "webda_reconnect_queue" })
+    );
+    await this.registerService(queue as any, "reconnectQueue")
+      .resolve()
+      .init();
+    try {
+      await queue.sendMessage({ before: true });
+      await this.loseConnection((queue as any).client);
+      await queue.sendMessage({ after: true });
+      assert.strictEqual(await queue.size(), 2);
+    } finally {
+      await (queue as any).client.query("DROP TABLE IF EXISTS webda_reconnect_queue");
+      await queue.stop();
+    }
   }
 
   @test
@@ -134,6 +223,20 @@ class PgPoolTest extends WebdaApplicationTest {
       }
     }
     (pg as any).Client = FakeClient;
+    // The single connection modes open a pool of one connection: backed by the fake client too
+    const origPool = pg.Pool;
+    class FakePool extends EventEmitter {
+      client = new FakeClient();
+      async connect() {
+        await this.client.connect();
+        return Object.assign(this.client, { release: () => {} });
+      }
+      query(sql: string) {
+        return this.client.query(sql);
+      }
+      async end() {}
+    }
+    (pg as any).Pool = FakePool;
     try {
       const payloads: string[] = [];
       let reconnected = 0;
@@ -317,6 +420,7 @@ class PgPoolTest extends WebdaApplicationTest {
       assert.strictEqual(closed, 3);
     } finally {
       (pg as any).Client = origClient;
+      (pg as any).Pool = origPool;
     }
   }
 
@@ -341,6 +445,20 @@ class PgPoolTest extends WebdaApplicationTest {
       async end() {}
     }
     (pg as any).Client = FakeClient;
+    // The single connection modes open a pool of one connection: backed by the fake client too
+    const origPool = pg.Pool;
+    class FakePool extends EventEmitter {
+      client = new FakeClient();
+      async connect() {
+        await this.client.connect();
+        return Object.assign(this.client, { release: () => {} });
+      }
+      query(sql: string) {
+        return this.client.query(sql);
+      }
+      async end() {}
+    }
+    (pg as any).Pool = FakePool;
     try {
       // 1. PostgresListener: a stop during the reconnect delay cancels the reconnect, a second stop is a no-op
       const listener = new PostgresListener(cfg, "chan_stop", {
@@ -467,6 +585,7 @@ class PgPoolTest extends WebdaApplicationTest {
       }
     } finally {
       (pg as any).Client = origClient;
+      (pg as any).Pool = origPool;
     }
   }
 }

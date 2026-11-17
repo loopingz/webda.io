@@ -1,8 +1,8 @@
-import { MessageReceipt, Queue, QueueParameters, SecretString } from "@webda/core";
+import { MessageReceipt, Queue, QueueParameters } from "@webda/core";
 import { CancelablePromise, JSONUtils } from "@webda/utils";
 import { useLog } from "@webda/workout";
 import pg, { ClientConfig, PoolConfig } from "pg";
-import { acquirePool, releasePool } from "./pgpool.js";
+import { acquirePool, connectSingleConnectionPool, releasePool } from "./pgpool.js";
 import { PostgresListener } from "./pglisten.js";
 
 /**
@@ -38,8 +38,8 @@ export class PostgresQueueParameters extends QueueParameters {
    */
   batchSize?: number;
   /**
-   * Whether to use a `pg.Pool` (recommended for shared workloads) or a
-   * single `pg.Client`.
+   * Whether to use the shared `pg.Pool` (recommended for shared workloads) or a
+   * single connection. Both reconnect on next use when the connection is lost.
    *
    * @default true
    */
@@ -126,7 +126,7 @@ export default class PostgresQueueService<
    * Backing pg client or pool. Pools are preferred under load — receive
    * locks rotate across connections and benefit from concurrency.
    */
-  protected client?: pg.Client | pg.Pool;
+  protected client?: pg.Pool;
   /**
    * True when {@link client} is a shared pool acquired from the registry.
    * Drives the matching {@link releasePool} call in {@link stop}.
@@ -183,8 +183,7 @@ export default class PostgresQueueService<
       this.client = acquirePool(this.parameters.postgresqlServer as PoolConfig);
       this.ownsPool = true;
     } else {
-      this.client = new pg.Client(SecretString.unwrap(this.parameters.postgresqlServer as ClientConfig));
-      await this.client.connect();
+      this.client = await connectSingleConnectionPool(this.parameters.postgresqlServer as PoolConfig);
     }
     if (this.parameters.autoCreateTable) {
       await this.ensureTable();
@@ -463,7 +462,7 @@ export default class PostgresQueueService<
       if (owned) {
         await releasePool(this.parameters.postgresqlServer as PoolConfig);
       } else {
-        await (client as pg.Client).end().catch(() => {
+        await client.end().catch(() => {
           /* already ended */
         });
       }

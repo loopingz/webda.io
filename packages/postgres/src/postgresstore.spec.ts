@@ -127,7 +127,8 @@ export class PostgresStoreSmokeTest extends WebdaApplicationTest {
       "smoke_single"
     );
     try {
-      assert.ok(single.client instanceof pg.Client);
+      assert.ok(single.client instanceof pg.Pool, "a pool of one connection, reconnecting once lost");
+      assert.strictEqual(single.client.options.max, 1);
       const res = await single.getClient().query("SELECT 1 AS one");
       assert.strictEqual(res.rows[0].one, 1);
     } finally {
@@ -857,7 +858,8 @@ export class PostgresStoreResolveTableTest extends WebdaApplicationTest {
         query: async (q: string) => {
           statements.push({ client: name, q });
           return { rows: [], rowCount: 0 };
-        }
+        },
+        end: async () => {}
       }) as any;
     store.client = fakeClient("first");
     const repo = store.getRepository(useModel("Webda/OwnerModel"));

@@ -1473,7 +1473,7 @@
           },
           "usePool": {
             "default": true,
-            "description": "Whether to use a `pg.Pool` (recommended for shared workloads) or a\nsingle `pg.Client`.",
+            "description": "Whether to use the shared `pg.Pool` (recommended for shared workloads) or a\nsingle connection. Both reconnect on next use when the connection is lost.",
             "type": "boolean"
           },
           "visibilityTimeout": {
@@ -2465,7 +2465,7 @@
           },
           "usePool": {
             "default": false,
-            "description": "Use a shared pool of connections rather than a single client: required by `transaction: \"operation\"`",
+            "description": "Use a shared pool of connections rather than a single connection: required by `transaction: \"operation\"`\n\nBoth modes reconnect on next use when the connection is lost; the statement in flight then fails.",
             "type": "boolean"
           },
           "versionHeartbeat": {
@@ -3526,7 +3526,7 @@
           },
           "usePool": {
             "default": false,
-            "description": "Use a shared pool of connections rather than a single client: required by `transaction: \"operation\"`",
+            "description": "Use a shared pool of connections rather than a single connection: required by `transaction: \"operation\"`\n\nBoth modes reconnect on next use when the connection is lost; the statement in flight then fails.",
             "type": "boolean"
           },
           "viewPrefix": {

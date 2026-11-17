@@ -1,6 +1,6 @@
 {
   "name": "@webda/cache",
-  "version": "4.0.0-rc.1",
+  "version": "4.0.0-rc.2",
   "description": "A flexible method-level caching library with decorator support, TTL expiration, and multiple storage strategies",
   "keywords": [
     "webda"

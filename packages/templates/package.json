@@ -1,6 +1,6 @@
 {
   "name": "@webda/templates",
-  "version": "4.0.0-rc.1",
+  "version": "4.0.0-rc.2",
   "description": "Template engines registry and rendering for Webda",
   "keywords": [
     "templates",

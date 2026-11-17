@@ -1,5 +1,24 @@
 # Changelog
 
+## [4.0.0-rc.2](https://github.com/loopingz/webda.io/compare/mcp-v4.0.0-rc.1...mcp-v4.0.0-rc.2) (2026-11-17)
+
+
+### Bug Fixes
+
+* **utils,mcp:** resolve the browser entry and declare @webda/utils at runtime ([#1086](https://github.com/loopingz/webda.io/issues/1086)) ([8d10d46](https://github.com/loopingz/webda.io/commit/8d10d46900d0d709a1164520555574d50c3b03c6))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/utils bumped to 4.0.0-rc.2
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-rc.2
+    * @webda/core bumped to 4.0.0-rc.2
+  * peerDependencies
+    * @webda/core bumped from ^4.0.0-beta.1 to ^4.0.0-rc.2
+
 ## [4.0.0-rc.1](https://github.com/loopingz/webda.io/compare/mcp-v4.0.0-beta.14...mcp-v4.0.0-rc.1) (2026-11-14)
 
 

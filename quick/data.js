@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795060104920,
+  "lastUpdate": 1795060108110,
   "repoUrl": "https://github.com/loopingz/webda.io",
   "entries": {
     "Throughput (quick)": [
@@ -38967,6 +38967,3248 @@ window.BENCHMARK_DATA = {
             "range": "± 12.316",
             "unit": "ms",
             "extra": "ops=6 errors=0 p50=108.265ms max=132.121ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "Remi Cattiau",
+            "username": "loopingz",
+            "email": "remi@cattiau.com"
+          },
+          "committer": {
+            "name": "GitHub",
+            "username": "web-flow",
+            "email": "noreply@github.com"
+          },
+          "id": "f6585a7aa8244921b0c29b85af50ebc43a5a25c7",
+          "message": "fix(postgres): survive lost connections and reconnect in single-connection mode (#1092)\n\n- attach an error listener to every pool: an idle connection lost (server\n  restart, failover, terminated backend) no longer crashes the process\n- back `usePool: false` with a private pool of one connection instead of a\n  bare pg.Client, so stores and queues reconnect on next use\n- run single-connection relational transactions on a checked-out connection\n  so a reconnect never continues a transaction outside it\n\nCloses #1091\n\nCo-authored-by: Claude Opus 5.5 <noreply@anthropic.com>",
+          "timestamp": "2026-11-17T15:39:48Z",
+          "url": "https://github.com/loopingz/webda.io/commit/f6585a7aa8244921b0c29b85af50ebc43a5a25c7"
+        },
+        "date": 1795060107482,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "pubsub/AMQPPubSub/pubsub.publish[concurrency=1,subscribers=0] p99",
+            "value": 0.037,
+            "range": "± 0.025",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.007ms max=0.714ms"
+          },
+          {
+            "name": "pubsub/AMQPPubSub/pubsub.publish[concurrency=10,subscribers=0] p99",
+            "value": 0.185,
+            "range": "± 0.05",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.08ms max=0.544ms"
+          },
+          {
+            "name": "pubsub/AMQPPubSub/pubsub.e2e.latency[ratePerSec=100,subscribers=1] p99",
+            "value": 2.061,
+            "range": "± 0.545",
+            "unit": "ms",
+            "extra": "ops=300 errors=0 p50=0.987ms max=2.945ms"
+          },
+          {
+            "name": "pubsub/AMQPPubSub/pubsub.e2e.throughput[messages=1000,publishConcurrency=10,subscribers=1] p99",
+            "value": 29.327,
+            "range": "± 5.773",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=24.052ms max=29.344ms"
+          },
+          {
+            "name": "pubsub/AMQPPubSub/pubsub.fanout[messages=1000,subscribers=1] p99",
+            "value": 27.804,
+            "range": "± 5.499",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=23.462ms max=27.804ms"
+          },
+          {
+            "name": "pubsub/AMQPPubSub/pubsub.fanout[messages=200,subscribers=5] p99",
+            "value": 59.081,
+            "range": "± 19.672",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=54.985ms max=59.081ms"
+          },
+          {
+            "name": "pubsub/AMQPPubSub/pubsub.payload[payloadBytes=100,subscribers=1] p99",
+            "value": 0.484,
+            "range": "± 0.039",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=0.383ms max=0.511ms"
+          },
+          {
+            "name": "pubsub/AMQPPubSub/pubsub.payload[payloadBytes=10240,subscribers=1] p99",
+            "value": 0.516,
+            "range": "± 0.026",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=0.423ms max=0.529ms"
+          },
+          {
+            "name": "queue/AMQPQueue/queue.send[concurrency=1,payloadBytes=100] p99",
+            "value": 0.096,
+            "range": "± 0.026",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.019ms max=0.537ms"
+          },
+          {
+            "name": "queue/AMQPQueue/queue.send[concurrency=10,payloadBytes=100] p99",
+            "value": 0.203,
+            "range": "± 0.022",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.107ms max=0.228ms"
+          },
+          {
+            "name": "queue/AMQPQueue/queue.drain.raw[concurrency=10,messages=1000] p99",
+            "value": 20552.09,
+            "range": "± 5985.063",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=10385.097ms max=20753.416ms"
+          },
+          {
+            "name": "queue/AMQPQueue/queue.consume[maxConsumers=1,messages=1000,workMs=2,workerParallelism=true] p99",
+            "value": 2554.331,
+            "range": "± 728.361",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=1323.303ms max=2579.497ms"
+          },
+          {
+            "name": "queue/AMQPQueue/queue.consume[maxConsumers=1,messages=1000,workMs=2,workerParallelism=false] p99",
+            "value": 2512.388,
+            "range": "± 725.483",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=1276.117ms max=2537.554ms"
+          },
+          {
+            "name": "queue/AMQPQueue/queue.consume[maxConsumers=10,messages=1000,workMs=2,workerParallelism=true] p99",
+            "value": 341.836,
+            "range": "± 82.592",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=202.506ms max=344.457ms"
+          },
+          {
+            "name": "queue/AMQPQueue/queue.consume[maxConsumers=10,messages=1000,workMs=2,workerParallelism=false] p99",
+            "value": 328.466,
+            "range": "± 79.81",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=194.38ms max=331.35ms"
+          },
+          {
+            "name": "queue/AMQPQueue/queue.e2e.latency[maxConsumers=10,ratePerSec=100] p99",
+            "value": 41.058,
+            "range": "± 11.911",
+            "unit": "ms",
+            "extra": "ops=300 errors=0 p50=21.25ms max=41.484ms"
+          },
+          {
+            "name": "queue/SQSQueue/queue.send[concurrency=1,payloadBytes=100] p99",
+            "value": 2.513,
+            "range": "± 0.265",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=1.876ms max=6.087ms emulated"
+          },
+          {
+            "name": "queue/SQSQueue/queue.send[concurrency=10,payloadBytes=100] p99",
+            "value": 26.051,
+            "range": "± 4.471",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=14.057ms max=29.59ms emulated"
+          },
+          {
+            "name": "queue/SQSQueue/queue.drain.raw[concurrency=1,messages=1000] p99",
+            "value": 2365.587,
+            "range": "± 192.955",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=1780.482ms max=2373.976ms emulated"
+          },
+          {
+            "name": "queue/SQSQueue/queue.drain.raw[concurrency=10,messages=1000] p99",
+            "value": 1699.742,
+            "range": "± 66.501",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=1548.747ms max=1734.345ms emulated"
+          },
+          {
+            "name": "queue/SQSQueue/queue.consume[maxConsumers=1,messages=1000,workMs=2,workerParallelism=true] p99",
+            "value": 6295.65,
+            "range": "± 1433.076",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=3932.16ms max=6345.982ms emulated"
+          },
+          {
+            "name": "queue/SQSQueue/queue.consume[maxConsumers=1,messages=1000,workMs=2,workerParallelism=false] p99",
+            "value": 6287.262,
+            "range": "± 1393.424",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=3772.776ms max=6341.788ms emulated"
+          },
+          {
+            "name": "queue/SQSQueue/queue.consume[maxConsumers=10,messages=1000,workMs=2,workerParallelism=true] p99",
+            "value": 2000.683,
+            "range": "± 148.494",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=1759.511ms max=2011.169ms emulated"
+          },
+          {
+            "name": "queue/SQSQueue/queue.consume[maxConsumers=10,messages=1000,workMs=2,workerParallelism=false] p99",
+            "value": 4341.105,
+            "range": "± 838.942",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=2923.43ms max=4383.048ms emulated"
+          },
+          {
+            "name": "queue/SQSQueue/queue.e2e.latency[maxConsumers=10,ratePerSec=100] p99",
+            "value": 5.132,
+            "range": "± 0.546",
+            "unit": "ms",
+            "extra": "ops=300 errors=0 p50=3.148ms max=8.38ms emulated"
+          },
+          {
+            "name": "store/DynamoStore/store.get[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 6.627,
+            "range": "± 0.715",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=4.424ms max=11.534ms emulated"
+          },
+          {
+            "name": "store/DynamoStore/store.exists[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 7.131,
+            "range": "± 0.664",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=3.916ms max=9.019ms emulated"
+          },
+          {
+            "name": "store/DynamoStore/store.update[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 7.979,
+            "range": "± 0.701",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=5.505ms max=12.46ms emulated"
+          },
+          {
+            "name": "store/DynamoStore/store.patch[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 9.724,
+            "range": "± 1.024",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=5.968ms max=14.311ms emulated"
+          },
+          {
+            "name": "store/DynamoStore/store.setAttribute[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 10.215,
+            "range": "± 1.03",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=6.128ms max=16.359ms emulated"
+          },
+          {
+            "name": "store/DynamoStore/store.incrementAttribute[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 8.454,
+            "range": "± 0.791",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=5.444ms max=11.272ms emulated"
+          },
+          {
+            "name": "store/DynamoStore/store.upsert[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 18.301,
+            "range": "± 2.677",
+            "unit": "ms",
+            "extra": "ops=843 errors=0 p50=12.149ms max=24.445ms emulated"
+          },
+          {
+            "name": "store/DynamoStore/store.query.eq[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 104.399,
+            "range": "± 8.835",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=73.859ms max=110.297ms emulated"
+          },
+          {
+            "name": "store/DynamoStore/store.query.range[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 127.861,
+            "range": "± 7.039",
+            "unit": "ms",
+            "extra": "ops=92 errors=0 p50=107.545ms max=133.038ms emulated"
+          },
+          {
+            "name": "store/DynamoStore/store.query.in[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 73.204,
+            "range": "± 6.191",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=49.873ms max=74.514ms emulated"
+          },
+          {
+            "name": "store/DynamoStore/store.query.orderBy[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 88.539,
+            "range": "± 6.066",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=61.997ms max=92.209ms emulated"
+          },
+          {
+            "name": "store/DynamoStore/store.create[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 7.95,
+            "range": "± 0.767",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=5.243ms max=14.508ms emulated"
+          },
+          {
+            "name": "store/DynamoStore/store.delete[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 8.212,
+            "range": "± 10.64",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=5.145ms max=341.311ms emulated"
+          },
+          {
+            "name": "store/DynamoStore/store.get[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 51.741,
+            "range": "± 8.813",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=30.687ms max=62.161ms emulated"
+          },
+          {
+            "name": "store/DynamoStore/store.exists[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 49.447,
+            "range": "± 8.909",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=29.049ms max=66.322ms emulated"
+          },
+          {
+            "name": "store/DynamoStore/store.update[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 59.703,
+            "range": "± 9.569",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=35.357ms max=73.662ms emulated"
+          },
+          {
+            "name": "store/DynamoStore/store.patch[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 57.573,
+            "range": "± 9.14",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=35.619ms max=71.565ms emulated"
+          },
+          {
+            "name": "store/DynamoStore/store.setAttribute[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 54.1,
+            "range": "± 8.095",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=31.49ms max=61.8ms emulated"
+          },
+          {
+            "name": "store/DynamoStore/store.incrementAttribute[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 51.708,
+            "range": "± 7.812",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=30.704ms max=58.884ms emulated"
+          },
+          {
+            "name": "store/DynamoStore/store.upsert[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 118.292,
+            "range": "± 19.531",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=70.124ms max=154.01ms emulated"
+          },
+          {
+            "name": "store/DynamoStore/store.query.eq[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 756.548,
+            "range": "± 53.433",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=649.069ms max=757.596ms emulated"
+          },
+          {
+            "name": "store/DynamoStore/store.query.range[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 1155.531,
+            "range": "± 75.531",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=984.613ms max=1175.454ms emulated"
+          },
+          {
+            "name": "store/DynamoStore/store.query.in[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 809.501,
+            "range": "± 57.605",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=681.574ms max=817.365ms emulated"
+          },
+          {
+            "name": "store/DynamoStore/store.query.orderBy[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 581.96,
+            "range": "± 42.774",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=512.754ms max=606.077ms emulated"
+          },
+          {
+            "name": "store/DynamoStore/store.create[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 68.813,
+            "range": "± 34.019",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=32.735ms max=372.507ms emulated"
+          },
+          {
+            "name": "store/DynamoStore/store.delete[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 48.103,
+            "range": "± 7.156",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=29.704ms max=56.099ms emulated"
+          },
+          {
+            "name": "store/DynamoStore/store.contention.increment[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 49.84,
+            "range": "± 7.481",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=30.343ms max=57.704ms emulated"
+          },
+          {
+            "name": "store/DynamoStore/store.query.paginate[dataset=1000,docSize=small,pageSize=100] p99",
+            "value": 322.175,
+            "range": "± 26.182",
+            "unit": "ms",
+            "extra": "ops=3 errors=0 p50=303.563ms max=322.175ms emulated"
+          },
+          {
+            "name": "store/DynamoStore/store.iterate[dataset=1000,docSize=small,pageSize=100] p99",
+            "value": 299.368,
+            "range": "± 6.64",
+            "unit": "ms",
+            "extra": "ops=3 errors=0 p50=291.766ms max=299.368ms emulated"
+          },
+          {
+            "name": "queue/MemoryQueue/queue.send[concurrency=1,payloadBytes=100] p99",
+            "value": 0.027,
+            "range": "± 0.004",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.004ms max=0.064ms"
+          },
+          {
+            "name": "queue/MemoryQueue/queue.send[concurrency=10,payloadBytes=100] p99",
+            "value": 0.06,
+            "range": "± 0.005",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.038ms max=0.064ms"
+          },
+          {
+            "name": "queue/MemoryQueue/queue.drain.raw[concurrency=1,messages=1000] p99",
+            "value": 33.014,
+            "range": "± 8.222",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=26.673ms max=33.03ms"
+          },
+          {
+            "name": "queue/MemoryQueue/queue.drain.raw[concurrency=10,messages=1000] p99",
+            "value": 18.334,
+            "range": "± 4.233",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=15.45ms max=18.465ms"
+          },
+          {
+            "name": "queue/MemoryQueue/queue.consume[maxConsumers=1,messages=1000,workMs=2,workerParallelism=true] p99",
+            "value": 2273.313,
+            "range": "± 663.53",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=1150.288ms max=2296.381ms"
+          },
+          {
+            "name": "queue/MemoryQueue/queue.consume[maxConsumers=1,messages=1000,workMs=2,workerParallelism=false] p99",
+            "value": 2294.284,
+            "range": "± 667.415",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=1169.162ms max=2315.256ms"
+          },
+          {
+            "name": "queue/MemoryQueue/queue.consume[maxConsumers=10,messages=1000,workMs=2,workerParallelism=true] p99",
+            "value": 244.711,
+            "range": "± 66.535",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=139.198ms max=246.94ms"
+          },
+          {
+            "name": "queue/MemoryQueue/queue.consume[maxConsumers=10,messages=1000,workMs=2,workerParallelism=false] p99",
+            "value": 253.1,
+            "range": "± 68.894",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=138.412ms max=255.197ms"
+          },
+          {
+            "name": "queue/MemoryQueue/queue.e2e.latency[maxConsumers=10,ratePerSec=100] p99",
+            "value": 50.168,
+            "range": "± 8.168",
+            "unit": "ms",
+            "extra": "ops=300 errors=0 p50=0.066ms max=80.151ms"
+          },
+          {
+            "name": "store/MemoryStore/store.get[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 0.054,
+            "range": "± 0.055",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.011ms max=1.704ms"
+          },
+          {
+            "name": "store/MemoryStore/store.exists[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 0.01,
+            "range": "± 0.003",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.004ms max=0.045ms"
+          },
+          {
+            "name": "store/MemoryStore/store.update[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 0.072,
+            "range": "± 0.01",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.024ms max=0.097ms"
+          },
+          {
+            "name": "store/MemoryStore/store.patch[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 0.121,
+            "range": "± 0.021",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.029ms max=0.183ms"
+          },
+          {
+            "name": "store/MemoryStore/store.setAttribute[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 0.097,
+            "range": "± 0.08",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.027ms max=2.494ms"
+          },
+          {
+            "name": "store/MemoryStore/store.incrementAttribute[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 0.092,
+            "range": "± 0.016",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.028ms max=0.145ms"
+          },
+          {
+            "name": "store/MemoryStore/store.upsert[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 0.116,
+            "range": "± 0.024",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.058ms max=0.668ms"
+          },
+          {
+            "name": "store/MemoryStore/store.query.eq[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 2.894,
+            "range": "± 0.225",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=1.829ms max=3.14ms"
+          },
+          {
+            "name": "store/MemoryStore/store.query.range[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 6.156,
+            "range": "± 0.47",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=5.321ms max=9.683ms"
+          },
+          {
+            "name": "store/MemoryStore/store.query.in[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 1.977,
+            "range": "± 0.196",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=1.041ms max=2.15ms"
+          },
+          {
+            "name": "store/MemoryStore/store.query.orderBy[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 14.238,
+            "range": "± 0.811",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=10.174ms max=15.122ms"
+          },
+          {
+            "name": "store/MemoryStore/store.create[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 0.106,
+            "range": "± 0.021",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.043ms max=0.521ms"
+          },
+          {
+            "name": "store/MemoryStore/store.delete[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 0.013,
+            "range": "± 0.006",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.002ms max=0.182ms"
+          },
+          {
+            "name": "store/MemoryStore/store.get[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 0.098,
+            "range": "± 0.01",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.063ms max=0.109ms"
+          },
+          {
+            "name": "store/MemoryStore/store.exists[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 0.079,
+            "range": "± 0.016",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.03ms max=0.159ms"
+          },
+          {
+            "name": "store/MemoryStore/store.update[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 0.217,
+            "range": "± 0.02",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.141ms max=0.222ms"
+          },
+          {
+            "name": "store/MemoryStore/store.patch[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 0.6,
+            "range": "± 0.086",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.264ms max=0.977ms"
+          },
+          {
+            "name": "store/MemoryStore/store.setAttribute[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 0.61,
+            "range": "± 0.087",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.272ms max=0.63ms"
+          },
+          {
+            "name": "store/MemoryStore/store.incrementAttribute[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 0.535,
+            "range": "± 0.058",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.297ms max=0.59ms"
+          },
+          {
+            "name": "store/MemoryStore/store.upsert[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 1.181,
+            "range": "± 0.117",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.534ms max=1.427ms"
+          },
+          {
+            "name": "store/MemoryStore/store.query.eq[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 22.2,
+            "range": "± 1.28",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=18.072ms max=22.2ms"
+          },
+          {
+            "name": "store/MemoryStore/store.query.range[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 66.159,
+            "range": "± 4.621",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=51.053ms max=66.159ms"
+          },
+          {
+            "name": "store/MemoryStore/store.query.in[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 12.952,
+            "range": "± 1.55",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=11.706ms max=12.952ms"
+          },
+          {
+            "name": "store/MemoryStore/store.query.orderBy[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 138.15,
+            "range": "± 3.837",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=125.501ms max=138.15ms"
+          },
+          {
+            "name": "store/MemoryStore/store.create[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 0.812,
+            "range": "± 0.076",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.417ms max=0.931ms"
+          },
+          {
+            "name": "store/MemoryStore/store.delete[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 0.042,
+            "range": "± 0.007",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.013ms max=0.046ms"
+          },
+          {
+            "name": "store/MemoryStore/store.contention.increment[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 0.556,
+            "range": "± 0.03",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.448ms max=0.686ms"
+          },
+          {
+            "name": "store/MemoryStore/store.query.paginate[dataset=1000,docSize=small,pageSize=100] p99",
+            "value": 19.907,
+            "range": "± 0.676",
+            "unit": "ms",
+            "extra": "ops=3 errors=0 p50=18.711ms max=19.907ms"
+          },
+          {
+            "name": "store/MemoryStore/store.iterate[dataset=1000,docSize=small,pageSize=100] p99",
+            "value": 17.94,
+            "range": "± 0.983",
+            "unit": "ms",
+            "extra": "ops=3 errors=0 p50=17.072ms max=17.94ms"
+          },
+          {
+            "name": "pubsub/SocketPubSub/pubsub.publish[concurrency=1,subscribers=0] p99",
+            "value": 0.05,
+            "range": "± 0.011",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.008ms max=0.204ms"
+          },
+          {
+            "name": "pubsub/SocketPubSub/pubsub.publish[concurrency=10,subscribers=0] p99",
+            "value": 0.099,
+            "range": "± 0.007",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.063ms max=0.102ms"
+          },
+          {
+            "name": "pubsub/SocketPubSub/pubsub.e2e.latency[ratePerSec=100,subscribers=1] p99",
+            "value": 0.714,
+            "range": "± 0.208",
+            "unit": "ms",
+            "extra": "ops=300 errors=0 p50=0.118ms max=3.267ms"
+          },
+          {
+            "name": "pubsub/SocketPubSub/pubsub.e2e.throughput[messages=1000,publishConcurrency=10,subscribers=1] p99",
+            "value": 7.459,
+            "range": "± 0.382",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=6.57ms max=7.496ms"
+          },
+          {
+            "name": "pubsub/SocketPubSub/pubsub.fanout[messages=1000,subscribers=1] p99",
+            "value": 5.628,
+            "range": "± 0.229",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=4.792ms max=5.931ms"
+          },
+          {
+            "name": "pubsub/SocketPubSub/pubsub.fanout[messages=200,subscribers=5] p99",
+            "value": 8.073,
+            "range": "± 1.673",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=5.181ms max=8.356ms"
+          },
+          {
+            "name": "pubsub/SocketPubSub/pubsub.payload[payloadBytes=100,subscribers=1] p99",
+            "value": 0.29,
+            "range": "± 0.048",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=0.101ms max=0.326ms"
+          },
+          {
+            "name": "pubsub/SocketPubSub/pubsub.payload[payloadBytes=10240,subscribers=1] p99",
+            "value": 0.516,
+            "range": "± 0.098",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=0.209ms max=0.579ms"
+          },
+          {
+            "name": "queue/FileQueue/queue.send[concurrency=1,payloadBytes=100] p99",
+            "value": 0.104,
+            "range": "± 0.017",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.045ms max=0.416ms"
+          },
+          {
+            "name": "queue/FileQueue/queue.send[concurrency=10,payloadBytes=100] p99",
+            "value": 0.874,
+            "range": "± 0.109",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.468ms max=0.956ms"
+          },
+          {
+            "name": "queue/FileQueue/queue.drain.raw[concurrency=1,messages=1000] p99",
+            "value": 4108.321,
+            "range": "± 1187.422",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=3124.756ms max=4110.418ms"
+          },
+          {
+            "name": "queue/FileQueue/queue.drain.raw[concurrency=10,messages=1000] p99",
+            "value": 3978.297,
+            "range": "± 1139.17",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=3003.122ms max=3980.394ms"
+          },
+          {
+            "name": "queue/FileQueue/queue.consume[maxConsumers=1,messages=1000,workMs=2,workerParallelism=true] p99",
+            "value": 6413.091,
+            "range": "± 1864.376",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=4320.133ms max=6434.062ms"
+          },
+          {
+            "name": "queue/FileQueue/queue.consume[maxConsumers=1,messages=1000,workMs=2,workerParallelism=false] p99",
+            "value": 6283.067,
+            "range": "± 1827.192",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=4211.081ms max=6304.039ms"
+          },
+          {
+            "name": "queue/FileQueue/queue.consume[maxConsumers=10,messages=1000,workMs=2,workerParallelism=true] p99",
+            "value": 4223.664,
+            "range": "± 1212.895",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=3208.643ms max=4225.761ms"
+          },
+          {
+            "name": "queue/FileQueue/queue.consume[maxConsumers=10,messages=1000,workMs=2,workerParallelism=false] p99",
+            "value": 4066.378,
+            "range": "± 1171.239",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=3049.259ms max=4068.475ms"
+          },
+          {
+            "name": "queue/FileQueue/queue.e2e.latency[maxConsumers=10,ratePerSec=100] p99",
+            "value": 0.939,
+            "range": "± 0.102",
+            "unit": "ms",
+            "extra": "ops=300 errors=0 p50=0.553ms max=1.3ms"
+          },
+          {
+            "name": "store/FileStore/store.get[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 0.095,
+            "range": "± 0.094",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.028ms max=2.922ms"
+          },
+          {
+            "name": "store/FileStore/store.exists[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 0.027,
+            "range": "± 0.006",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.011ms max=0.053ms"
+          },
+          {
+            "name": "store/FileStore/store.update[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 0.283,
+            "range": "± 0.055",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.16ms max=1.417ms"
+          },
+          {
+            "name": "store/FileStore/store.patch[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 0.3,
+            "range": "± 0.09",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.197ms max=1.898ms"
+          },
+          {
+            "name": "store/FileStore/store.setAttribute[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 0.333,
+            "range": "± 0.124",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.199ms max=3.013ms"
+          },
+          {
+            "name": "store/FileStore/store.incrementAttribute[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 0.374,
+            "range": "± 0.085",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.213ms max=1.995ms"
+          },
+          {
+            "name": "store/FileStore/store.upsert[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 0.388,
+            "range": "± 0.09",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.213ms max=1.925ms"
+          },
+          {
+            "name": "store/FileStore/store.query.eq[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 33.145,
+            "range": "± 1.067",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=26.608ms max=33.374ms"
+          },
+          {
+            "name": "store/FileStore/store.query.range[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 35.029,
+            "range": "± 1.073",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=29.59ms max=36.569ms"
+          },
+          {
+            "name": "store/FileStore/store.query.in[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 25.952,
+            "range": "± 0.692",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=22.643ms max=27.066ms"
+          },
+          {
+            "name": "store/FileStore/store.query.orderBy[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 48.693,
+            "range": "± 1.504",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=46.039ms max=59.507ms"
+          },
+          {
+            "name": "store/FileStore/store.create[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 0.159,
+            "range": "± 0.015",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.108ms max=0.342ms"
+          },
+          {
+            "name": "store/FileStore/store.delete[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 0.053,
+            "range": "± 0.01",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.021ms max=0.233ms"
+          },
+          {
+            "name": "store/FileStore/store.get[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 0.377,
+            "range": "± 0.036",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.177ms max=0.416ms"
+          },
+          {
+            "name": "store/FileStore/store.exists[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 0.274,
+            "range": "± 0.053",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.076ms max=0.588ms"
+          },
+          {
+            "name": "store/FileStore/store.update[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 3.449,
+            "range": "± 0.265",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=1.782ms max=3.551ms"
+          },
+          {
+            "name": "store/FileStore/store.patch[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 4.073,
+            "range": "± 0.409",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=2.152ms max=4.444ms"
+          },
+          {
+            "name": "store/FileStore/store.setAttribute[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 3.555,
+            "range": "± 0.36",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=2.076ms max=4.682ms"
+          },
+          {
+            "name": "store/FileStore/store.incrementAttribute[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 3.371,
+            "range": "± 0.285",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=2.017ms max=4.092ms"
+          },
+          {
+            "name": "store/FileStore/store.upsert[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 3.553,
+            "range": "± 0.428",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=1.841ms max=5.612ms"
+          },
+          {
+            "name": "store/FileStore/store.query.eq[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 373.555,
+            "range": "± 4.747",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=361.234ms max=373.555ms"
+          },
+          {
+            "name": "store/FileStore/store.query.range[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 394.002,
+            "range": "± 8.843",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=370.672ms max=394.002ms"
+          },
+          {
+            "name": "store/FileStore/store.query.in[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 310.378,
+            "range": "± 2.208",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=307.233ms max=310.378ms"
+          },
+          {
+            "name": "store/FileStore/store.query.orderBy[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 621.806,
+            "range": "± 5.974",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=610.271ms max=621.806ms"
+          },
+          {
+            "name": "store/FileStore/store.create[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 1.205,
+            "range": "± 0.078",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.945ms max=1.563ms"
+          },
+          {
+            "name": "store/FileStore/store.delete[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 0.332,
+            "range": "± 0.025",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.2ms max=0.406ms"
+          },
+          {
+            "name": "store/FileStore/store.contention.increment[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 4.284,
+            "range": "± 0.377",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=2.292ms max=4.502ms"
+          },
+          {
+            "name": "store/FileStore/store.query.paginate[dataset=1000,docSize=small,pageSize=100] p99",
+            "value": 584.581,
+            "range": "± 5.42",
+            "unit": "ms",
+            "extra": "ops=3 errors=0 p50=574.62ms max=584.581ms"
+          },
+          {
+            "name": "store/FileStore/store.iterate[dataset=1000,docSize=small,pageSize=100] p99",
+            "value": 570.95,
+            "range": "± 5.998",
+            "unit": "ms",
+            "extra": "ops=3 errors=0 p50=563.085ms max=570.95ms"
+          },
+          {
+            "name": "pubsub/GCPPubSub/pubsub.publish[concurrency=1,subscribers=0] p99",
+            "value": 12.018,
+            "range": "± 0.488",
+            "unit": "ms",
+            "extra": "ops=917 errors=0 p50=10.961ms max=15ms emulated"
+          },
+          {
+            "name": "pubsub/GCPPubSub/pubsub.publish[concurrency=10,subscribers=0] p99",
+            "value": 19.694,
+            "range": "± 1.576",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=12.1ms max=25.838ms emulated"
+          },
+          {
+            "name": "pubsub/GCPPubSub/pubsub.e2e.latency[ratePerSec=100,subscribers=1] p99",
+            "value": 60.883,
+            "range": "± 14.44",
+            "unit": "ms",
+            "extra": "ops=300 errors=0 p50=34.603ms max=63.898ms emulated"
+          },
+          {
+            "name": "pubsub/GCPPubSub/pubsub.e2e.throughput[messages=1000,publishConcurrency=10,subscribers=1] p99",
+            "value": 59.9,
+            "range": "± 14.282",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=35.946ms max=61.899ms emulated"
+          },
+          {
+            "name": "pubsub/GCPPubSub/pubsub.fanout[messages=1000,subscribers=1] p99",
+            "value": 60.522,
+            "range": "± 14.469",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=36.078ms max=61.08ms emulated"
+          },
+          {
+            "name": "pubsub/GCPPubSub/pubsub.fanout[messages=200,subscribers=5] p99",
+            "value": 60.522,
+            "range": "± 14.461",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=35.717ms max=61.571ms emulated"
+          },
+          {
+            "name": "pubsub/GCPPubSub/pubsub.payload[payloadBytes=100,subscribers=1] p99",
+            "value": 50.627,
+            "range": "± 0.26",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=50.135ms max=50.692ms emulated"
+          },
+          {
+            "name": "pubsub/GCPPubSub/pubsub.payload[payloadBytes=10240,subscribers=1] p99",
+            "value": 50.79,
+            "range": "± 0.313",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=50.135ms max=51.577ms emulated"
+          },
+          {
+            "name": "queue/GCPQueue/queue.send[concurrency=1,payloadBytes=100] p99",
+            "value": 12.689,
+            "range": "± 0.854",
+            "unit": "ms",
+            "extra": "ops=877 errors=0 p50=11.37ms max=26.1ms emulated"
+          },
+          {
+            "name": "queue/GCPQueue/queue.send[concurrency=10,payloadBytes=100] p99",
+            "value": 26.198,
+            "range": "± 2.914",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=11.977ms max=36.602ms emulated"
+          },
+          {
+            "name": "queue/GCPQueue/queue.consume[maxConsumers=1,messages=1000,workMs=2,workerParallelism=true] p99",
+            "value": 1577.058,
+            "range": "± 109.908",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=1346.372ms max=1577.058ms emulated"
+          },
+          {
+            "name": "queue/GCPQueue/queue.consume[maxConsumers=1,messages=1000,workMs=2,workerParallelism=false] p99",
+            "value": 1052.246,
+            "range": "± 118.855",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=849.347ms max=1059.586ms emulated"
+          },
+          {
+            "name": "queue/GCPQueue/queue.consume[maxConsumers=10,messages=1000,workMs=2,workerParallelism=true] p99",
+            "value": 1080.033,
+            "range": "± 109.974",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=882.901ms max=1080.033ms emulated"
+          },
+          {
+            "name": "queue/GCPQueue/queue.consume[maxConsumers=10,messages=1000,workMs=2,workerParallelism=false] p99",
+            "value": 1055.916,
+            "range": "± 113.696",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=846.725ms max=1064.829ms emulated"
+          },
+          {
+            "name": "store/FireStore/store.get[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 4.825,
+            "range": "± 0.842",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=2.427ms max=17.662ms emulated"
+          },
+          {
+            "name": "store/FireStore/store.exists[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 2.603,
+            "range": "± 0.423",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=2ms max=10.346ms emulated"
+          },
+          {
+            "name": "store/FireStore/store.update[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 7.721,
+            "range": "± 1.101",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=4.264ms max=21.398ms emulated"
+          },
+          {
+            "name": "store/FireStore/store.patch[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 9.396,
+            "range": "± 1.06",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=3.873ms max=14.918ms emulated"
+          },
+          {
+            "name": "store/FireStore/store.setAttribute[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 6.689,
+            "range": "± 0.844",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=3.774ms max=15.54ms emulated"
+          },
+          {
+            "name": "store/FireStore/store.incrementAttribute[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 3.187,
+            "range": "± 0.745",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.909ms max=13.246ms emulated"
+          },
+          {
+            "name": "store/FireStore/store.upsert[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 10.412,
+            "range": "± 2.693",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=6.607ms max=21.873ms emulated"
+          },
+          {
+            "name": "store/FireStore/store.query.eq[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 24.543,
+            "range": "± 3.015",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=16.024ms max=27.427ms emulated"
+          },
+          {
+            "name": "store/FireStore/store.query.range[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 24.052,
+            "range": "± 2.494",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=12.632ms max=24.15ms emulated"
+          },
+          {
+            "name": "store/FireStore/store.query.in[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 24.642,
+            "range": "± 1.639",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=18.956ms max=25.215ms emulated"
+          },
+          {
+            "name": "store/FireStore/store.query.orderBy[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 10.445,
+            "range": "± 0.934",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=5.906ms max=11.69ms emulated"
+          },
+          {
+            "name": "store/FireStore/store.create[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 2.12,
+            "range": "± 0.527",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.787ms max=9.634ms emulated"
+          },
+          {
+            "name": "store/FireStore/store.delete[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 4.133,
+            "range": "± 0.614",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=3.459ms max=15.426ms emulated"
+          },
+          {
+            "name": "store/FireStore/store.get[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 11.862,
+            "range": "± 1.503",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=4.108ms max=14.975ms emulated"
+          },
+          {
+            "name": "store/FireStore/store.exists[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 11.813,
+            "range": "± 1.434",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=3.936ms max=13.091ms emulated"
+          },
+          {
+            "name": "store/FireStore/store.update[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 21.381,
+            "range": "± 109.836",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=8.339ms max=2854.224ms emulated"
+          },
+          {
+            "name": "store/FireStore/store.patch[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 24.396,
+            "range": "± 128.373",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=9.642ms max=2814.378ms emulated"
+          },
+          {
+            "name": "store/FireStore/store.setAttribute[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 23.396,
+            "range": "± 197.438",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=7.184ms max=3269.46ms emulated"
+          },
+          {
+            "name": "store/FireStore/store.incrementAttribute[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 12.337,
+            "range": "± 1.93",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=4.796ms max=21.332ms emulated"
+          },
+          {
+            "name": "store/FireStore/store.upsert[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 31.08,
+            "range": "± 7.293",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=16.327ms max=42.271ms emulated"
+          },
+          {
+            "name": "store/FireStore/store.query.eq[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 177.471,
+            "range": "± 29.63",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=91.554ms max=178.782ms emulated"
+          },
+          {
+            "name": "store/FireStore/store.query.range[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 142.606,
+            "range": "± 23.132",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=80.347ms max=144.31ms emulated"
+          },
+          {
+            "name": "store/FireStore/store.query.in[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 188.35,
+            "range": "± 30.251",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=121.569ms max=194.511ms emulated"
+          },
+          {
+            "name": "store/FireStore/store.query.orderBy[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 58.556,
+            "range": "± 9.294",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=36.274ms max=59.671ms emulated"
+          },
+          {
+            "name": "store/FireStore/store.create[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 10.871,
+            "range": "± 1.215",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=4.44ms max=13.566ms emulated"
+          },
+          {
+            "name": "store/FireStore/store.delete[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 20.513,
+            "range": "± 2.736",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=8.413ms max=22.659ms emulated"
+          },
+          {
+            "name": "store/FireStore/store.contention.increment[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 11.133,
+            "range": "± 1.456",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=4.469ms max=16.114ms emulated"
+          },
+          {
+            "name": "store/FireStore/store.query.paginate[dataset=1000,docSize=small,pageSize=100] p99",
+            "value": 435.159,
+            "range": "± 34.821",
+            "unit": "ms",
+            "extra": "ops=3 errors=0 p50=365.691ms max=435.159ms emulated"
+          },
+          {
+            "name": "store/FireStore/store.iterate[dataset=1000,docSize=small,pageSize=100] p99",
+            "value": 348.652,
+            "range": "± 2.616",
+            "unit": "ms",
+            "extra": "ops=3 errors=0 p50=346.554ms max=348.652ms emulated"
+          },
+          {
+            "name": "store/MongoStore/store.get[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 0.559,
+            "range": "± 0.064",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.381ms max=1.213ms"
+          },
+          {
+            "name": "store/MongoStore/store.exists[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 0.549,
+            "range": "± 0.037",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.419ms max=0.959ms"
+          },
+          {
+            "name": "store/MongoStore/store.update[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 0.63,
+            "range": "± 0.042",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.477ms max=0.844ms"
+          },
+          {
+            "name": "store/MongoStore/store.patch[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 0.609,
+            "range": "± 0.04",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.45ms max=0.902ms"
+          },
+          {
+            "name": "store/MongoStore/store.setAttribute[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 0.572,
+            "range": "± 0.037",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.444ms max=0.615ms"
+          },
+          {
+            "name": "store/MongoStore/store.incrementAttribute[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 0.492,
+            "range": "± 0.062",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.377ms max=1.364ms"
+          },
+          {
+            "name": "store/MongoStore/store.upsert[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 2.533,
+            "range": "± 0.386",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=1.143ms max=4.127ms"
+          },
+          {
+            "name": "store/MongoStore/store.query.eq[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 2.757,
+            "range": "± 0.2",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=1.76ms max=2.939ms"
+          },
+          {
+            "name": "store/MongoStore/store.query.range[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 2.288,
+            "range": "± 0.091",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=1.934ms max=2.454ms"
+          },
+          {
+            "name": "store/MongoStore/store.query.in[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 1.905,
+            "range": "± 0.074",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=1.615ms max=1.944ms"
+          },
+          {
+            "name": "store/MongoStore/store.query.orderBy[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 3.447,
+            "range": "± 0.395",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=2.09ms max=4.968ms"
+          },
+          {
+            "name": "store/MongoStore/store.create[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 0.499,
+            "range": "± 0.092",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.345ms max=2.898ms"
+          },
+          {
+            "name": "store/MongoStore/store.delete[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 0.436,
+            "range": "± 0.068",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.325ms max=2.152ms"
+          },
+          {
+            "name": "store/MongoStore/store.get[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 4.776,
+            "range": "± 0.774",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=1.885ms max=8.741ms"
+          },
+          {
+            "name": "store/MongoStore/store.exists[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 4.329,
+            "range": "± 0.736",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=1.971ms max=5.833ms"
+          },
+          {
+            "name": "store/MongoStore/store.update[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 4.71,
+            "range": "± 0.889",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=2.002ms max=6.377ms"
+          },
+          {
+            "name": "store/MongoStore/store.patch[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 3.922,
+            "range": "± 0.764",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=1.704ms max=4.772ms"
+          },
+          {
+            "name": "store/MongoStore/store.setAttribute[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 4.6,
+            "range": "± 0.833",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=1.68ms max=6.717ms"
+          },
+          {
+            "name": "store/MongoStore/store.incrementAttribute[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 2.933,
+            "range": "± 0.581",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=1.34ms max=3.6ms"
+          },
+          {
+            "name": "store/MongoStore/store.upsert[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 10.732,
+            "range": "± 1.946",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=4.809ms max=12.796ms"
+          },
+          {
+            "name": "store/MongoStore/store.query.eq[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 37.585,
+            "range": "± 6.244",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=12.239ms max=44.466ms"
+          },
+          {
+            "name": "store/MongoStore/store.query.range[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 26.575,
+            "range": "± 4.603",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=11.231ms max=31.08ms"
+          },
+          {
+            "name": "store/MongoStore/store.query.in[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 25.985,
+            "range": "± 4.095",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=11.117ms max=26.018ms"
+          },
+          {
+            "name": "store/MongoStore/store.query.orderBy[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 25.346,
+            "range": "± 4.443",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=13.574ms max=30.114ms"
+          },
+          {
+            "name": "store/MongoStore/store.create[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 3.813,
+            "range": "± 0.624",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=1.783ms max=4.633ms"
+          },
+          {
+            "name": "store/MongoStore/store.delete[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 3.502,
+            "range": "± 0.62",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=1.303ms max=5.087ms"
+          },
+          {
+            "name": "store/MongoStore/store.contention.increment[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 3.42,
+            "range": "± 0.687",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=1.544ms max=5.55ms"
+          },
+          {
+            "name": "store/MongoStore/store.query.paginate[dataset=1000,docSize=small,pageSize=100] p99",
+            "value": 50.889,
+            "range": "± 2.06",
+            "unit": "ms",
+            "extra": "ops=3 errors=0 p50=48.3ms max=50.889ms"
+          },
+          {
+            "name": "store/MongoStore/store.iterate[dataset=1000,docSize=small,pageSize=100] p99",
+            "value": 49.218,
+            "range": "± 0.804",
+            "unit": "ms",
+            "extra": "ops=3 errors=0 p50=47.546ms max=49.218ms"
+          },
+          {
+            "name": "pubsub/PostgresPubSub/pubsub.publish[concurrency=1,subscribers=0] p99",
+            "value": 0.375,
+            "range": "± 0.038",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.275ms max=0.872ms"
+          },
+          {
+            "name": "pubsub/PostgresPubSub/pubsub.publish[concurrency=10,subscribers=0] p99",
+            "value": 2.435,
+            "range": "± 0.458",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=1.053ms max=3.26ms"
+          },
+          {
+            "name": "pubsub/PostgresPubSub/pubsub.e2e.latency[ratePerSec=100,subscribers=1] p99",
+            "value": 0.663,
+            "range": "± 0.057",
+            "unit": "ms",
+            "extra": "ops=300 errors=0 p50=0.414ms max=0.711ms"
+          },
+          {
+            "name": "pubsub/PostgresPubSub/pubsub.e2e.throughput[messages=1000,publishConcurrency=10,subscribers=1] p99",
+            "value": 3.258,
+            "range": "± 0.542",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=1.361ms max=4.106ms"
+          },
+          {
+            "name": "pubsub/PostgresPubSub/pubsub.fanout[messages=1000,subscribers=1] p99",
+            "value": 0.612,
+            "range": "± 0.079",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.388ms max=1.712ms"
+          },
+          {
+            "name": "pubsub/PostgresPubSub/pubsub.fanout[messages=200,subscribers=5] p99",
+            "value": 1.208,
+            "range": "± 0.156",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.472ms max=2.335ms"
+          },
+          {
+            "name": "pubsub/PostgresPubSub/pubsub.payload[payloadBytes=100,subscribers=1] p99",
+            "value": 0.507,
+            "range": "± 0.037",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=0.399ms max=0.548ms"
+          },
+          {
+            "name": "queue/PostgresQueue/queue.send[concurrency=1,payloadBytes=100] p99",
+            "value": 0.784,
+            "range": "± 0.206",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.397ms max=4.239ms"
+          },
+          {
+            "name": "queue/PostgresQueue/queue.send[concurrency=10,payloadBytes=100] p99",
+            "value": 5.341,
+            "range": "± 1.131",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=1.677ms max=11.764ms"
+          },
+          {
+            "name": "queue/PostgresQueue/queue.drain.raw[concurrency=1,messages=1000] p99",
+            "value": 439.353,
+            "range": "± 73.449",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=312.214ms max=442.761ms"
+          },
+          {
+            "name": "queue/PostgresQueue/queue.drain.raw[concurrency=10,messages=1000] p99",
+            "value": 184.025,
+            "range": "± 13.173",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=156.631ms max=189.792ms"
+          },
+          {
+            "name": "queue/PostgresQueue/queue.consume[maxConsumers=1,messages=1000,workMs=2,workerParallelism=true] p99",
+            "value": 425.46,
+            "range": "± 71.977",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=306.446ms max=427.295ms"
+          },
+          {
+            "name": "queue/PostgresQueue/queue.consume[maxConsumers=1,messages=1000,workMs=2,workerParallelism=false] p99",
+            "value": 2613.051,
+            "range": "± 703.553",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=1412.432ms max=2636.12ms"
+          },
+          {
+            "name": "queue/PostgresQueue/queue.consume[maxConsumers=10,messages=1000,workMs=2,workerParallelism=true] p99",
+            "value": 407.896,
+            "range": "± 59.339",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=305.66ms max=409.469ms"
+          },
+          {
+            "name": "queue/PostgresQueue/queue.consume[maxConsumers=10,messages=1000,workMs=2,workerParallelism=false] p99",
+            "value": 2598.371,
+            "range": "± 703.371",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=1405.092ms max=2621.44ms"
+          },
+          {
+            "name": "queue/PostgresQueue/queue.e2e.latency[maxConsumers=10,ratePerSec=100] p99",
+            "value": 2.966,
+            "range": "± 0.401",
+            "unit": "ms",
+            "extra": "ops=300 errors=0 p50=1.148ms max=4.514ms"
+          },
+          {
+            "name": "store/PostgresStore/store.get[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 0.394,
+            "range": "± 0.1",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.297ms max=3.365ms"
+          },
+          {
+            "name": "store/PostgresStore/store.exists[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 0.357,
+            "range": "± 0.052",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.261ms max=1.597ms"
+          },
+          {
+            "name": "store/PostgresStore/store.update[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 0.941,
+            "range": "± 0.195",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.444ms max=5.009ms"
+          },
+          {
+            "name": "store/PostgresStore/store.patch[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 0.847,
+            "range": "± 0.13",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.463ms max=2.429ms"
+          },
+          {
+            "name": "store/PostgresStore/store.setAttribute[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 0.822,
+            "range": "± 0.121",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.44ms max=2.497ms"
+          },
+          {
+            "name": "store/PostgresStore/store.incrementAttribute[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 1.037,
+            "range": "± 0.131",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.414ms max=2.122ms"
+          },
+          {
+            "name": "store/PostgresStore/store.upsert[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 2.025,
+            "range": "± 0.323",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.894ms max=6.722ms"
+          },
+          {
+            "name": "store/PostgresStore/store.query.eq[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 2.018,
+            "range": "± 0.217",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=1.225ms max=2.472ms"
+          },
+          {
+            "name": "store/PostgresStore/store.query.range[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 1.807,
+            "range": "± 0.127",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=1.447ms max=1.857ms"
+          },
+          {
+            "name": "store/PostgresStore/store.query.in[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 1.362,
+            "range": "± 0.075",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=1.083ms max=1.392ms"
+          },
+          {
+            "name": "store/PostgresStore/store.query.orderBy[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 1.916,
+            "range": "± 0.163",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=1.234ms max=2.103ms"
+          },
+          {
+            "name": "store/PostgresStore/store.create[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 0.704,
+            "range": "± 0.158",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.382ms max=2.785ms"
+          },
+          {
+            "name": "store/PostgresStore/store.delete[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 0.684,
+            "range": "± 0.163",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.34ms max=2.937ms"
+          },
+          {
+            "name": "store/PostgresStore/store.get[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 1.887,
+            "range": "± 0.392",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.887ms max=2.462ms"
+          },
+          {
+            "name": "store/PostgresStore/store.exists[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 1.841,
+            "range": "± 0.345",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.842ms max=2.267ms"
+          },
+          {
+            "name": "store/PostgresStore/store.update[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 2.966,
+            "range": "± 0.43",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=1.4ms max=3.434ms"
+          },
+          {
+            "name": "store/PostgresStore/store.patch[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 3.232,
+            "range": "± 0.58",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=1.276ms max=6.427ms"
+          },
+          {
+            "name": "store/PostgresStore/store.setAttribute[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 3.645,
+            "range": "± 0.51",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=1.294ms max=5.165ms"
+          },
+          {
+            "name": "store/PostgresStore/store.incrementAttribute[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 3.047,
+            "range": "± 0.492",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=1.207ms max=5.972ms"
+          },
+          {
+            "name": "store/PostgresStore/store.upsert[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 5.73,
+            "range": "± 1.035",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=2.83ms max=8.004ms"
+          },
+          {
+            "name": "store/PostgresStore/store.query.eq[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 15.139,
+            "range": "± 2.286",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=6.857ms max=15.475ms"
+          },
+          {
+            "name": "store/PostgresStore/store.query.range[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 17.695,
+            "range": "± 2.848",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=8.102ms max=18.334ms"
+          },
+          {
+            "name": "store/PostgresStore/store.query.in[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 14.352,
+            "range": "± 2.388",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=6.939ms max=14.475ms"
+          },
+          {
+            "name": "store/PostgresStore/store.query.orderBy[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 12.599,
+            "range": "± 2.093",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=5.108ms max=14.246ms"
+          },
+          {
+            "name": "store/PostgresStore/store.create[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 2.468,
+            "range": "± 0.412",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=1.273ms max=3.031ms"
+          },
+          {
+            "name": "store/PostgresStore/store.delete[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 2.071,
+            "range": "± 0.291",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.964ms max=2.951ms"
+          },
+          {
+            "name": "store/PostgresStore/store.contention.increment[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 9.593,
+            "range": "± 2.103",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=1.63ms max=12.796ms"
+          },
+          {
+            "name": "store/PostgresStore/store.query.paginate[dataset=1000,docSize=small,pageSize=100] p99",
+            "value": 33.505,
+            "range": "± 1.834",
+            "unit": "ms",
+            "extra": "ops=3 errors=0 p50=31.113ms max=33.505ms"
+          },
+          {
+            "name": "store/PostgresStore/store.iterate[dataset=1000,docSize=small,pageSize=100] p99",
+            "value": 32.522,
+            "range": "± 0.664",
+            "unit": "ms",
+            "extra": "ops=3 errors=0 p50=31.49ms max=32.522ms"
+          },
+          {
+            "name": "pubsub/SQLitePubSub/pubsub.publish[concurrency=1,subscribers=0] p99",
+            "value": 0.061,
+            "range": "± 0.188",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.023ms max=4.055ms"
+          },
+          {
+            "name": "pubsub/SQLitePubSub/pubsub.publish[concurrency=10,subscribers=0] p99",
+            "value": 3.254,
+            "range": "± 0.638",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.229ms max=5.226ms"
+          },
+          {
+            "name": "pubsub/SQLitePubSub/pubsub.e2e.latency[ratePerSec=100,subscribers=1] p99",
+            "value": 0.387,
+            "range": "± 0.162",
+            "unit": "ms",
+            "extra": "ops=300 errors=0 p50=0.154ms max=2.851ms"
+          },
+          {
+            "name": "pubsub/SQLitePubSub/pubsub.e2e.throughput[messages=1000,publishConcurrency=10,subscribers=1] p99",
+            "value": 2.976,
+            "range": "± 0.373",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.218ms max=3.543ms"
+          },
+          {
+            "name": "pubsub/SQLitePubSub/pubsub.fanout[messages=1000,subscribers=1] p99",
+            "value": 0.136,
+            "range": "± 0.175",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.067ms max=3.197ms"
+          },
+          {
+            "name": "pubsub/SQLitePubSub/pubsub.fanout[messages=200,subscribers=5] p99",
+            "value": 0.236,
+            "range": "± 0.045",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.131ms max=0.425ms"
+          },
+          {
+            "name": "pubsub/SQLitePubSub/pubsub.payload[payloadBytes=100,subscribers=1] p99",
+            "value": 0.349,
+            "range": "± 0.265",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=0.085ms max=2.744ms"
+          },
+          {
+            "name": "pubsub/SQLitePubSub/pubsub.payload[payloadBytes=10240,subscribers=1] p99",
+            "value": 0.251,
+            "range": "± 0.025",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=0.124ms max=0.252ms"
+          },
+          {
+            "name": "queue/SQLiteQueue/queue.send[concurrency=1,payloadBytes=100] p99",
+            "value": 0.054,
+            "range": "± 0.182",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.024ms max=3.584ms"
+          },
+          {
+            "name": "queue/SQLiteQueue/queue.send[concurrency=10,payloadBytes=100] p99",
+            "value": 3.455,
+            "range": "± 0.555",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.234ms max=3.82ms"
+          },
+          {
+            "name": "queue/SQLiteQueue/queue.drain.raw[concurrency=1,messages=1000] p99",
+            "value": 43.418,
+            "range": "± 1.841",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=41.091ms max=43.483ms"
+          },
+          {
+            "name": "queue/SQLiteQueue/queue.drain.raw[concurrency=10,messages=1000] p99",
+            "value": 38.797,
+            "range": "± 1.846",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=35.717ms max=40.796ms"
+          },
+          {
+            "name": "queue/SQLiteQueue/queue.consume[maxConsumers=1,messages=1000,workMs=2,workerParallelism=true] p99",
+            "value": 260.964,
+            "range": "± 65.969",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=148.505ms max=263.193ms"
+          },
+          {
+            "name": "queue/SQLiteQueue/queue.consume[maxConsumers=1,messages=1000,workMs=2,workerParallelism=false] p99",
+            "value": 2121.269,
+            "range": "± 609.728",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=1093.665ms max=2145.386ms"
+          },
+          {
+            "name": "queue/SQLiteQueue/queue.consume[maxConsumers=10,messages=1000,workMs=2,workerParallelism=true] p99",
+            "value": 248.381,
+            "range": "± 62.535",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=144.179ms max=250.479ms"
+          },
+          {
+            "name": "queue/SQLiteQueue/queue.consume[maxConsumers=10,messages=1000,workMs=2,workerParallelism=false] p99",
+            "value": 2124.415,
+            "range": "± 609.666",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=1090.519ms max=2142.241ms"
+          },
+          {
+            "name": "queue/SQLiteQueue/queue.e2e.latency[maxConsumers=10,ratePerSec=100] p99",
+            "value": 0.457,
+            "range": "± 0.271",
+            "unit": "ms",
+            "extra": "ops=300 errors=0 p50=0.209ms max=3.637ms"
+          },
+          {
+            "name": "store/SQLiteStore/store.get[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 0.072,
+            "range": "± 0.013",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.022ms max=0.202ms"
+          },
+          {
+            "name": "store/SQLiteStore/store.exists[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 0.049,
+            "range": "± 0.006",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.013ms max=0.104ms"
+          },
+          {
+            "name": "store/SQLiteStore/store.update[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 0.113,
+            "range": "± 0.132",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.05ms max=3.205ms"
+          },
+          {
+            "name": "store/SQLiteStore/store.patch[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 0.075,
+            "range": "± 0.092",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.031ms max=2.918ms"
+          },
+          {
+            "name": "store/SQLiteStore/store.setAttribute[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 0.053,
+            "range": "± 0.098",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.029ms max=3.117ms"
+          },
+          {
+            "name": "store/SQLiteStore/store.incrementAttribute[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 0.062,
+            "range": "± 0.104",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.024ms max=3.281ms"
+          },
+          {
+            "name": "store/SQLiteStore/store.upsert[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 0.155,
+            "range": "± 0.208",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.08ms max=5.591ms"
+          },
+          {
+            "name": "store/SQLiteStore/store.query.eq[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 1.588,
+            "range": "± 0.193",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=0.882ms max=1.752ms"
+          },
+          {
+            "name": "store/SQLiteStore/store.query.range[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 1.909,
+            "range": "± 0.15",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=1.241ms max=1.995ms"
+          },
+          {
+            "name": "store/SQLiteStore/store.query.in[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 1.353,
+            "range": "± 0.089",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=0.778ms max=1.369ms"
+          },
+          {
+            "name": "store/SQLiteStore/store.query.orderBy[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 2.615,
+            "range": "± 0.208",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=1.664ms max=3.054ms"
+          },
+          {
+            "name": "store/SQLiteStore/store.create[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 0.114,
+            "range": "± 0.16",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.037ms max=3.893ms"
+          },
+          {
+            "name": "store/SQLiteStore/store.delete[concurrency=1,dataset=1000,docSize=small] p99",
+            "value": 0.071,
+            "range": "± 0.187",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.017ms max=4.041ms"
+          },
+          {
+            "name": "store/SQLiteStore/store.get[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 0.263,
+            "range": "± 0.025",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.135ms max=0.376ms"
+          },
+          {
+            "name": "store/SQLiteStore/store.exists[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 0.219,
+            "range": "± 0.029",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.085ms max=0.269ms"
+          },
+          {
+            "name": "store/SQLiteStore/store.update[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 0.977,
+            "range": "± 0.367",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.35ms max=4.035ms"
+          },
+          {
+            "name": "store/SQLiteStore/store.patch[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 0.709,
+            "range": "± 0.336",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.301ms max=3.676ms"
+          },
+          {
+            "name": "store/SQLiteStore/store.setAttribute[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 0.573,
+            "range": "± 0.083",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.285ms max=0.616ms"
+          },
+          {
+            "name": "store/SQLiteStore/store.incrementAttribute[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 3.611,
+            "range": "± 0.473",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.215ms max=3.688ms"
+          },
+          {
+            "name": "store/SQLiteStore/store.upsert[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 1.339,
+            "range": "± 0.398",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.751ms max=4.51ms"
+          },
+          {
+            "name": "store/SQLiteStore/store.query.eq[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 8.774,
+            "range": "± 0.948",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=8.057ms max=9.634ms"
+          },
+          {
+            "name": "store/SQLiteStore/store.query.range[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 12.403,
+            "range": "± 1.129",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=10.6ms max=13.517ms"
+          },
+          {
+            "name": "store/SQLiteStore/store.query.in[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 8.18,
+            "range": "± 0.87",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=7.27ms max=8.921ms"
+          },
+          {
+            "name": "store/SQLiteStore/store.query.orderBy[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 21.66,
+            "range": "± 2.406",
+            "unit": "ms",
+            "extra": "ops=100 errors=0 p50=19.956ms max=23.658ms"
+          },
+          {
+            "name": "store/SQLiteStore/store.create[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 3.793,
+            "range": "± 0.581",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.38ms max=4.065ms"
+          },
+          {
+            "name": "store/SQLiteStore/store.delete[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 3.604,
+            "range": "± 0.478",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.191ms max=3.629ms"
+          },
+          {
+            "name": "store/SQLiteStore/store.contention.increment[concurrency=10,dataset=1000,docSize=small] p99",
+            "value": 0.55,
+            "range": "± 0.332",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.207ms max=3.602ms"
+          },
+          {
+            "name": "store/SQLiteStore/store.query.paginate[dataset=1000,docSize=small,pageSize=100] p99",
+            "value": 32.522,
+            "range": "± 2.481",
+            "unit": "ms",
+            "extra": "ops=3 errors=0 p50=27.853ms max=32.522ms"
+          },
+          {
+            "name": "store/SQLiteStore/store.iterate[dataset=1000,docSize=small,pageSize=100] p99",
+            "value": 29.999,
+            "range": "± 0.687",
+            "unit": "ms",
+            "extra": "ops=3 errors=0 p50=28.639ms max=29.999ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.http.rest.getPost[concurrency=1,posts=1000] p99",
+            "value": 1.365,
+            "range": "± 0.131",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=0.913ms max=1.528ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.http.grpc.getPost[concurrency=1,posts=1000] p99",
+            "value": 1.45,
+            "range": "± 0.283",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=1.061ms max=4.768ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.http.graphql.getPost[concurrency=1,posts=1000] p99",
+            "value": 2.103,
+            "range": "± 0.432",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=1.338ms max=7.062ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.http.rest.feed[concurrency=1,posts=1000] p99",
+            "value": 17.875,
+            "range": "± 0.625",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=15.499ms max=18.661ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.http.grpc.feed[concurrency=1,posts=1000] p99",
+            "value": 33.178,
+            "range": "± 3.684",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=15.491ms max=38.044ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.http.graphql.feed[concurrency=1,posts=1000] p99",
+            "value": 29.868,
+            "range": "± 2.276",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=15.835ms max=35.684ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.http.rest.getPost[concurrency=10,posts=1000] p99",
+            "value": 10.322,
+            "range": "± 1.152",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=6.275ms max=16.196ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.http.grpc.getPost[concurrency=10,posts=1000] p99",
+            "value": 16.335,
+            "range": "± 2.635",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=5.485ms max=16.392ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.http.graphql.getPost[concurrency=10,posts=1000] p99",
+            "value": 13.967,
+            "range": "± 0.998",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=10.199ms max=13.967ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.http.rest.feed[concurrency=10,posts=1000] p99",
+            "value": 157.942,
+            "range": "± 2.934",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=149.291ms max=157.942ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.http.grpc.feed[concurrency=10,posts=1000] p99",
+            "value": 232.129,
+            "range": "± 30.551",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=138.805ms max=265.814ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.http.graphql.feed[concurrency=10,posts=1000] p99",
+            "value": 188.219,
+            "range": "± 19.372",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=153.879ms max=305.66ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.coldboot.total[boots=5] p99",
+            "value": 1115.685,
+            "range": "± 9.992",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=1107.296ms max=1115.685ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.coldboot.nodeStart[boots=5] p99",
+            "value": 26.329,
+            "range": "± 0.87",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=24.33ms max=26.329ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.coldboot.import[boots=5] p99",
+            "value": 383.779,
+            "range": "± 3.913",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=376.701ms max=383.779ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.coldboot.load[boots=5] p99",
+            "value": 463.208,
+            "range": "± 3.691",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=456.917ms max=463.208ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.coldboot.init[boots=5] p99",
+            "value": 213.91,
+            "range": "± 10.977",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=199.098ms max=213.91ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.coldboot.resolve[boots=5] p99",
+            "value": 55.378,
+            "range": "± 0.87",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=53.477ms max=55.378ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.coldboot.servicesInit[boots=5] p99",
+            "value": 159.908,
+            "range": "± 11.225",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=145.883ms max=159.908ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.coldboot.firstRequest[boots=5] p99",
+            "value": 44.171,
+            "range": "± 0.543",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=43.352ms max=44.171ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.coldboot.warmRequest[boots=5] p99",
+            "value": 4.123,
+            "range": "± 0.209",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=3.703ms max=4.123ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.coldboot.total[boots=5,compileCache=true] p99",
+            "value": 988.807,
+            "range": "± 21.432",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=936.378ms max=988.807ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.coldboot.nodeStart[boots=5,compileCache=true] p99",
+            "value": 26.034,
+            "range": "± 0.68",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=24.674ms max=26.034ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.coldboot.import[boots=5,compileCache=true] p99",
+            "value": 307.233,
+            "range": "± 4.742",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=304.087ms max=307.233ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.coldboot.load[boots=5,compileCache=true] p99",
+            "value": 381.682,
+            "range": "± 3.808",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=374.079ms max=381.682ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.coldboot.init[boots=5,compileCache=true] p99",
+            "value": 242.483,
+            "range": "± 21.126",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=204.341ms max=242.483ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.coldboot.resolve[boots=5,compileCache=true] p99",
+            "value": 64.291,
+            "range": "± 3.852",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=55.181ms max=64.291ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.coldboot.servicesInit[boots=5,compileCache=true] p99",
+            "value": 187.433,
+            "range": "± 20.987",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=148.111ms max=187.433ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.coldboot.firstRequest[boots=5,compileCache=true] p99",
+            "value": 42.14,
+            "range": "± 0.793",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=40.239ms max=42.14ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.coldboot.warmRequest[boots=5,compileCache=true] p99",
+            "value": 3.951,
+            "range": "± 0.097",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=3.781ms max=3.951ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.domain.feed[audit=true,concurrency=1,posts=1000,users=100] p99",
+            "value": 17.809,
+            "range": "± 0.698",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=14.59ms max=18.678ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.domain.readPost[audit=true,concurrency=1,posts=1000,users=100] p99",
+            "value": 24.314,
+            "range": "± 1.642",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=19.497ms max=39.944ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.domain.tagPage[audit=true,concurrency=1,posts=1000,users=100] p99",
+            "value": 8.208,
+            "range": "± 0.779",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=3.652ms max=9.716ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.domain.profile[audit=true,concurrency=1,posts=1000,users=100] p99",
+            "value": 10.109,
+            "range": "± 1.414",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=4.444ms max=14.967ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.domain.comment[audit=true,concurrency=1,posts=1000,users=100] p99",
+            "value": 1.095,
+            "range": "± 0.385",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=0.321ms max=5.415ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.domain.draft[audit=true,concurrency=1,posts=1000,users=100] p99",
+            "value": 0.548,
+            "range": "± 0.049",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=0.346ms max=0.595ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.domain.publish[audit=true,concurrency=1,posts=1000,users=100] p99",
+            "value": 0.665,
+            "range": "± 0.435",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=0.282ms max=6.382ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.domain.follow[audit=true,concurrency=1,posts=1000,users=100] p99",
+            "value": 9.396,
+            "range": "± 0.89",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=4.321ms max=12.468ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.domain.feed[audit=true,concurrency=10,posts=1000,users=100] p99",
+            "value": 205.128,
+            "range": "± 8.808",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=167.117ms max=205.128ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.domain.readPost[audit=true,concurrency=10,posts=1000,users=100] p99",
+            "value": 241.959,
+            "range": "± 8.621",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=213.516ms max=241.959ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.domain.tagPage[audit=true,concurrency=10,posts=1000,users=100] p99",
+            "value": 40.403,
+            "range": "± 1.322",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=37.487ms max=40.632ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.domain.profile[audit=true,concurrency=10,posts=1000,users=100] p99",
+            "value": 62.783,
+            "range": "± 6.242",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=41.779ms max=62.783ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.domain.comment[audit=true,concurrency=10,posts=1000,users=100] p99",
+            "value": 2.294,
+            "range": "± 0.138",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=1.849ms max=2.298ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.domain.draft[audit=true,concurrency=10,posts=1000,users=100] p99",
+            "value": 9.306,
+            "range": "± 1.865",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=2.236ms max=9.429ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.domain.publish[audit=true,concurrency=10,posts=1000,users=100] p99",
+            "value": 8.733,
+            "range": "± 1.703",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=2.404ms max=8.929ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.domain.follow[audit=true,concurrency=10,posts=1000,users=100] p99",
+            "value": 43.221,
+            "range": "± 0.597",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=41.288ms max=43.418ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.domain.mix[audit=true,concurrency=1,posts=1000,users=100] p99",
+            "value": 28.721,
+            "range": "± 9.947",
+            "unit": "ms",
+            "extra": "ops=652 errors=0 p50=19.808ms max=38.371ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.domain.mix[audit=true,concurrency=10,posts=1000,users=100] p99",
+            "value": 330.826,
+            "range": "± 113.765",
+            "unit": "ms",
+            "extra": "ops=578 errors=0 p50=189.792ms max=343.146ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.login[concurrency=1] p99",
+            "value": 44.073,
+            "range": "± 2.59",
+            "unit": "ms",
+            "extra": "ops=20 errors=0 p50=36.536ms max=44.073ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.login[concurrency=10] p99",
+            "value": 176.292,
+            "range": "± 31.113",
+            "unit": "ms",
+            "extra": "ops=20 errors=0 p50=124.518ms max=176.292ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.domain.mix[audit=false,concurrency=1,posts=1000,users=100] p99",
+            "value": 21.479,
+            "range": "± 7.613",
+            "unit": "ms",
+            "extra": "ops=862 errors=0 p50=14.295ms max=29.327ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.domain.mix[audit=false,concurrency=10,posts=1000,users=100] p99",
+            "value": 281.281,
+            "range": "± 91.293",
+            "unit": "ms",
+            "extra": "ops=729 errors=0 p50=132.579ms max=286.786ms"
+          },
+          {
+            "name": "blog/MemoryStore/blog.boot[audit=true,mode=warm] p99",
+            "value": 159.515,
+            "range": "± 15.992",
+            "unit": "ms",
+            "extra": "ops=6 errors=0 p50=123.011ms max=159.515ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.domain.feed[audit=true,concurrency=1,posts=1000,users=100] p99",
+            "value": 6.984,
+            "range": "± 0.474",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=4.485ms max=7.823ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.domain.readPost[audit=true,concurrency=1,posts=1000,users=100] p99",
+            "value": 7.426,
+            "range": "± 1.126",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=3.185ms max=11.018ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.domain.tagPage[audit=true,concurrency=1,posts=1000,users=100] p99",
+            "value": 4.444,
+            "range": "± 0.704",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=1.917ms max=8.962ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.domain.profile[audit=true,concurrency=1,posts=1000,users=100] p99",
+            "value": 10.101,
+            "range": "± 1.329",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=3.135ms max=10.609ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.domain.comment[audit=true,concurrency=1,posts=1000,users=100] p99",
+            "value": 2.048,
+            "range": "± 0.504",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=0.947ms max=6.062ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.domain.draft[audit=true,concurrency=1,posts=1000,users=100] p99",
+            "value": 1.286,
+            "range": "± 0.549",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=0.983ms max=8.675ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.domain.publish[audit=true,concurrency=1,posts=1000,users=100] p99",
+            "value": 3.359,
+            "range": "± 0.526",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=0.916ms max=5.841ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.domain.follow[audit=true,concurrency=1,posts=1000,users=100] p99",
+            "value": 11.764,
+            "range": "± 1.269",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=3.772ms max=12.55ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.domain.feed[audit=true,concurrency=10,posts=1000,users=100] p99",
+            "value": 61.014,
+            "range": "± 11.139",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=20.857ms max=78.512ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.domain.readPost[audit=true,concurrency=10,posts=1000,users=100] p99",
+            "value": 45.613,
+            "range": "± 7.736",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=17.007ms max=54.46ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.domain.tagPage[audit=true,concurrency=10,posts=1000,users=100] p99",
+            "value": 20.677,
+            "range": "± 3.302",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=9.748ms max=24.265ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.domain.profile[audit=true,concurrency=10,posts=1000,users=100] p99",
+            "value": 39.911,
+            "range": "± 6.1",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=15.557ms max=41.779ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.domain.comment[audit=true,concurrency=10,posts=1000,users=100] p99",
+            "value": 92.733,
+            "range": "± 12.331",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=6.963ms max=100.205ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.domain.draft[audit=true,concurrency=10,posts=1000,users=100] p99",
+            "value": 47.579,
+            "range": "± 9.137",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=7.905ms max=81.789ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.domain.publish[audit=true,concurrency=10,posts=1000,users=100] p99",
+            "value": 15.45,
+            "range": "± 3.44",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=7.283ms max=17.236ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.domain.follow[audit=true,concurrency=10,posts=1000,users=100] p99",
+            "value": 29.344,
+            "range": "± 4.075",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=19.661ms max=31.015ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.domain.mix[audit=true,concurrency=1,posts=1000,users=100] p99",
+            "value": 11.411,
+            "range": "± 2.112",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=4.104ms max=18.448ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.domain.mix[audit=true,concurrency=10,posts=1000,users=100] p99",
+            "value": 55.935,
+            "range": "± 9.778",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=17.94ms max=78.971ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.login[concurrency=1] p99",
+            "value": 47.251,
+            "range": "± 2.619",
+            "unit": "ms",
+            "extra": "ops=20 errors=0 p50=39.354ms max=47.251ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.login[concurrency=10] p99",
+            "value": 199.098,
+            "range": "± 34.652",
+            "unit": "ms",
+            "extra": "ops=20 errors=0 p50=131.858ms max=199.098ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.domain.mix[audit=false,concurrency=1,posts=1000,users=100] p99",
+            "value": 4.633,
+            "range": "± 1.297",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=3.037ms max=7.467ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.domain.mix[audit=false,concurrency=10,posts=1000,users=100] p99",
+            "value": 38.044,
+            "range": "± 7.251",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=14.647ms max=54.362ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.coldboot.total[boots=5] p99",
+            "value": 1222.64,
+            "range": "± 10.905",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=1199.571ms max=1222.64ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.coldboot.nodeStart[boots=5] p99",
+            "value": 25.002,
+            "range": "± 0.32",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=24.527ms max=25.002ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.coldboot.import[boots=5] p99",
+            "value": 387.187,
+            "range": "± 7.797",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=371.982ms max=387.187ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.coldboot.load[boots=5] p99",
+            "value": 548.405,
+            "range": "± 7.789",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=539.492ms max=548.405ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.coldboot.init[boots=5] p99",
+            "value": 224.264,
+            "range": "± 2.56",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=220.07ms max=224.264ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.coldboot.resolve[boots=5] p99",
+            "value": 53.772,
+            "range": "± 0.917",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=52.036ms max=53.772ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.coldboot.servicesInit[boots=5] p99",
+            "value": 170.525,
+            "range": "± 1.898",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=168.034ms max=170.525ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.coldboot.firstRequest[boots=5] p99",
+            "value": 49.086,
+            "range": "± 0.896",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=46.924ms max=49.086ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.coldboot.warmRequest[boots=5] p99",
+            "value": 9.478,
+            "range": "± 0.236",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=9.118ms max=9.478ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.coldboot.total[boots=5,compileCache=true] p99",
+            "value": 1040.712,
+            "range": "± 8.889",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=1020.789ms max=1040.712ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.coldboot.nodeStart[boots=5,compileCache=true] p99",
+            "value": 26.477,
+            "range": "± 0.833",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=24.969ms max=26.477ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.coldboot.import[boots=5,compileCache=true] p99",
+            "value": 309.592,
+            "range": "± 3.642",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=302.252ms max=309.592ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.coldboot.load[boots=5,compileCache=true] p99",
+            "value": 443.286,
+            "range": "± 8.025",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=426.508ms max=443.286ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.coldboot.init[boots=5,compileCache=true] p99",
+            "value": 227.41,
+            "range": "± 2.198",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=222.56ms max=227.41ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.coldboot.resolve[boots=5,compileCache=true] p99",
+            "value": 54.297,
+            "range": "± 0.843",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=52.494ms max=54.297ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.coldboot.servicesInit[boots=5,compileCache=true] p99",
+            "value": 175.374,
+            "range": "± 2.524",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=169.738ms max=175.374ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.coldboot.firstRequest[boots=5,compileCache=true] p99",
+            "value": 46.727,
+            "range": "± 0.885",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=44.597ms max=46.727ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.coldboot.warmRequest[boots=5,compileCache=true] p99",
+            "value": 9.978,
+            "range": "± 0.346",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=9.298ms max=9.978ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.http.rest.getPost[concurrency=1,posts=1000] p99",
+            "value": 1.838,
+            "range": "± 0.217",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=1.341ms max=3.817ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.http.grpc.getPost[concurrency=1,posts=1000] p99",
+            "value": 2.204,
+            "range": "± 0.362",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=1.496ms max=5.935ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.http.graphql.getPost[concurrency=1,posts=1000] p99",
+            "value": 2.605,
+            "range": "± 0.556",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=1.789ms max=7.602ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.http.rest.feed[concurrency=1,posts=1000] p99",
+            "value": 7.639,
+            "range": "± 0.531",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=5.333ms max=9.413ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.http.grpc.feed[concurrency=1,posts=1000] p99",
+            "value": 12.591,
+            "range": "± 1.405",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=5.083ms max=13.631ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.http.graphql.feed[concurrency=1,posts=1000] p99",
+            "value": 10.83,
+            "range": "± 1.24",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=5.243ms max=15.688ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.http.rest.getPost[concurrency=10,posts=1000] p99",
+            "value": 17.957,
+            "range": "± 2.253",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=9.363ms max=21.758ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.http.grpc.getPost[concurrency=10,posts=1000] p99",
+            "value": 12.263,
+            "range": "± 1.216",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=8.536ms max=13.189ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.http.graphql.getPost[concurrency=10,posts=1000] p99",
+            "value": 19.235,
+            "range": "± 1.716",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=13.222ms max=19.677ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.http.rest.feed[concurrency=10,posts=1000] p99",
+            "value": 42.041,
+            "range": "± 3.996",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=27.443ms max=43.483ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.http.grpc.feed[concurrency=10,posts=1000] p99",
+            "value": 39.977,
+            "range": "± 6.164",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=25.936ms max=44.27ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.http.graphql.feed[concurrency=10,posts=1000] p99",
+            "value": 60.883,
+            "range": "± 7.276",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=30.327ms max=66.716ms"
+          },
+          {
+            "name": "blog/MongoStore/blog.boot[audit=true,mode=warm] p99",
+            "value": 117.047,
+            "range": "± 5.639",
+            "unit": "ms",
+            "extra": "ops=6 errors=0 p50=110.363ms max=117.047ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.domain.feed[audit=true,concurrency=1,posts=1000,users=100] p99",
+            "value": 8.79,
+            "range": "± 0.882",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=3.711ms max=11.723ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.domain.readPost[audit=true,concurrency=1,posts=1000,users=100] p99",
+            "value": 7.127,
+            "range": "± 1.013",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=2.513ms max=9.47ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.domain.tagPage[audit=true,concurrency=1,posts=1000,users=100] p99",
+            "value": 3.062,
+            "range": "± 0.636",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=1.426ms max=9.421ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.domain.profile[audit=true,concurrency=1,posts=1000,users=100] p99",
+            "value": 7.143,
+            "range": "± 1.148",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=2.232ms max=11.01ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.domain.comment[audit=true,concurrency=1,posts=1000,users=100] p99",
+            "value": 4.633,
+            "range": "± 0.776",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=0.801ms max=7.852ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.domain.draft[audit=true,concurrency=1,posts=1000,users=100] p99",
+            "value": 3.992,
+            "range": "± 0.569",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=0.828ms max=5.493ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.domain.publish[audit=true,concurrency=1,posts=1000,users=100] p99",
+            "value": 2.014,
+            "range": "± 0.498",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=0.707ms max=5.865ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.domain.follow[audit=true,concurrency=1,posts=1000,users=100] p99",
+            "value": 8.253,
+            "range": "± 0.986",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=2.675ms max=10.912ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.domain.feed[audit=true,concurrency=10,posts=1000,users=100] p99",
+            "value": 49.185,
+            "range": "± 8.88",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=16.499ms max=58.917ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.domain.readPost[audit=true,concurrency=10,posts=1000,users=100] p99",
+            "value": 39.846,
+            "range": "± 6.635",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=13.566ms max=46.399ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.domain.tagPage[audit=true,concurrency=10,posts=1000,users=100] p99",
+            "value": 18.711,
+            "range": "± 3.048",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=8.585ms max=21.512ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.domain.profile[audit=true,concurrency=10,posts=1000,users=100] p99",
+            "value": 37.224,
+            "range": "± 6.443",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=12.329ms max=49.283ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.domain.comment[audit=true,concurrency=10,posts=1000,users=100] p99",
+            "value": 17.678,
+            "range": "± 3",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=6.443ms max=19.923ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.domain.draft[audit=true,concurrency=10,posts=1000,users=100] p99",
+            "value": 17.023,
+            "range": "± 2.904",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=6.455ms max=18.481ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.domain.publish[audit=true,concurrency=10,posts=1000,users=100] p99",
+            "value": 7.782,
+            "range": "± 0.759",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=5.513ms max=8.217ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.domain.follow[audit=true,concurrency=10,posts=1000,users=100] p99",
+            "value": 35.652,
+            "range": "± 4.805",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=13.525ms max=37.552ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.domain.mix[audit=true,concurrency=1,posts=1000,users=100] p99",
+            "value": 10.92,
+            "range": "± 1.93",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=2.941ms max=15.884ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.domain.mix[audit=true,concurrency=10,posts=1000,users=100] p99",
+            "value": 40.37,
+            "range": "± 7.327",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=15.147ms max=51.446ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.login[concurrency=1] p99",
+            "value": 44.663,
+            "range": "± 2.453",
+            "unit": "ms",
+            "extra": "ops=20 errors=0 p50=37.618ms max=44.663ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.login[concurrency=10] p99",
+            "value": 175.505,
+            "range": "± 35.45",
+            "unit": "ms",
+            "extra": "ops=20 errors=0 p50=121.307ms max=175.505ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.domain.mix[audit=false,concurrency=1,posts=1000,users=100] p99",
+            "value": 3.971,
+            "range": "± 1.062",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=2.386ms max=13.165ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.domain.mix[audit=false,concurrency=10,posts=1000,users=100] p99",
+            "value": 26.69,
+            "range": "± 5.222",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=11.231ms max=36.176ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.http.rest.getPost[concurrency=1,posts=1000] p99",
+            "value": 1.739,
+            "range": "± 0.352",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=1.274ms max=5.964ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.http.grpc.getPost[concurrency=1,posts=1000] p99",
+            "value": 1.851,
+            "range": "± 0.551",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=1.372ms max=9.052ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.http.graphql.getPost[concurrency=1,posts=1000] p99",
+            "value": 2.884,
+            "range": "± 0.647",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=1.666ms max=7.995ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.http.rest.feed[concurrency=1,posts=1000] p99",
+            "value": 6.316,
+            "range": "± 0.479",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=4.432ms max=7.459ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.http.grpc.feed[concurrency=1,posts=1000] p99",
+            "value": 12.976,
+            "range": "± 1.502",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=4.243ms max=15.376ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.http.graphql.feed[concurrency=1,posts=1000] p99",
+            "value": 7.504,
+            "range": "± 0.529",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=4.317ms max=8.196ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.http.rest.getPost[concurrency=10,posts=1000] p99",
+            "value": 10.805,
+            "range": "± 1.12",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=7.401ms max=11.567ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.http.grpc.getPost[concurrency=10,posts=1000] p99",
+            "value": 10.068,
+            "range": "± 0.773",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=6.832ms max=10.437ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.http.graphql.getPost[concurrency=10,posts=1000] p99",
+            "value": 16.286,
+            "range": "± 1.38",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=12.009ms max=17.383ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.http.rest.feed[concurrency=10,posts=1000] p99",
+            "value": 34.669,
+            "range": "± 3.227",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=24.199ms max=35.455ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.http.grpc.feed[concurrency=10,posts=1000] p99",
+            "value": 34.308,
+            "range": "± 4.803",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=21.873ms max=35.193ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.http.graphql.feed[concurrency=10,posts=1000] p99",
+            "value": 35.357,
+            "range": "± 3.664",
+            "unit": "ms",
+            "extra": "ops=200 errors=0 p50=25.33ms max=39.682ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.coldboot.total[boots=5] p99",
+            "value": 1188.037,
+            "range": "± 18.96",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=1151.336ms max=1188.037ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.coldboot.nodeStart[boots=5] p99",
+            "value": 25.592,
+            "range": "± 0.821",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=23.986ms max=25.592ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.coldboot.import[boots=5] p99",
+            "value": 393.478,
+            "range": "± 8.046",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=376.177ms max=393.478ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.coldboot.load[boots=5] p99",
+            "value": 508.035,
+            "range": "± 7.686",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=496.501ms max=508.035ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.coldboot.init[boots=5] p99",
+            "value": 215.613,
+            "range": "± 3.667",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=208.142ms max=215.613ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.coldboot.resolve[boots=5] p99",
+            "value": 63.275,
+            "range": "± 5.007",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=51.479ms max=63.275ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.coldboot.servicesInit[boots=5] p99",
+            "value": 158.728,
+            "range": "± 2.347",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=156.631ms max=158.728ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.coldboot.firstRequest[boots=5] p99",
+            "value": 46.268,
+            "range": "± 0.448",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=45.842ms max=46.268ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.coldboot.warmRequest[boots=5] p99",
+            "value": 8.667,
+            "range": "± 0.645",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=7.205ms max=8.667ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.coldboot.total[boots=5,compileCache=true] p99",
+            "value": 1004.012,
+            "range": "± 10.228",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=984.613ms max=1004.012ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.coldboot.nodeStart[boots=5,compileCache=true] p99",
+            "value": 26.968,
+            "range": "± 1.475",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=24.019ms max=26.968ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.coldboot.import[boots=5,compileCache=true] p99",
+            "value": 308.281,
+            "range": "± 2.747",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=305.922ms max=308.281ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.coldboot.load[boots=5,compileCache=true] p99",
+            "value": 409.993,
+            "range": "± 3.619",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=401.867ms max=409.993ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.coldboot.init[boots=5,compileCache=true] p99",
+            "value": 217.317,
+            "range": "± 4.745",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=210.239ms max=217.317ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.coldboot.resolve[boots=5,compileCache=true] p99",
+            "value": 52.298,
+            "range": "± 0.765",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=51.184ms max=52.298ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.coldboot.servicesInit[boots=5,compileCache=true] p99",
+            "value": 165.02,
+            "range": "± 4.275",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=160.039ms max=165.02ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.coldboot.firstRequest[boots=5,compileCache=true] p99",
+            "value": 51.544,
+            "range": "± 3.53",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=42.762ms max=51.544ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.coldboot.warmRequest[boots=5,compileCache=true] p99",
+            "value": 7.791,
+            "range": "± 0.329",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=7.283ms max=7.791ms"
+          },
+          {
+            "name": "blog/PostgresStore/blog.boot[audit=true,mode=warm] p99",
+            "value": 127.009,
+            "range": "± 9.279",
+            "unit": "ms",
+            "extra": "ops=6 errors=0 p50=108.921ms max=127.009ms"
           }
         ]
       }

@@ -362,6 +362,15 @@ export class SchemaConverter {
       // An unresolved type parameter constrains nothing at this point.
       return KEEP;
     }
+    if (flags & TypeFlags.Conditional) {
+      // The checker only defers a conditional that depends on an unresolved
+      // type parameter — a setter declared on a generic base, read off its
+      // declaration (`PrimaryKeyType<T>` on `AbstractOwnerModel<T>`). Like the
+      // type parameter itself, it constrains nothing. Its apparent type is
+      // the checker's constraint of both branches, which leaks `Pick<T, …>`
+      // into the module and has changed between TypeScript 7.1 nightlies.
+      return KEEP;
+    }
 
     const objectFlags = objectFlagsOf(type);
     if (objectFlags & ObjectFlags.Reference) return this.objectLike(type, definition, path, typeName, node, depth);

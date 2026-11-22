@@ -114,3 +114,30 @@ export class Memo {
   /** Sanitized, the default. */
   body: string;
 }
+
+/** Resolves to the key itself for a single key, to a picked object for several. */
+type KeyOf<K, T extends keyof K> = [T] extends [infer U] ? ([U] extends [T] ? K[T] : Pick<K, T>) : never;
+
+/** A keyed entity, as `Storable` declares its primary key. */
+interface Keyed {
+  uuid: string;
+  keys: "uuid";
+}
+
+/** A generic owner, as `AbstractOwnerModel<T>` is. */
+export abstract class GenericOwner<T extends Keyed> {
+  /** The owner, read back as the full entity. */
+  get owner(): T {
+    return undefined as unknown as T;
+  }
+
+  /** Accepted by key: the setter still mentions the class's own `T`. */
+  set owner(value: string | KeyOf<T, T["keys"]>) {
+    void value;
+  }
+}
+
+/** Instantiates the owner, as `OwnerModel` does with `User`. */
+export class OwnedThing extends GenericOwner<Keyed> {
+  name: string;
+}

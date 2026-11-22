@@ -5,18 +5,18 @@ sidebar_label: "03 — Post Model"
 
 # 03 — Post Model
 
-**Goal:** Add the `Post` model with a slug primary key, a `BelongTo<User>` author set by the server, author-only permissions and a model operation.
+**Goal:** Add the `Post` model with a slug primary key, a `ManyToOne<User>` author set by the server, author-only permissions and a model operation.
 
 **Files touched:** `src/models/Post.model.ts`, `src/models/User.model.ts`.
 
-**Concepts:** `WEBDA_PRIMARY_KEY` (custom primary key), `BelongTo` and its `OneToMany` reverse side, `getProtectedAttributes`, `prepareCreate`, `getPermissionQuery`, `@Operation` on an instance method.
+**Concepts:** `WEBDA_PRIMARY_KEY` (custom primary key), `ManyToOne` and its `OneToMany` reverse side, `getProtectedAttributes`, `prepareCreate`, `getPermissionQuery`, `@Operation` on an instance method.
 
 ## Walkthrough
 
 ### 1. Create `src/models/Post.model.ts`
 
 ```typescript title="src/models/Post.model.ts"
-import { BelongTo, Model, WEBDA_PRIMARY_KEY } from "@webda/models";
+import { ManyToOne, Model, WEBDA_PRIMARY_KEY } from "@webda/models";
 import type { User } from "./User.model.js";
 import { Operation } from "@webda/core";
 import type { IOperationContext } from "@webda/core";
@@ -92,7 +92,7 @@ export class Post extends Model {
   publishedAt?: Date;
 
   // Relations
-  author!: BelongTo<User>;
+  author!: ManyToOne<User>;
 
   /**
    * The author is server-managed: never taken from client input (create, update, patch, GraphQL)
@@ -175,7 +175,7 @@ Related models are imported with `import type`: the compiler reads the types, an
 
 **`[WEBDA_PRIMARY_KEY] = ["slug"] as const`** — `Post` extends `Model` (not `UuidModel`) and declares its own key. Routes use it (`GET /posts/hello-world`), `Post.ref("hello-world").get()` loads by it, and `getPrimaryKey()` is typed from it.
 
-**`BelongTo<User>` / `OneToMany<Post, User, "author">`** — the post stores the key of its author in `author` (the user's uuid). The third type argument of `OneToMany` names the attribute of `Post` that points back to the user, so `user.posts.query("status = 'published'")` returns that user's posts.
+**`ManyToOne<User>` / `OneToMany<Post, User, "author">`** — the post stores the key of its author in `author` (the user's uuid). A `ManyToOne` is a plain reference: posts stay top-level resources (`/posts/{slug}`), and deleting a user does nothing to its posts. A `BelongTo` would make the user their parent, deleted with it (see [Delete policies](../../Modules/models/Relationships.md#delete-policies)). The third type argument of `OneToMany` names the attribute of `Post` that points back to the user, so `user.posts.query("status = 'published'")` returns that user's posts.
 
 **The author is the caller.** `getProtectedAttributes()` strips `author` from every client input, and `prepareCreate(context)` sets it from the session before the `create` permission check. A client cannot create a post in someone else's name.
 

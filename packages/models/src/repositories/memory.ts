@@ -285,6 +285,9 @@ export class MemoryRepository<
         });
       }
     }
+    if (raw !== undefined) {
+      return deserializeRaw(raw);
+    }
     return deserialize(item);
   }
 
@@ -469,7 +472,158 @@ export class MemoryRepository<
       }
     }
 
+    if (
+      this.get === MemoryRepository.prototype.get &&
+      this.listKeysOfModel === MemoryRepository.prototype.listKeysOfModel
+    ) {
+      return this.findInStorage(parsed, ids);
+    }
     return MemoryRepository.simulateFind(parsed, this.listKeysOfModel(ids), this);
+  }
+
+  /**
+   * Deserialize an already-parsed JSON object into a model instance with its `__type` stamp
+   * @param raw - parsed JSON object
+   * @param item - original serialized string (fallback for non-plain rows)
+   * @returns the deserialized model instance
+   */
+  protected deserializeParsed(raw: any, item: string): InstanceType<T> {
+    let typeFromEnvelope: string | undefined;
+    if (raw && typeof raw === "object" && typeof raw.__type === "string") {
+      typeFromEnvelope = raw.__type;
+    }
+    const instance = (
+      this.isPlainRow(raw) ? this.hydratePlainRow(raw) : this.deserializeEnvelope(item, raw, typeFromEnvelope)
+    ) as InstanceType<T>;
+    const stamped = this.currentTypeOf(instance, typeFromEnvelope);
+    if (stamped) {
+      Object.defineProperty(instance, "__type", {
+        value: stamped,
+        enumerable: false,
+        configurable: true,
+        writable: true
+      });
+    }
+    return instance;
+  }
+
+  /**
+   * Synchronous single-pass scan over `this.storage`, avoiding per-item `await` and duplicate reads/parses
+   * @param query - the parsed query
+   * @param ids - class identifiers (model and subclasses), undefined to keep everything
+   * @returns the query results with optional continuation token
+   */
+  protected findInStorage(query: Query, ids?: string[]): { results: InstanceType<T>[]; continuationToken?: string } {
+    const result: FindResult<InstanceType<T>> = {
+      results: [],
+      continuationToken: undefined,
+      filter: true
+    };
+    const hasOrderBy = Boolean(query.orderBy && query.orderBy.length);
+    const offset = hasOrderBy ? 0 : parseInt(query.continuationToken || "0");
+    const originalOffset = parseInt(query.continuationToken || "0");
+    const limit = hasOrderBy ? Number.MAX_SAFE_INTEGER : query.limit;
+    let count = 0;
+
+    const useTypeIndex = !ids || typeof (this.storage as any).keysOfTypes === "function";
+    const keys: Iterable<string> = !ids
+      ? this.storage.keys()
+      : useTypeIndex
+        ? (this.storage as unknown as TypeIndexedMap).keysOfTypes(type => this.belongsToModel(type))
+        : this.storage.keys();
+
+    for (const key of keys) {
+      let obj: InstanceType<T>;
+      if (useTypeIndex) {
+        count++;
+        if (offset >= count) {
+          continue;
+        }
+        const storageKey = this.getPrimaryKey(key as any).toString();
+        const raw = this.storage.get(storageKey);
+        if (raw === undefined) {
+          throw new Error(`Not found: ${storageKey}`);
+        }
+        obj = this.deserialize(raw);
+      } else {
+        const raw = this.storage.get(key);
+        let parsedRaw: any;
+        let isValidJson = false;
+        if (typeof raw === "string") {
+          try {
+            parsedRaw = JSON.parse(raw);
+            isValidJson = true;
+          } catch {
+            // Unreadable: kept so the error surfaces
+          }
+        }
+        if (isValidJson) {
+          const type = parsedRaw?.__type;
+          if (!this.belongsToModel(typeof type === "string" ? type : undefined)) {
+            continue;
+          }
+        }
+        count++;
+        if (offset >= count) {
+          continue;
+        }
+        const storageKey = this.getPrimaryKey(key as any).toString();
+        const itemRaw = storageKey === key ? raw : this.storage.get(storageKey);
+        if (itemRaw === undefined) {
+          throw new Error(`Not found: ${storageKey}`);
+        }
+        obj =
+          storageKey === key && isValidJson ? this.deserializeParsed(parsedRaw, itemRaw) : this.deserialize(itemRaw);
+      }
+
+      if (obj && query.filter.eval(obj)) {
+        result.results.push(obj);
+        if (result.results.length >= limit) {
+          result.continuationToken = count.toString();
+          return result;
+        }
+      }
+    }
+
+    if (hasOrderBy) {
+      MemoryRepository.sortAndSliceResults(result, query, originalOffset);
+    }
+    return result;
+  }
+
+  /**
+   * Sort results by `query.orderBy` and apply offset/limit slicing
+   * @param result - find result to mutate
+   * @param query - parsed query with orderBy
+   * @param originalOffset - original continuation offset
+   */
+  private static sortAndSliceResults<T extends ModelClass>(
+    result: FindResult<InstanceType<T>>,
+    query: Query,
+    originalOffset: number
+  ): void {
+    const orderBys = query.orderBy!.map(o => ({
+      path: o.field.split("."),
+      invert: o.direction === "ASC" ? 1 : -1
+    }));
+    result.results.sort((a, b) => {
+      for (const orderBy of orderBys) {
+        const valA = WebdaQL.ComparisonExpression.getAttributeValue(a, orderBy.path);
+        const valB = WebdaQL.ComparisonExpression.getAttributeValue(b, orderBy.path);
+        if (valA === valB) {
+          continue;
+        }
+        if (typeof valA === "string") {
+          return valA.localeCompare(valB) * orderBy.invert;
+        }
+        return (valA < valB ? -1 : 1) * orderBy.invert;
+      }
+      return -1;
+    });
+    result.results = result.results.slice(originalOffset, query.limit + originalOffset);
+    if (result.results.length >= query.limit) {
+      result.continuationToken = (query.limit + originalOffset).toString();
+    }
   }
 
   /**
@@ -554,27 +708,7 @@ export class MemoryRepository<
 
     // Order by
     if (query.orderBy && query.orderBy.length) {
-      // Sorting the results
-      result.results.sort((a, b) => {
-        let valA, valB;
-        for (const orderBy of query.orderBy!) {
-          const invert = orderBy.direction === "ASC" ? 1 : -1;
-          valA = WebdaQL.ComparisonExpression.getAttributeValue(a, orderBy.field.split("."));
-          valB = WebdaQL.ComparisonExpression.getAttributeValue(b, orderBy.field.split("."));
-          if (valA === valB) {
-            continue;
-          }
-          if (typeof valA === "string") {
-            return valA.localeCompare(valB) * invert;
-          }
-          return (valA < valB ? -1 : 1) * invert;
-        }
-        return -1;
-      });
-      result.results = result.results.slice(originalOffset, query.limit + originalOffset);
-      if (result.results.length >= query.limit) {
-        result.continuationToken = (query.limit + originalOffset).toString();
-      }
+      MemoryRepository.sortAndSliceResults(result, query, originalOffset);
     }
 
     return result;

@@ -155,40 +155,47 @@ export class FileQueue<T = any, K extends FileQueueParameters = FileQueueParamet
    * @returns the message, or an empty array when every message is locked
    */
   protected pickMessage<L>(proto?: { new (): L }): MessageReceipt<L>[] {
-    const files = fs
-      .readdirSync(this.parameters.folder)
-      .filter(f => f.endsWith(".json"))
-      .map(f => {
-        const lockFile = join(this.parameters.folder, f + ".lock");
-        const res = {
-          ...fs.lstatSync(join(this.parameters.folder, f)),
-          path: join(this.parameters.folder, f),
-          hasLock: fs.existsSync(lockFile),
-          uid: f.substring(0, f.length - 5)
-        };
-        if (res.hasLock) {
-          const lock = fs.lstatSync(lockFile);
-          if (lock.birthtimeMs < Date.now() - this.parameters.expire) {
-            res.hasLock = false;
-            fs.unlinkSync(lockFile);
-          }
+    const folder = this.parameters.folder;
+    const entries = fs.readdirSync(folder);
+    const locks = new Set<string>();
+    for (const entry of entries) {
+      if (entry.endsWith(".lock")) {
+        locks.add(entry);
+      }
+    }
+    const expireBefore = Date.now() - this.parameters.expire;
+    let oldestPath: string | undefined;
+    let oldestUid: string | undefined;
+    let oldestBirthtime = Infinity;
+
+    for (const f of entries) {
+      if (!f.endsWith(".json")) {
+        continue;
+      }
+      const lockName = f + ".lock";
+      if (locks.has(lockName)) {
+        const lockFile = join(folder, lockName);
+        if (fs.lstatSync(lockFile).birthtimeMs < expireBefore) {
+          fs.unlinkSync(lockFile);
+        } else {
+          continue;
         }
-        return res;
-      })
-      .filter(f => !f.hasLock)
-      .sort((a, b) => {
-        if (a.birthtimeMs > b.birthtimeMs) {
-          return 1;
-        }
-        return -1;
-      });
-    const el = files.shift();
-    if (el) {
-      fs.writeFileSync(el.path + ".lock", "");
+      }
+      const filePath = join(folder, f);
+      const birthtimeMs = fs.lstatSync(filePath).birthtimeMs;
+      if (birthtimeMs < oldestBirthtime) {
+        oldestBirthtime = birthtimeMs;
+        oldestPath = filePath;
+        oldestUid = f.substring(0, f.length - 5);
+      }
+    }
+
+    if (oldestPath && oldestUid) {
+      fs.writeFileSync(oldestPath + ".lock", "");
       return [
         {
-          ReceiptHandle: el.uid,
-          Message: this.unserialize(fs.readFileSync(el.path).toString(), proto)
+          ReceiptHandle: oldestUid,
+          Message: this.unserialize(fs.readFileSync(oldestPath).toString(), proto)
         }
       ];
     }

@@ -23,6 +23,7 @@ import type { ModelMetadata } from "@webda/compiler";
 import { randomUUID } from "node:crypto";
 import { classifyStoredType, UNREADABLE, UNTYPED } from "../application/model-types.js";
 import { checkRelations, logDiagnostic } from "../application/relations-check.js";
+import { findKeyCollisions, type KeyCollision, type KeyspaceEntry } from "./keyspace-check.js";
 import { useRegistry } from "../models/registry.model.js";
 import {
   DEFAULT_MIGRATION_BATCH,
@@ -552,6 +553,7 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
     const models = Object.values(useApplication().getModels());
     const registry = useCore().getService<Store>("Registry");
     const modelStores = new Map<string, Store>();
+    const storeModels = new Map<Store, ModelClass[]>();
     // Check each available models
     for (const model of models) {
       // Model can be null?
@@ -566,6 +568,8 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
         currentStore = registry;
       }
       modelStores.set(useModelId(model), currentStore);
+      if (!storeModels.has(currentStore)) storeModels.set(currentStore, []);
+      storeModels.get(currentStore)!.push(model);
       // Register the repository
       const repository = currentStore.getRepository(model);
       (repository as any)._store = currentStore;
@@ -595,7 +599,22 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
     for (const d of diagnostics) {
       logDiagnostic(d);
     }
+
+    // Unrelated models whose natural keys share a keyspace overwrite each other
+    for (const [store, storedModels] of storeModels) {
+      for (const collision of store.checkKeys(storedModels)) {
+        const message = `Store ${store.getName()}: ${collision.models.join(", ")} share the keyspace "${collision.keyspace}" with natural primary keys: equal keys overwrite each other (create fails with "Already exists", get returns the other model). Route them to separate stores.`;
+        if (Store.loggedKeyCollisions.has(message)) continue;
+        Store.loggedKeyCollisions.add(message);
+        useLog("WARN", message);
+      }
+    }
   }
+
+  /**
+   * Key collision warnings already logged: `computeStores` runs on each store init
+   */
+  private static loggedKeyCollisions = new Set<string>();
 
   /**
    * Retrieve the Models and build the models hierarchy map.
@@ -1240,11 +1259,44 @@ abstract class Store<K extends StoreParameters = StoreParameters, E extends Stor
   }
 
   /**
-   * Check that keys are valid
-   * All keys of model stored in a Store must have the same type of primary key
+   * Name of the keyspace a model's objects are stored in
+   *
+   * Objects are keyed by their serialized primary key alone, so two models in the same keyspace share their keys.
+   * By default every model of the store shares one keyspace (one map, folder, collection or table); stores that
+   * give each model its own table or collection return its name.
+   * @param model - the model
+   * @returns the keyspace name
    */
-  checkKeys() {
-    // TODO Implement
+  getKeyspace(model: ModelClass): string {
+    void model;
+    return this.getName();
+  }
+
+  /**
+   * Find the unrelated models of this store whose natural keys share a keyspace
+   *
+   * A model and its subclasses share a keyspace on purpose. Two unrelated models with natural keys (anything but
+   * a generated `uuid`) do not see each other: a `Tag` slug equal to a `Post` slug is the same storage key, so
+   * creating the second fails and reading it returns the first.
+   * @param models - the models routed to this store, fallback models included
+   * @returns the colliding keyspaces
+   */
+  checkKeys(models: ModelClass[] = this.getModels()): KeyCollision[] {
+    const entries: KeyspaceEntry[] = [];
+    for (const model of models) {
+      const meta = useModelMetadata(model);
+      if (!meta || !Array.isArray(meta.PrimaryKey)) continue;
+      // The framework models key on values nobody picks (token hashes, prefixed denylist entries, provider uids,
+      // random OAuth codes): they fall back to the Registry together in most applications and do not collide
+      if (meta.Identifier.startsWith("Webda/")) continue;
+      entries.push({
+        Identifier: meta.Identifier,
+        PrimaryKey: meta.PrimaryKey,
+        Ancestors: meta.Ancestors ?? [],
+        keyspace: this.getKeyspace(model)
+      });
+    }
+    return findKeyCollisions(entries);
   }
 
   abstract getRepository<T extends ModelClass>(model: T): Repository<T>;

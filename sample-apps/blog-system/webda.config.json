@@ -51,6 +51,26 @@
       "type": "Webda/CryptoService",
       "autoCreate": true
     },
+    "PostStore": {
+      "type": "Webda/MemoryStore",
+      "models": ["WebdaSample/Post"],
+      "persistence": { "path": "./data/posts" }
+    },
+    "TagStore": {
+      "type": "Webda/MemoryStore",
+      "models": ["WebdaSample/Tag"],
+      "persistence": { "path": "./data/tags" }
+    },
+    "PostTagStore": {
+      "type": "Webda/MemoryStore",
+      "models": ["WebdaSample/PostTag"],
+      "persistence": { "path": "./data/post-tags" }
+    },
+    "UserFollowStore": {
+      "type": "Webda/MemoryStore",
+      "models": ["WebdaSample/UserFollow"],
+      "persistence": { "path": "./data/user-follows" }
+    },
     "Images": {
       "type": "Webda/FileBinary",
       "folder": "./data/images",

@@ -716,6 +716,16 @@ export default class FireStore<K extends FireStoreParameters = FireStoreParamete
   }
 
   /**
+   * Each collection is its own keyspace
+   * @param model - the model
+   * @returns the collection of the model
+   * @override
+   */
+  getKeyspace(model: ModelClass): string {
+    return this.resolveCollection(model);
+  }
+
+  /**
    * Resolve the collection name for a given model class
    *
    * Resolution order:

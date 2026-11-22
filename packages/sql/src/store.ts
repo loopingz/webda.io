@@ -283,6 +283,16 @@ export abstract class SQLStore<K extends SQLStoreParameters = SQLStoreParameters
   }
 
   /**
+   * Each table is its own keyspace: by default a model does not share its keys with the other models of the store
+   * @param model - the model
+   * @returns the table of the model
+   * @override
+   */
+  getKeyspace(model: ModelClass): string {
+    return this.resolveTable(model);
+  }
+
+  /**
    * Resolve the table name for a given model class.
    *
    * Resolution order:

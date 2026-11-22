@@ -388,7 +388,9 @@ export async function executeServiceCommand(
     }
     filterMatched = true;
     if (matches.length === 0) {
-      useLog("WARN", `Service '${svc.name}' not found, skipping`);
+      // Several services can declare the same command (e.g. one per deployer): an absent one is not an issue,
+      // the command fails below only when none of them runs
+      useLog("DEBUG", `Service '${svc.name}' not found, skipping`);
       continue;
     }
     for (const service of matches) {

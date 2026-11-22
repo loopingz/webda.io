@@ -1,8 +1,10 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { createHash } from "crypto";
+import { expectTypeOf } from "vitest";
 import {
   argumentsSimpleKey,
+  CacheAnnotation,
   CacheMap,
   CacheOptions,
   CacheStorage,
@@ -1240,5 +1242,72 @@ class CacheTest {
     Cache.clear(bare, "compute");
     Cache.clearAll(bare, "compute");
     assert.strictEqual(host["caches"].size, 0);
+  }
+
+  @test
+  async decoratorTtlWithExistingStorage() {
+    const host = {};
+    const Cache = createCacheAnnotation(() => host);
+    let count = 0;
+    class Service {
+      @Cache()
+      untimed() {
+        return ++count;
+      }
+
+      @Cache({ ttl: 50 })
+      timed() {
+        return ++count;
+      }
+    }
+    const svc = new Service();
+    // The storage is created by the method without ttl
+    assert.strictEqual(svc.untimed(), 1);
+    assert.strictEqual(svc.timed(), 2);
+    assert.strictEqual(svc.timed(), 2);
+    await new Promise(resolve => setTimeout(resolve, 70));
+    // The decorator ttl applies, the untimed entry stays
+    assert.strictEqual(svc.timed(), 3);
+    assert.strictEqual(svc.untimed(), 1);
+    assert.strictEqual(host["caches"].get(svc).size, 2);
+    // garbageCollect honors the entry ttl too
+    await new Promise(resolve => setTimeout(resolve, 70));
+    Cache.garbageCollect();
+    assert.strictEqual(host["caches"].get(svc).size, 1);
+    assert.strictEqual(svc.untimed(), 1);
+  }
+
+  @test
+  async decoratorTtlOnAsyncMethod() {
+    const host = {};
+    const Cache = createCacheAnnotation(() => host);
+    let count = 0;
+    class Service {
+      @Cache()
+      async untimed() {
+        return ++count;
+      }
+
+      @Cache({ ttl: 50 })
+      async timed() {
+        return ++count;
+      }
+    }
+    const svc = new Service();
+    assert.strictEqual(await svc.untimed(), 1);
+    assert.strictEqual(await svc.timed(), 2);
+    assert.strictEqual(await svc.timed(), 2);
+    await new Promise(resolve => setTimeout(resolve, 70));
+    assert.strictEqual(await svc.timed(), 3);
+    assert.strictEqual(await svc.untimed(), 1);
+  }
+
+  @test
+  annotationType() {
+    // Exported annotations are typed by @webda/cache alone (no reference to @webda/decorators)
+    const annotation: CacheAnnotation = createCacheAnnotation(() => ({}), { ttl: 10 });
+    expectTypeOf(createCacheAnnotation).returns.toEqualTypeOf<CacheAnnotation>();
+    expectTypeOf(ProcessCache).toEqualTypeOf<CacheAnnotation>();
+    assert.strictEqual(typeof annotation.clearAll, "function");
   }
 }

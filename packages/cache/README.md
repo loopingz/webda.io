@@ -43,6 +43,12 @@ pnpm add @webda/cache
 | `methodKeyGenerator` | function | — | Custom function to compute the per-call cache key. |
 | `classKeyGenerator` | function | — | Custom function to compute the per-instance cache key. |
 
+Options given to the decorator (`@ProcessCache({ ttl: 60000 })`) apply to that method for `ttl`, `shouldCache`,
+`methodKeyGenerator` and `classKeyGenerator`. The other options (`maxSize`, `gcInterval`, `enableStats`,
+`hashStrategy`, `cacheMap`, `cacheStorage`) come from `createCacheAnnotation(source, options)`.
+
+An annotation is typed `CacheAnnotation`, exported by `@webda/cache`.
+
 ## Usage
 
 ```typescript

@@ -14,7 +14,7 @@ This module is part of Webda Application Framework that allows you to quickly de
 
 <!-- README_HEADER -->
 
-# @webda/mongodb
+# @webda/mongo
 
 > MongoDB-backed Store for Webda — persists any model to MongoDB using the JSONB document model, with full query, pagination, and update-condition support.
 
@@ -27,7 +27,7 @@ This module is part of Webda Application Framework that allows you to quickly de
 ## Install
 
 ```bash
-pnpm add @webda/mongodb
+pnpm add @webda/mongo
 ```
 
 ## Configuration
@@ -37,7 +37,7 @@ pnpm add @webda/mongodb
   "services": {
     "userStore": {
       "type": "MongoStore",
-      "model": "MyApp/User",
+      "models": ["MyApp/User"],
       "collection": "users",
       "database": "my-app"
     }
@@ -52,6 +52,7 @@ Set the connection URL via the `WEBDA_MONGO_URL` environment variable (recommend
   "services": {
     "userStore": {
       "type": "MongoStore",
+      "models": ["MyApp/User"],
       "mongoUrl": "mongodb+srv://user:pass@cluster.mongodb.net",
       "collection": "users",
       "database": "my-app"
@@ -71,21 +72,15 @@ Set the connection URL via the `WEBDA_MONGO_URL` environment variable (recommend
 ## Usage
 
 ```typescript
-import { CoreModel, Model, Expose } from "@webda/core";
-import { Bean, Inject } from "@webda/core";
-import { Store } from "@webda/core";
+import { CoreModel } from "@webda/core";
 
-@Model()
 export class User extends CoreModel {
-  @Expose() name: string;
-  @Expose() email: string;
+  name: string;
+  email: string;
 }
 
 // With MongoStore configured, all CoreModel CRUD is automatically backed by MongoDB:
-const user = new User();
-user.name = "Alice";
-user.email = "alice@example.com";
-await user.save();                          // inserts into MongoDB
+const user = await User.create({ name: "Alice", email: "alice@example.com" }); // inserts into MongoDB
 
 const found = await User.ref(user.uuid).get();   // fetch by UUID
 const results = await User.query("name = 'Alice'"); // filtered query

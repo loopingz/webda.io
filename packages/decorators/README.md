@@ -22,7 +22,7 @@ Utility factories for authoring TC39-standard decorators that work both with and
 
 Use `@webda/decorators` whenever you want to write your own custom TypeScript decorators without boilerplate dispatch logic. It handles the "called directly vs called as factory" ambiguity for you, for class, method, and field (property) decorators.
 
-> **Note**: Ready-made Webda decorators like `@Bean`, `@Inject`, `@Route`, `@Operation`, and `@Expose` ship with `@webda/core` and `@webda/models`. This package provides the **factories** to build new ones.
+> **Note**: Ready-made Webda decorators like `@Bean`, `@Inject`, `@Route`, `@Operation`, and `@Action` ship with `@webda/core`. This package provides the **factories** to build new ones.
 
 ### Install
 
@@ -106,7 +106,7 @@ console.log(meta["expose"]); // ["name", "usr_id"]
 - [Catalog of built-in decorators](../../docs/pages/Modules/decorators/Catalog.md)
 - [Writing custom decorators](../../docs/pages/Modules/decorators/Custom.md)
 - [@webda/core](../core/README.md) — `@Bean`, `@Inject`, `@Route`, `@Operation`
-- [@webda/models](../models/README.md) — `@Expose`, `@BelongTo`, `@Contains`
+- [@webda/models](../models/README.md) — relation types (`BelongTo`, `Contains`...)
 
 <!-- README_FOOTER -->
 

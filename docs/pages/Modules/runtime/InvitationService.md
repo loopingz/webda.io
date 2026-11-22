@@ -1,6 +1,6 @@
 # Invitation Service
 
-The invitation service implement a workflow to invite users by their idents on an object.
+The invitation service (`InvitationService`, from `@webda/runtime`) implement a workflow to invite users by their idents on an object.
 
 The invitation can be pending if the user is not registered or if `autoAccept` is false.
 

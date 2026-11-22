@@ -12,8 +12,11 @@ The Operation can be call through several type:
 
 - REST API
 - Async Action API
-- Slack bot
-- WebSockets event
+- WebSockets
+- GraphQL
+- gRPC
+- MCP
+- CLI
 
 OperationCall is
 

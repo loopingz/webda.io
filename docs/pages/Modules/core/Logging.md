@@ -5,131 +5,107 @@ sidebar_label: Logging
 
 # Logging
 
-Webda uses structured logging via the `useLog` factory from `@webda/workout`. Every service and model should use `useLog` rather than `console.*` for consistent, filterable log output.
+Webda logs through `@webda/workout`. Every service and model should log through it rather than `console.*` so the output goes through the configured logger services and the test memory logger.
 
-## `useLog(name)`
+## `useLog(level, ...args)`
 
 ```typescript
-import { useLog } from "@webda/workout";
+import { useLog } from "@webda/workout"; // also re-exported by @webda/core
 
-const log = useLog("MyService");
+useLog("INFO", "Service started", "https://api.example.com");
+useLog("DEBUG", "Processing item", { id: "abc123" });
+useLog("WARN", "Retry attempt", 3);
+useLog("ERROR", "Failed to connect", err);
+```
 
-log.info("Service started", { url: "https://api.example.com" });
-log.debug("Processing item", { id: "abc123" });
-log.warn("Retry attempt", { attempt: 3 });
-log.error("Failed to connect", { host: "db.example.com", error: err.message });
+To tag the logs with a class name, use `useLogger(name)` from `@webda/core`: it returns a `Logger` whose `log(level, ...args)` adds `{ class: name }` to the log context.
+
+```typescript
+import { useLogger } from "@webda/core";
+
+const logger = useLogger("MyHelper");
+logger.log("INFO", "Started");
 ```
 
 ## Log levels
 
-| Method | Level | Use for |
-|--------|-------|---------|
-| `log.trace(msg, data?)` | TRACE | Very verbose, high-frequency internals |
-| `log.debug(msg, data?)` | DEBUG | Development diagnostics |
-| `log.info(msg, data?)` | INFO | Normal operational events |
-| `log.warn(msg, data?)` | WARN | Unexpected but non-fatal conditions |
-| `log.error(msg, data?)` | ERROR | Errors that need attention |
+| Level   | Use for                                |
+| ------- | -------------------------------------- |
+| `TRACE` | Very verbose, high-frequency internals |
+| `DEBUG` | Development diagnostics                |
+| `INFO`  | Normal operational events              |
+| `WARN`  | Unexpected but non-fatal conditions    |
+| `ERROR` | Errors that need attention             |
 
 ## Using in services
 
-All services should declare a module-level logger:
+`Service` has a `log(level, ...args)` method that prefixes the message with the service name:
 
 ```typescript
-import { Service, ServiceParameters, Bean } from "@webda/core";
-import { useLog } from "@webda/workout";
+import { Service, Bean } from "@webda/core";
 
 @Bean
 export class PublisherService extends Service {
-  protected log = useLog("PublisherService");
-
   async init(): Promise<this> {
     await super.init();
-    this.log.info("Publisher initialized");
+    this.log("INFO", "Publisher initialized");
     return this;
   }
 
   async publish(slug: string, platform: string): Promise<void> {
-    this.log.debug("Starting publish", { slug, platform });
+    this.log("DEBUG", "Starting publish", slug, platform);
     try {
       await this.doPublish(slug, platform);
-      this.log.info("Published successfully", { slug, platform });
+      this.log("INFO", "Published successfully", slug, platform);
     } catch (err: any) {
-      this.log.error("Publish failed", { slug, platform, error: err.message });
+      this.log("ERROR", "Publish failed", slug, platform, err);
       throw err;
     }
   }
 }
 ```
 
-## Structured data logging
+## Logger services
 
-Pass a second argument (object) to any log method for structured context. This context is forwarded to the log sink as metadata:
-
-```typescript
-log.info("Request completed", {
-  method: "POST",
-  path: "/posts",
-  statusCode: 201,
-  durationMs: 45
-});
-```
-
-Output (JSON sink):
+The log output is configured with logger services: `ConsoleLogger` (stdout), `FileLogger` (a file, with `sizeLimit` rotation) and `Webda/MemoryLogger` (in memory, `limit` entries). They all take `logLevel` (default: the `LOG_LEVEL` environment variable, else `INFO`) and the console and file loggers take a sprintf `format` (default `%(d)s [%(l)s] %(m)s`):
 
 ```json
 {
-  "level": "info",
-  "name": "PublisherService",
-  "message": "Request completed",
-  "method": "POST",
-  "path": "/posts",
-  "statusCode": 201,
-  "durationMs": 45,
-  "timestamp": "2026-04-25T12:00:00.000Z"
-}
-```
-
-## Log sinks — `@webda/workout`
-
-`useLog` is backed by `@webda/workout`. The default sink writes to stdout in a human-readable format during development, and can be configured for JSON output in production:
-
-```json
-{
-  "parameters": {
-    "log": {
-      "level": "INFO",
-      "format": "json"
+  "services": {
+    "consoleLogger": {
+      "type": "ConsoleLogger",
+      "logLevel": "INFO"
+    },
+    "fileLogger": {
+      "type": "FileLogger",
+      "file": "./logs/webda.log",
+      "logLevel": "DEBUG"
     }
   }
 }
 ```
 
-Available formats: `"text"` (default, colorized), `"json"`, `"logstash"`.
-
 ## Memory log sink (testing)
 
-The `@testWrapper` decorator in `@webda/core/test` uses the memory log sink to capture all log output during a test and write it to a `reports/` file on failure:
+`WebdaTest` (from `@webda/core/lib/test`, base of `WebdaApplicationTest`) wraps every test with a memory logger. When the test fails, or when the `WEBDA_TEST_LOGS` environment variable is set, the logs are written to `.webda/tests/<Suite>/<test>.log`:
 
 ```typescript
-import { WebdaTest } from "@webda/core/test";
-import { testWrapper } from "@webda/workout";
+import { suite, test } from "@webda/test";
+import { WebdaApplicationTest } from "@webda/core/lib/test";
 
-class MyServiceTest extends WebdaTest {
-  @testWrapper
+@suite
+class MyServiceTest extends WebdaApplicationTest {
+  @test
   async testInit() {
-    const service = await this.getService("MyService");
-    // If this test fails, all logs are written to reports/MyServiceTest_testInit.log
+    const service = this.getService("MyService");
+    // If this test fails, all logs are written to .webda/tests/MyServiceTest/testInit.log
   }
 }
 ```
 
-## Log correlation
-
-In production, logs can be correlated across services using request IDs. The framework automatically adds a `requestId` field to all logs within a request context when the Router generates one.
-
 ## Do not use `console.log`
 
-The ESLint config for Webda packages enforces using `useLog` instead of `console.*`. Using `console.log` bypasses the structured log pipeline and the memory sink (breaking test failure log capture).
+Using `console.log` bypasses the logger services and the memory logger (breaking test failure log capture).
 
 ## Verify
 
@@ -146,5 +122,5 @@ pnpm test
 ## See also
 
 - [@webda/workout README](../workout/README.md) — log sinks, formatters, and configuration
-- [Services](./Services.md) — using `useLog` in service classes
+- [Services](./Services.md) — logging from service classes
 - [Architecture](./Architecture.md) — logging as a cross-cutting concern

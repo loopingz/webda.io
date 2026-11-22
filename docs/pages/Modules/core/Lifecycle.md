@@ -11,7 +11,7 @@ Every Webda service follows a strict lifecycle managed by `Core`. Understanding 
 
 ```mermaid
 stateDiagram-v2
-    [*] --> initial : new Service(app, name, params)
+    [*] --> initial : new Service(name, params)
     initial --> loading : Core.loadServices()
     loading --> resolving : resolve()
     resolving --> initializing : init()
@@ -25,14 +25,14 @@ stateDiagram-v2
 
 ### 1. Constructor
 
-Called when the framework instantiates the service. The constructor must call `super(app, name, params)`. Do **not** do async work here.
+Called when the framework instantiates the service. The constructor must call `super(name, params)`. Do **not** do async work here.
 
 ```typescript
 export class MyService extends Service<MyServiceParameters> {
   protected connection: DatabaseConnection;
 
-  constructor(app: Application, name: string, params: any) {
-    super(app, name, params);
+  constructor(name: string, params: MyServiceParameters) {
+    super(name, params);
     // Synchronous init only — no async, no network calls
   }
 }
@@ -56,7 +56,7 @@ resolve(): this {
   }
 
   // At this point @Inject dependencies are already populated
-  this.log.info("Resolved with store:", this.store.getName());
+  this.log("INFO", "Resolved with mailer:", this.mailer.getName());
 
   return this;
 }
@@ -74,7 +74,7 @@ async init(): Promise<this> {
   await super.init();
 
   this.connection = await DatabaseConnection.connect(this.parameters.url);
-  this.log.info("Connected to database", { url: this.parameters.url });
+  this.log("INFO", "Connected to database", this.parameters.url);
 
   return this;
 }
@@ -90,7 +90,7 @@ Called during graceful shutdown (SIGINT, `Core.stop()`). Release resources in re
 
 ```typescript
 async stop(): Promise<void> {
-  this.log.info("Shutting down");
+  this.log("INFO", "Shutting down");
 
   // Close resources before calling super
   await this.connection.close();
@@ -105,7 +105,6 @@ async stop(): Promise<void> {
 ```typescript
 import { Service, ServiceParameters, Inject } from "@webda/core";
 import { Bean } from "@webda/core";
-import { useLog } from "@webda/workout";
 
 interface EmailServiceParameters extends ServiceParameters {
   smtpHost: string;
@@ -115,7 +114,6 @@ interface EmailServiceParameters extends ServiceParameters {
 
 @Bean
 export class EmailService extends Service<EmailServiceParameters> {
-  protected log = useLog("EmailService");
   protected transport: any;
 
   resolve(): this {
@@ -125,10 +123,7 @@ export class EmailService extends Service<EmailServiceParameters> {
       throw new Error("smtpHost is required");
     }
 
-    this.log.info("Configuration validated", {
-      host: this.parameters.smtpHost,
-      port: this.parameters.smtpPort
-    });
+    this.log("INFO", "Configuration validated", this.parameters.smtpHost, this.parameters.smtpPort);
 
     return this;
   }
@@ -142,12 +137,12 @@ export class EmailService extends Service<EmailServiceParameters> {
       port: this.parameters.smtpPort ?? 587
     });
 
-    this.log.info("SMTP transport initialized");
+    this.log("INFO", "SMTP transport initialized");
     return this;
   }
 
   async stop(): Promise<void> {
-    this.log.info("Closing SMTP transport");
+    this.log("INFO", "Closing SMTP transport");
     this.transport?.close();
     await super.stop();
   }
@@ -167,23 +162,23 @@ export class EmailService extends Service<EmailServiceParameters> {
 
 ```mermaid
 sequenceDiagram
-    participant Runner
+    participant Launcher as webda CLI
     participant Core
     participant ServiceA
     participant ServiceB
 
-    Runner->>Core: new Core(application)
+    Launcher->>Core: new Core(application)
     Core->>Core: loadServices()
-    Core->>ServiceA: new ServiceA(app, "ServiceA", params)
-    Core->>ServiceB: new ServiceB(app, "ServiceB", params)
+    Core->>ServiceA: new ServiceA("ServiceA", params)
+    Core->>ServiceB: new ServiceB("ServiceB", params)
     Core->>ServiceA: resolve()
     note right of ServiceA: @Inject populated, validate config
     Core->>ServiceB: resolve()
     Core->>ServiceA: init()
     note right of ServiceA: connect to DB, start timers
     Core->>ServiceB: init()
-    Runner->>Core: (running — handling requests)
-    Runner->>Core: stop()
+    Launcher->>Core: (running — handling requests)
+    Launcher->>Core: stop()
     Core->>ServiceA: stop()
     note right of ServiceA: close connections
     Core->>ServiceB: stop()

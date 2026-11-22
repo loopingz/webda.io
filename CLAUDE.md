@@ -22,13 +22,12 @@ This document provides comprehensive guidance for Claude when working with the W
 ```
 webda.io/                      # Monorepo root (pnpm workspaces)
 ├── packages/                  # Framework packages (31+ packages)
-│   ├── core/                 # Core framework (Application, Services, Models, Stores)
-│   ├── shell/                # CLI tools (webda command)
+│   ├── core/                 # Core framework (Application, Services, Models, Stores, `webda` CLI)
 │   ├── models/               # Base model classes
 │   ├── aws/                  # AWS deployers (Lambda, CloudFormation, DynamoDB, S3)
 │   ├── gcp/                  # Google Cloud Platform integrations
 │   ├── kubernetes/           # Kubernetes deployer
-│   ├── authentication/       # Authentication services
+│   ├── auth/                 # Authentication services (@webda/auth)
 │   ├── oauth/                # OAuth providers
 │   ├── mongodb/              # MongoDB store
 │   ├── postgres/             # PostgreSQL store
@@ -36,7 +35,7 @@ webda.io/                      # Monorepo root (pnpm workspaces)
 │   ├── graphql/              # GraphQL support
 │   ├── workout/              # Logging utilities
 │   ├── utils/                # Common utilities
-│   ├── compiler/             # TypeScript compiler (@webda/compiler)
+│   ├── compiler/             # TypeScript compiler (@webda/compiler, `webdac` CLI)
 │   └── ...                   # Other specialized packages
 ├── sample-app/               # Reference application
 ├── docs/                     # Documentation source
@@ -44,7 +43,7 @@ webda.io/                      # Monorepo root (pnpm workspaces)
 │   └── copilot-instructions.md  # Detailed architectural rules
 ├── AGENTS.md                 # Quick reference for AI agents
 ├── CLAUDE.md                 # This file
-└── webda.config.json         # Root configuration (for testing/development)
+└── sample-apps/              # Other sample applications
 ```
 
 ## Core Concepts
@@ -54,17 +53,13 @@ webda.io/                      # Monorepo root (pnpm workspaces)
 **Design your Models first** → then create Services for non-model behavior → Framework auto-exposes as REST/GraphQL/CLI
 
 ```typescript
-// Step 1: Define your domain model
-@Model()
+// Step 1: Define your domain model (the compiler discovers it, no decorator needed)
 export class Task extends CoreModel {
-  @Expose()
   title: string;
 
-  @Expose()
   completed: boolean;
 
-  @ModelRelated("User", "tasks")
-  owner: ModelRelation<User>;
+  owner: ModelParent<User>;
 }
 
 // Step 2: Create services for business logic (if needed)
@@ -109,7 +104,7 @@ const store = new MemoryStore(); // NEVER do this
 
 Services follow a strict lifecycle. Respect each phase:
 
-1. **Constructor**: Accept `WebdaApplication` and parameters
+1. **Constructor**: Accept the service name and parameters
 2. **`resolve()`**: Dependency injection, validation, service discovery
 3. **`init()`**: Async initialization (connect to databases, external services)
 4. **Running**: Normal operation
@@ -150,8 +145,8 @@ Configuration follows a resolution hierarchy:
 ```jsonc
 // webda.config.jsonc (global)
 {
-  "$schema": "./.webda-config-schema.json",
-  "version": 3,
+  "$schema": "./.webda/config.schema.json",
+  "version": 4,
   "services": {
     "myStore": {
       "type": "MemoryStore",
@@ -165,7 +160,7 @@ Configuration follows a resolution hierarchy:
 
 // deployments/production.json (overrides global)
 {
-  "$schema": "../.webda-deployment-schema.json",
+  "$schema": "../.webda/deployment.schema.json",
   "services": {
     "myStore": {
       "type": "DynamoStore",  // Override type for production
@@ -198,32 +193,27 @@ Services are auto-prefixed with the package namespace:
 
 ## Development Workflows
 
-> **Note (2026-04-25):** `@webda/shell` no longer exists. The CLI surface is
-> now split between `@webda/core` (`webda` runtime: `debug`, `serve`, …) and
-> `@webda/compiler` (`webdac` build/code-gen). Some examples below referencing
-> `@webda/shell` are stale and pending a separate cleanup.
+The CLI is split between `@webda/core` (`webda` runtime: `serve`, `debug` from `@webda/debug`, `config`,
+`openapi`, `migrate`, …, plus the commands declared by services with `@Command`) and `@webda/compiler`
+(`webdac`: `build`, `code`).
 
 ### Essential Commands
 
 ```bash
 # Project initialization
-npx @webda/shell init              # Create new project
+pnpm create @webda my-app           # Create new project (@webda/create)
 
 # Development
-webda debug                         # Dev server with hot reload (port 18080)
+webda debug                         # Dev server with hot reload (app on 18080, dashboard on 18181)
 webda serve                         # Production-like server
 webda -d deploymentName serve       # With specific deployment
-
-# Code generation
-pnpm new-module                     # Create new package in monorepo
-pnpm new-service                    # Generate service boilerplate
-pnpm new-model                      # Generate domain model
 
 # Building
 pnpm -r run build                   # Build all packages (root)
 pnpm run build                      # Build current package
 webdac build                        # Compile TypeScript + generate webda.module.json
 webdac build --watch                # Watch mode
+webdac code                         # Migrate application sources to the current Webda version
 
 # Testing
 pnpm -r run test                    # Run all tests (root)
@@ -243,30 +233,30 @@ pnpm run format                     # Check formatting (Prettier)
 pnpm run format:fix                 # Fix formatting
 
 # Configuration
-webda config                        # Open configuration UI
-webda new-deployment               # Create deployment config
+webda config encrypt                # Encrypt values in the configuration files
 
-# Deployment
+# Deployment (run by the deployer units of the deployment)
 webda -d deploymentName deploy      # Deploy to environment
 ```
 
 ### Testing Patterns
 
-**Framework**: Vitest (packages) + Mocha (shell/legacy)
+**Framework**: Vitest (packages) + Mocha (`@webda/test`, `@webda/runtime`)
 
 ```typescript
-import { WebdaTest } from "@webda/core/test";
-import { testWrapper } from "@webda/workout";
+import { suite, test } from "@webda/test";
+import { WebdaApplicationTest } from "@webda/core/lib/test/application.js";
+import * as assert from "assert";
 
-class MyServiceTest extends WebdaTest {
-  @testWrapper // Automatic memory logging on failure
+@suite
+class MyServiceTest extends WebdaApplicationTest {
+  @test
   async testMethod() {
     // Use this.cleanFiles to track files for automatic cleanup
     this.cleanFiles.push("/tmp/test-file.txt");
 
-    // Test implementation
-    const service = await this.registerService(new MyService(this.webda, "test", {}));
-    await service.init();
+    // Register a service with resolve() and init()
+    const service = await this.addService(MyService, {}, "test");
 
     // Assertions
     assert.strictEqual(service.getName(), "test");
@@ -274,7 +264,7 @@ class MyServiceTest extends WebdaTest {
 }
 ```
 
-**Memory Logger**: Automatically exports logs to `reports/` directory on test failure.
+**Memory Logger**: `WebdaTest` wraps each test (`@testWrapper` from `@webda/test`) and exports its logs to `.webda/tests/<suite>/<test>.log` on failure (or always with `WEBDA_TEST_LOGS`).
 
 ## Code Style & Conventions
 
@@ -283,7 +273,7 @@ class MyServiceTest extends WebdaTest {
 - **Target**: ES2022
 - **Module**: ESNext with `"type": "module"` in package.json
 - **Decorators**: Use modern decorators (`experimentalDecorators: false`)
-- **Strict Mode**: Enabled at file level with `"use strict"`
+- **Strict Mode**: Implicit in ES modules — do not add `"use strict"` (ESLint `strict` reports it as unnecessary)
 - **Output**: `lib/` directory
 - **Source Maps**: Enabled
 
@@ -293,7 +283,7 @@ class MyServiceTest extends WebdaTest {
 - **Methods/Variables**: camelCase (e.g., `getUserById`, `taskList`)
 - **Constants**: UPPER_SNAKE_CASE (e.g., `MAX_RETRIES`)
 - **Interfaces**: PascalCase with descriptive names (e.g., `ServiceParameters`)
-- **Files**: Match class names (e.g., `my-service.ts` for `MyService`)
+- **Files**: Models live in `*.model.ts`, services, beans and deployers in `*.service.ts`, flows in `*.flow.ts` — the content mapper only processes those files and reports a naming violation otherwise (e.g. `task.model.ts`, `my.service.ts`)
 
 ### Code Style Rules
 
@@ -303,23 +293,22 @@ const myFunc = function myFunc() {  // ✅ Named
   // ...
 };
 
-// 2. Use strict mode at file level
-"use strict";  // At top of file
+// 2. No "use strict": ES modules are strict already, and ESLint rejects the directive
 
 // 3. Prefer ESM imports
 import { Service } from "@webda/core";  // ✅
 const { Service } = require("@webda/core");  // ❌
 
-// 4. Use logging from @webda/workout
+// 4. Log with the level first: this.log() in a service, useLog() from @webda/workout elsewhere
+this.log("INFO", "Message", { context: "data" });
 import { useLog } from "@webda/workout";
-const log = useLog("MyService");
-log.info("Message", { context: "data" });
+useLog("WARN", "Message outside a service");
 
 // 5. Throw WebdaError subclasses
-import * as WebdaError from "@webda/core/errors";
-throw new WebdaError.BadRequestError("Invalid input");
-throw new WebdaError.NotFoundError("Resource not found");
-throw new WebdaError.UnauthorizedError("Not authorized");
+import { WebdaError } from "@webda/core";
+throw new WebdaError.BadRequest("Invalid input");
+throw new WebdaError.NotFound("Resource not found");
+throw new WebdaError.Unauthorized("Not authorized");
 
 // 6. Use type annotations for public APIs
 public async getUser(id: string): Promise<User> {
@@ -349,7 +338,7 @@ import { myService } from "./my-service";  // ❌ Don't import service instances
 - `no-explicit-any`: OFF (TypeScript any is allowed)
 - `no-unused-vars`: OFF (handled by unused-imports plugin)
 - `func-names`: ERROR (must name functions)
-- `strict`: ERROR (global strict mode required)
+- `strict`: ERROR (flags a redundant `"use strict"` in ES modules)
 
 ## Service Development
 
@@ -357,43 +346,21 @@ import { myService } from "./my-service";  // ❌ Don't import service instances
 
 ```typescript
 import { Bean, Service, ServiceParameters } from "@webda/core";
-import { useLog } from "@webda/workout";
 
-interface MyServiceParameters extends ServiceParameters {
+/**
+ * The compiler (`webdac build`) generates the configuration schema and the
+ * webda.module.json entry from this class and its JSDoc
+ */
+export class MyServiceParameters extends ServiceParameters {
   setting1: string;
+  /**
+   * @default 10
+   */
   setting2?: number;
 }
 
 @Bean
 export class MyService extends Service<MyServiceParameters> {
-  protected log = useLog("MyService");
-
-  /**
-   * Get Modda metadata for service discovery
-   */
-  static getModda(): any {
-    return {
-      uuid: "MyApp/MyService",
-      label: "My Service",
-      description: "Service description",
-      documentation: "https://docs.example.com/my-service",
-      logo: "images/icons/my-service.png",
-      configuration: {
-        default: {
-          setting2: 10
-        },
-        schema: {
-          type: "object",
-          properties: {
-            setting1: { type: "string" },
-            setting2: { type: "number" }
-          },
-          required: ["setting1"]
-        }
-      }
-    };
-  }
-
   /**
    * Resolve dependencies and validate configuration
    */
@@ -412,7 +379,7 @@ export class MyService extends Service<MyServiceParameters> {
    */
   async init(): Promise<this> {
     await super.init();
-    this.log.info("Service initialized", { setting1: this.parameters.setting1 });
+    this.log("INFO", "Service initialized", { setting1: this.parameters.setting1 });
     return this;
   }
 
@@ -420,7 +387,7 @@ export class MyService extends Service<MyServiceParameters> {
    * Cleanup resources
    */
   async stop(): Promise<void> {
-    this.log.info("Service stopping");
+    this.log("INFO", "Service stopping");
     await super.stop();
   }
 }
@@ -429,33 +396,19 @@ export class MyService extends Service<MyServiceParameters> {
 ### Model Template
 
 ```typescript
-import { CoreModel, Model, Expose } from "@webda/core";
-import { ModelRelation, ModelRelated } from "@webda/core";
+import { Action, CoreModel, OperationContext } from "@webda/core";
+import { ModelRelated } from "@webda/models";
 
-@Model()
+// The compiler discovers models and generates their schema from the TypeScript types
 export class MyModel extends CoreModel {
-  @Expose()
   name: string;
 
-  @Expose()
   description?: string;
 
-  @Expose()
   createdAt: Date;
 
-  @ModelRelated("OtherModel", "owner")
-  items: ModelRelation<OtherModel>;
-
-  /**
-   * Custom validation
-   */
-  async validate(ctx?: any): Promise<void> {
-    await super.validate(ctx);
-
-    if (!this.name?.trim()) {
-      throw new Error("Name cannot be empty");
-    }
-  }
+  // OtherModel declares `owner: ModelParent<MyModel>`
+  items: ModelRelated<OtherModel, MyModel, "owner">;
 
   /**
    * Custom action exposed as POST /mymodels/{uuid}/customAction
@@ -466,7 +419,7 @@ export class MyModel extends CoreModel {
       description: "Perform custom action"
     }
   })
-  async customAction(ctx: WebContext): Promise<void> {
+  async customAction(ctx: OperationContext): Promise<void> {
     // Action logic
   }
 }
@@ -519,26 +472,16 @@ export class TaskService extends Service {
 ### 2. Event Pattern
 
 ```typescript
-import { Event } from "@webda/core";
-
+// Services are async event emitters, events are typed by the service second generic
 // Emit events
-this.emit("task.created", { task });
+await this.emit("task.created", { task });
 
 // Listen to events
-this.on("task.created", async (evt: Event) => {
-  const { task } = evt.data;
-  await this.notifyUser(task.owner);
+this.on("task.created", async evt => {
+  await this.notifyUser(evt.task.owner);
 });
 
-// Use @On decorator
-@Bean
-export class TaskNotificationService extends Service {
-  @On("Store.Save:MyApp/Task")
-  async onTaskSaved(event: Event): Promise<void> {
-    const task = event.data.object as Task;
-    // Handle task save event
-  }
-}
+// Model persistence events: see useRepository(Model).on(...) above
 ```
 
 ### 3. Queue Pattern
@@ -548,35 +491,27 @@ export class TaskNotificationService extends Service {
 {
   "services": {
     "taskQueue": {
-      "type": "MemoryQueue",  // or SQSQueue, etc.
-      "worker": "TaskWorker"
+      "type": "MemoryQueue"  // or SQSQueue, etc.
     }
   }
 }
 
-// Queue worker
-@Bean
-export class TaskWorker extends QueueWorker {
-  async work(message: QueueMessage): Promise<void> {
-    const task = message.data;
-    // Process task
-  }
-}
+// Consume the queue (e.g. in a service init())
+this.getService("taskQueue").consume(async message => {
+  // Process message.taskId
+});
 
 // Send to queue
-await this.getService<Queue>("taskQueue").sendMessage({ taskId: "123" });
+await this.getService("taskQueue").sendMessage({ taskId: "123" });
 ```
 
 ### 4. Binary/File Upload Pattern
 
 ```typescript
-@Model()
 export class Document extends CoreModel {
-  @Expose()
   title: string;
 
-  @BinaryMap({ cardinality: "ONE" })
-  file: BinaryFile;
+  file: Binary; // or Binaries for a list of files
 }
 
 // Configuration
@@ -589,7 +524,8 @@ export class Document extends CoreModel {
     },
     "binaryService": {
       "type": "FileBinary",  // or S3Binary
-      "folder": "./uploads/binaries"
+      "folder": "./uploads/binaries",
+      "models": { "MyApp/Document": ["file"] }
     }
   }
 }
@@ -607,7 +543,7 @@ export class NotificationService extends Service {
     await this.mailer.send({
       to: user.email,
       template: "welcome",
-      data: { name: user.name }
+      replacements: { name: user.name }
     });
   }
 }
@@ -662,7 +598,7 @@ my-project/
 webda -d production deploy
 
 # Deploy specific unit
-webda -d production deploy webapp
+webda -d production deploy --service=webapp
 ```
 
 ## Best Practices
@@ -701,14 +637,14 @@ webda -d production deploy webapp
 ### Standard Error Classes
 
 ```typescript
-import * as WebdaError from "@webda/core/errors";
+import { WebdaError } from "@webda/core";
 
 // Common errors
-throw new WebdaError.BadRequestError("Invalid input");
-throw new WebdaError.NotFoundError("Resource not found");
-throw new WebdaError.UnauthorizedError("Not authorized");
-throw new WebdaError.ForbiddenError("Access denied");
-throw new WebdaError.ConflictError("Resource already exists");
+throw new WebdaError.BadRequest("Invalid input");
+throw new WebdaError.NotFound("Resource not found");
+throw new WebdaError.Unauthorized("Not authorized");
+throw new WebdaError.Forbidden("Access denied");
+throw new WebdaError.Conflict("Resource already exists");
 throw new WebdaError.CodeError("CUSTOM_CODE", "Custom error message");
 ```
 
@@ -717,7 +653,7 @@ throw new WebdaError.CodeError("CUSTOM_CODE", "Custom error message");
 ```typescript
 // In HTTP context
 ctx.statusCode(400);
-throw new WebdaError.BadRequestError("Invalid request");
+throw new WebdaError.BadRequest("Invalid request");
 
 // Will return proper HTTP response
 ```
@@ -768,7 +704,7 @@ pnpm link --global
 
 # In your project
 pnpm link --global @webda/core
-pnpm link --global @webda/shell
+pnpm link --global @webda/compiler
 # ... link other packages as needed
 ```
 
@@ -829,8 +765,7 @@ import { OtelService } from "@webda/otel";
   "services": {
     "otel": {
       "type": "OtelService",
-      "serviceName": "my-app",
-      "endpoint": "http://localhost:4318"
+      "traceExporter": { "type": "otlp", "sampling": 0.1 }
     }
   }
 }
@@ -855,7 +790,7 @@ import { OtelService } from "@webda/otel";
 ### Debug Mode
 
 ```bash
-webda debug  # Starts on port 18080 with hot reload
+webda debug  # Starts the app on port 18080 with hot reload, debug dashboard on 18181
 ```
 
 ## Resources
@@ -871,7 +806,7 @@ webda debug  # Starts on port 18080 with hot reload
 | Purpose         | Location                       |
 | --------------- | ------------------------------ |
 | Core framework  | `packages/core/src/`           |
-| CLI tools       | `packages/shell/src/`          |
+| CLI tools       | `packages/core/src/bin/`, `packages/compiler/src/` |
 | Models          | `packages/models/src/`         |
 | AWS integration | `packages/aws/src/`            |
 | Tests           | `packages/*/src/**/*.spec.ts`  |
@@ -882,6 +817,6 @@ webda debug  # Starts on port 18080 with hot reload
 
 ---
 
-**Last Updated**: 2026-01-25
-**Framework Version**: 4.0.0-beta.1
+**Last Updated**: 2026-11-22
+**Framework Version**: 4.0.0-rc.1
 **Maintainer**: Loopingz (@loopingz)

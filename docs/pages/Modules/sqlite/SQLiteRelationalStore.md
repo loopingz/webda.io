@@ -3,7 +3,7 @@
 `Webda/SQLiteRelationalStore` stores models in **typed SQLite tables**: one column per field, primary and foreign
 keys, junction tables for the link collections, indexes. It is the SQLite rendering of the relational layer of
 [`@webda/sql`](../sql/README.md) used by [`PostgresRelationalStore`](../postgres/PostgresRelationalStore.md): same
-plan ([`@webda/sql-schema`](../sql-schema/README.md)), same repository, same WebdaQL translation, same tests. Read
+plan ([`@webda/sql-schema`](https://github.com/loopingz/webda.io/tree/main/packages/sql-schema)), same repository, same WebdaQL translation, same tests. Read
 the Postgres page for the mapping, the read and write semantics, the errors and the limitations; this page lists what
 SQLite changes.
 

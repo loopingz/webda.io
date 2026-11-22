@@ -6,7 +6,7 @@ sidebar_position: 2
 
 ## Bean
 
-When you create a service and declare @Route annotation, the service becomes a Bean, it won't be reusable
+When you create a service with the `@Bean` annotation, the service becomes a Bean: a singleton of your application, it won't be reusable
 
 ## Lifecycle
 
@@ -18,7 +18,7 @@ gantt
     section Service
     axisFormat ""
     constructor  :2014-01-01  , 10d
-    loadParameters  :2014-01-02  , 9d
+    createConfiguration  :2014-01-02  , 9d
     resolve      : 2014-01-11, 10d
     init      : 2014-01-21, 10d
 
@@ -50,7 +50,8 @@ Webda have some predefined services that are created by default:
 | Configuration  | Load the configuration from the configuration file             | N/A                        |
 | Registry       | The default storage for objects in Webda                       | Webda/MemoryStore          |
 | CryptoService  | The service that provide the encryption and decryption of data | Webda/CryptoService        |
-| Router         | The service that manage the routing of the application         | N/A or Dummy (TBD)         |
+| Router         | The service that manage the routing of the application         | Webda/Router               |
+| TokenService   | Issues access tokens (JWT) and rotating refresh tokens         | Webda/TokenService         |
 | SessionManager | The service that manage the session of the user                | Webda/CookieSessionManager |
 
 ## See also

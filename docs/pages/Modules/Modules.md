@@ -31,9 +31,9 @@ These packages form the backbone of the framework. Most applications depend on a
 | Package | Description |
 |---------|-------------|
 | [core](./core/README.md) | Application boot, dependency injection, routing, stores, events, and all base classes. |
-| [compiler](./compiler/README.md) | TypeScript compiler wrapper (`webdac`) that generates `webda.module.json`, OpenAPI specs, and JSON schemas at build time. |
-| [models](./models/README.md) | Pre-built domain-model base classes (User, Group, Email, Policy …) ready to extend. |
-| [decorators](./decorators/README.md) | All first-party decorators: `@Bean`, `@Route`, `@Inject`, `@Action`, `@Expose`, and more. |
+| [compiler](./compiler/README.md) | Build toolchain (`webdac`) that compiles on TypeScript 7.1 and generates `webda.module.json` and JSON schemas at build time; `webdac code` migrates older sources. |
+| [models](./models/README.md) | Domain-model base classes (`Model`, `UuidModel`), relationship types, repositories and the `@Operation` decorator. |
+| [decorators](./decorators/README.md) | Factories to build class, method and property decorators (the ready-made `@Bean`, `@Route`, `@Inject` … ship with `@webda/core` and `@webda/models`). |
 | [content-mapper](./content-mapper/README.md) | TypeScript content mapping behind `webdac build`: model metadata, JSON Schema generation and the generated accessors. |
 | [ql](./ql/README.md) | WebdaQL — a portable query language for filtering model collections across every store backend. |
 | [graphql](./graphql/README.md) | Auto-generates a GraphQL schema from your models and wires queries, mutations, and subscriptions. |
@@ -48,11 +48,14 @@ Plug-and-play persistence backends — swap them via configuration without touch
 | Package | Description |
 |---------|-------------|
 | [fs](./fs/README.md) | File-system store for local development and testing (JSON files on disk). |
-| [mongodb](./mongodb/README.md) | MongoDB store with full WebdaQL translation and change-stream events. |
+| [mongodb](./mongodb/README.md) | MongoDB store with full WebdaQL translation. |
 | [postgres](./postgres/README.md) | PostgreSQL store with SQL-backed WebdaQL and connection-pool management. |
-| [elasticsearch](./elasticsearch/README.md) | Elasticsearch store for full-text search and analytics workloads. |
+| [sqlite](./sqlite/README.md) | SQLite store, queue and pub/sub on `node:sqlite` (in memory or file). |
+| [sql](./sql/README.md) | Engine-neutral SQL JSON document store shared by `postgres` and `sqlite`. |
+| sql-schema | Driver-free relational schema plan (typed columns, foreign keys, junction tables) built from model metadata. |
+| [elasticsearch](./elasticsearch/README.md) | Elasticsearch indexing service that mirrors model saves to indices for full-text search. |
 | [aws](./aws/README.md) | AWS integrations including **DynamoStore** (DynamoDB), **S3Binary**, and CloudFormation/Lambda deployers. |
-| [gcp](./gcp/README.md) | Google Cloud integrations including **FireStore** persistence and GCP deployer. |
+| [gcp](./gcp/README.md) | Google Cloud integrations including **FireStore** persistence, Cloud Storage binaries, Pub/Sub, queues and KMS. |
 | [azure](./azure/README.md) | Blob binaries, Cosmos DB, Service Bus, Key Vault, Monitor logs, Container Apps and Functions deployers. |
 
 ---
@@ -63,7 +66,7 @@ Decouple background work and fan-out events with these messaging adapters.
 
 | Package | Description |
 |---------|-------------|
-| [amqp](./amqp/README.md) | AMQP 0-9-1 queue adapter (RabbitMQ-compatible) for `QueueService`. |
+| [amqp](./amqp/README.md) | AMQP 0-9-1 (RabbitMQ-compatible) Queue and Pub/Sub services. |
 | [async](./async/README.md) | Async Action runner — executes model actions in background workers via any queue backend. |
 | [cloudevents](./cloudevents/README.md) | CloudEvents publisher/subscriber adapter for cross-service event delivery. |
 | [workflow](./workflow/README.md) | Durable workflows: operations chained with control flow, that survive restarts, retry, sleep and run as their launcher. |
@@ -74,10 +77,12 @@ Decouple background work and fan-out events with these messaging adapters.
 
 | Package | Description |
 |---------|-------------|
-| [google-auth](./google-auth/README.md) | Google OAuth 2.0 provider for `@webda/authentication`. |
+| [auth](./auth/README.md) | `Authentication` service and its login providers (email/password, …). |
+| [google-auth](./google-auth/README.md) | Google OAuth 2.0 provider for `@webda/auth`. |
 | [hawk](./hawk/README.md) | Hawk HMAC authentication middleware for machine-to-machine API calls. |
 | [oauth](./oauth/README.md) | OAuth 2.1 authorization server: delegated, operation-scoped tokens with consent, device flow and revocation. |
 | [iam](./iam/README.md) | AWS-IAM-like allow/deny policies on operations, with conditions, evaluated with Casbin. |
+| oidc | OIDC workload identity and trust between Webda applications. |
 
 ---
 
@@ -86,6 +91,7 @@ Decouple background work and fan-out events with these messaging adapters.
 | Package | Description |
 |---------|-------------|
 | [grpc](./grpc/README.md) | gRPC server and client transport layer, auto-generated from Protobuf definitions derived from your models. |
+| [mcp](./mcp/README.md) | Model Context Protocol transport: operations as MCP tools and models as MCP resources. |
 
 ---
 
@@ -96,8 +102,8 @@ Deployers package your application for cloud execution environments.
 | Package | Description |
 |---------|-------------|
 | [aws](./aws/README.md) | CloudFormation and Lambda deployers plus AWS-specific services (DynamoDB, S3, SQS …). |
-| [gcp](./gcp/README.md) | Google Cloud Run and GCP infrastructure deployer. |
-| [kubernetes](./kubernetes/README.md) | Kubernetes manifests generator and deployer with Helm-chart output. |
+| [kubernetes](./kubernetes/README.md) | Knative / Cloud Run deployer, CronJob exporter, Kubernetes Jobs runner for `@webda/async`, `KubernetesStore` and operator. |
+| [oci](./oci/README.md) | Build and push OCI container images of the application without Docker. |
 
 ---
 
@@ -114,9 +120,10 @@ Deployers package your application for cloud execution environments.
 
 | Package | Description |
 |---------|-------------|
-| [test](./test/README.md) | `WebdaTest` base class, test utilities, and Vitest helpers for unit and integration tests. |
+| [test](./test/README.md) | Framework-agnostic `@suite`/`@test` decorators and memory-log capture on failure (`WebdaTest` itself ships in `@webda/core/test`). |
 | [debug](./debug/README.md) | Live-reload dev server, request inspector, and in-browser debug panels. |
 | [mock](./mock/README.md) | Coherent fake-data factory for models — deterministic mocks for repeatable tests. |
+| bench | Benchmark suites for Store, Queue and Pub/Sub shared by every backend. |
 
 ---
 
@@ -125,6 +132,7 @@ Deployers package your application for cloud execution environments.
 | Package | Description |
 |---------|-------------|
 | [compiler](./compiler/README.md) | See **Foundational** above — `webdac` drives both the build pipeline and module-manifest generation. |
+| [create](./create/README.md) | Scaffolds a new Webda application, with guidance for coding agents. |
 
 ---
 
@@ -132,9 +140,13 @@ Deployers package your application for cloud execution environments.
 
 | Package | Description |
 |---------|-------------|
-| [utils](./utils/README.md) | Shared helpers: deep-merge, retry, stream utilities, path manipulation, and TypeScript utility types. |
+| [utils](./utils/README.md) | Shared helpers: `Throttler`, `Duration`, `FileUtils`/`JSONUtils`/`YAMLUtils`, stream utilities, and TypeScript utility types. |
 | [serialize](./serialize/README.md) | JSON serializers and deserializers with support for `Date`, `Buffer`, `Map`, `Set`, and circular references. |
-| [versioning](./versioning/README.md) | Object-level patch and diff library — compute and apply JSON-Patch-compatible deltas between model versions. |
+| [versioning](./versioning/README.md) | Diff, patch, and 3-way merge for JSON-serializable objects, with git-style conflicts. |
 | [offline](./offline/README.md) | Offline replicas of models — scoped sync, revision-checked pushes, and 3-way merge conflicts on the client. |
-| [cache](./cache/README.md) | Pluggable in-process and distributed cache adapters (`MemoryCache`, Redis …). |
-| [runtime](./runtime/README.md) | Runtime detection helpers: environment probing, ESM/CJS bridge utilities, and process lifecycle hooks. |
+| [cache](./cache/README.md) | Method-level caching decorators (`@ProcessCache`, `@ObjectCache`) with TTL and LRU. |
+| [templates](./templates/README.md) | Template engines registry and rendering. |
+| [mailer](./mailer/README.md) | Nodemailer-based Mailer, rendering through `@webda/templates`. |
+| react-email | React Email components as Webda templates. |
+| sealed-client | Client `KeyVault` for sealed (end-to-end encrypted) fields. |
+| [runtime](./runtime/README.md) | Runtime service bundle: cluster coordination, proxy, invitations, version endpoint, echo and the binary model. |

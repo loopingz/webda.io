@@ -76,7 +76,7 @@ Shared infrastructure available to all services.
 - **Metrics** -- Prometheus integration via `prom-client`. `useMetric()` creates Counters, Gauges, and Histograms with automatic service labels.
 - **Cache** -- Decorator-based caching at four scopes: `@ProcessCache()` (global), `@InstanceCache()` (per Core), `@SessionCache()` (per user), `@ContextCache()` (per request).
 - **Queue** -- Message queue consumer pattern with configurable parallelism, retry backoff, and metrics. Extend for SQS, AMQP, etc.
-- **Models** -- Model registry with built-in types: `CoreModel`, `User`, `Ident`, `ACLModel`, `OwnerModel`, `RegistryEntry`.
+- **Models** -- Model registry with built-in types: `CoreModel`, `User`, `Ident`, `OwnerModel`, `RoleModel`, `RegistryEntry`.
 - **Execution Context** -- `AsyncLocalStorage`-based context for `useContext()`, `useCurrentUser()`, `runAsSystem()`, `runWithContext()`.
 
 ## Request Flow
@@ -141,8 +141,8 @@ class MyService extends Service {
   crypto: CryptoService;
 
   // Inject from a parameter value
-  @Inject("params:storeName", "Registry")
-  store: Store;
+  @Inject("params:mailer", "Mailer")
+  mailer: Mailer;
 
   // Optional injection
   @Inject("NotificationService", undefined, true)
@@ -164,11 +164,11 @@ Applications are configured via `webda.config.json` (version 4):
   "services": {
     "MyStore": {
       "type": "MemoryStore",
-      "model": "MyApp/MyModel"
+      "models": ["MyApp/MyModel"]
     },
     "MyService": {
       "type": "MyApp/MyService",
-      "storeName": "MyStore"
+      "mailer": "Mailer"
     }
   }
 }
@@ -194,10 +194,10 @@ Services emit typed async events. Subscribe with `on()`:
 useCoreEvents("Webda.Init", () => { /* framework ready */ });
 useCoreEvents("Webda.Request", ({ context }) => { /* new request */ });
 
-// Store events
-myStore.on("Store.Created", ({ object }) => { /* model created */ });
-myStore.on("Store.Updated", ({ object }) => { /* model updated */ });
-myStore.on("Store.Deleted", ({ object }) => { /* model deleted */ });
+// Repository events
+useRepository(MyModel).on("Created", ({ object }) => { /* model created */ });
+useRepository(MyModel).on("Updated", ({ object }) => { /* model updated */ });
+useRepository(MyModel).on("Deleted", ({ object_id }) => { /* model deleted */ });
 ```
 
 ## Error Handling
@@ -205,7 +205,7 @@ myStore.on("Store.Deleted", ({ object }) => { /* model deleted */ });
 Throw typed HTTP errors from services:
 
 ```typescript
-import * as WebdaError from "@webda/core";
+import { WebdaError } from "@webda/core";
 
 throw new WebdaError.NotFound("User not found");
 throw new WebdaError.Forbidden("Insufficient permissions");

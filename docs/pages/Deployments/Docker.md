@@ -55,20 +55,6 @@ install with `--frozen-lockfile`.
 
 ## Configuration
 
-The configuration take only two parameters the tag of the image to create and if it needs to push the image after a succesfull build.
-
-```javascript
-{
-   tag: "mytag",
-   push: true
-}
-
-```
-
-## Different webda versions
-
-If your current webda shell is not align with the application webda, you should set the environment `WEBDA_SHELL_DEPLOY_VERSION` when launching
-
-```
-WEBDA_SHELL_DEPLOY_VERSION=1.2.3 webda deploy -d Docker
-```
+`image` is the repository of the image and `tags` its tags (`["${git.version}"]` by default).
+`webda -d <deployment> container build` builds the image into an OCI layout folder or a `.tar` archive, `webda -d <deployment> deploy` (or
+`container push`) builds and pushes it.

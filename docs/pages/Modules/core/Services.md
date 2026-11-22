@@ -22,7 +22,7 @@ interface MyServiceParameters extends ServiceParameters {
 export class MyService extends Service<MyServiceParameters> {
   async init(): Promise<this> {
     await super.init();
-    this.log.info("Initialized", { url: this.parameters.apiUrl });
+    this.log("INFO", "Initialized", this.parameters.apiUrl);
     return this;
   }
 }
@@ -33,7 +33,6 @@ export class MyService extends Service<MyServiceParameters> {
 | Field     | Type     | Description                         |
 | --------- | -------- | ----------------------------------- |
 | `type`    | `string` | Service type (set by the framework) |
-| `openapi` | `object` | OpenAPI metadata override           |
 
 ## The `@Bean` decorator
 
@@ -57,17 +56,17 @@ A `@Bean` service is always registered in the application's service map. It does
 `@Inject` performs dependency injection — it sets the decorated field to the named service instance after all services are constructed, during the `resolve()` phase.
 
 ```typescript
-import { Service, Inject, Store } from "@webda/core";
+import { Service, Inject, CryptoService } from "@webda/core";
 import { Bean } from "@webda/core";
 
 @Bean
 export class OrderService extends Service {
   // Inject by service name
-  @Inject("orderStore")
-  store: Store<Order>;
+  @Inject("CryptoService")
+  crypto: CryptoService;
 
-  // Inject from configuration parameter value
-  @Inject("params:notificationServiceName", "NotificationService")
+  // Inject from configuration parameter value, with a default service name
+  @Inject("notificationServiceName", "NotificationService")
   notifier: NotificationService;
 
   // Optional injection (does not throw if service is missing)
@@ -81,7 +80,7 @@ export class OrderService extends Service {
 | Argument      | Description                                                        |
 | ------------- | ------------------------------------------------------------------ |
 | `name`        | Service name OR `"params:key"` to read from `this.parameters[key]` |
-| `defaultName` | Fallback service name if `name` resolves to undefined              |
+| `defaultName` | When set, `name` is a parameter key (without `params:`) and this is the fallback service name |
 | `optional`    | If `true`, silently set to `undefined` when not found              |
 
 ## The `@Route` decorator
@@ -178,8 +177,8 @@ import { useService, useDynamicService } from "@webda/core";
 const crypto = useService("CryptoService");
 
 // Dynamic name from config
-const storeName = this.parameters.storeName;
-const store = useDynamicService<Store>(storeName);
+const notifierName = this.parameters.notifierName;
+const notifier = useDynamicService<NotificationService>(notifierName);
 ```
 
 ## Configuration in `webda.config.json`
@@ -191,7 +190,7 @@ Services (other than `@Bean`) must be declared in config:
   "services": {
     "orderStore": {
       "type": "Webda/MemoryStore",
-      "model": "MyApp/Order"
+      "models": ["MyApp/Order"]
     },
     "notificationService": {
       "type": "MyApp/NotificationService",
@@ -203,22 +202,18 @@ Services (other than `@Bean`) must be declared in config:
 
 ## Logging in services
 
-Use `useLog` from `@webda/workout`:
+Use the `log(level, ...args)` method of `Service`:
 
 ```typescript
-import { useLog } from "@webda/workout";
-
 @Bean
 export class MyService extends Service {
-  protected log = useLog("MyService");
-
   async doWork(): Promise<void> {
-    this.log.info("Starting work", { key: "value" });
+    this.log("INFO", "Starting work", { key: "value" });
     try {
       await this.run();
-      this.log.debug("Work complete");
+      this.log("DEBUG", "Work complete");
     } catch (err) {
-      this.log.error("Work failed", { error: err });
+      this.log("ERROR", "Work failed", err);
       throw err;
     }
   }
@@ -240,6 +235,6 @@ pnpm test
 
 - [Lifecycle](./Lifecycle.md) — `resolve`, `init`, `stop` sequence
 - [Architecture](./Architecture.md) — how Core manages services
-- [Logging](./Logging.md) — `useLog` and structured logging
+- [Logging](./Logging.md) — `useLog`, `useLogger` and logger services
 - [Routing](./Routing.md) — `@Route` in detail
 - [@webda/core README](./README.md) — full hooks API reference

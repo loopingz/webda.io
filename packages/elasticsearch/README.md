@@ -71,18 +71,18 @@ pnpm add @webda/elasticsearch
 ```typescript
 import { Service } from "@webda/core";
 import { Bean, Inject } from "@webda/core";
-import ElasticSearchService from "@webda/elasticsearch";
+import { ElasticSearchService } from "@webda/elasticsearch";
 
 @Bean
 export class PostSearchService extends Service {
   @Inject("search")
   es: ElasticSearchService;
 
-  async findPosts(query: string): Promise<any[]> {
-    const result = await this.es.search("posts", {
+  async findPosts(query: string): Promise<Post[]> {
+    // Returns the hits loaded as instances of the index model
+    return this.es.search<Post>("posts", {
       query: { match: { title: query } }
     });
-    return result.hits.hits.map(h => h._source);
   }
 }
 

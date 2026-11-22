@@ -5,7 +5,7 @@ sidebar_label: Events
 
 # Events
 
-Webda has a two-tier event system: **Core lifecycle events** emitted by `Core` itself (startup, request, error, etc.), and **Store events** emitted by every Store on model mutations.
+Webda has a two-tier event system: **Core lifecycle events** emitted by `Core` itself (startup, request, error, etc.), and **Repository events** emitted on model mutations.
 
 ## Core lifecycle events
 
@@ -34,61 +34,37 @@ Available Core events:
 | `Webda.Result` | `{ context }` | After each request handler |
 | `Webda.404` | `{ context }` | No route matched |
 | `Webda.OperationSuccess` | `{ context }` | Operation completed successfully, after its transaction committed ([lifecycle](../../Concepts/Operations.md#operation-lifecycle-and-transactions)) |
-| `Webda.Configuration.Applied` | — | Configuration hot-reload applied |
+| `Webda.Configuration.Applied` | `{ configuration, delta }` | Configuration hot-reload applied |
 
-## Store events
+## Repository events
 
-Every `Store` emits events around CRUD operations:
+Every model Repository emits typed events around CRUD operations. App code listens through `useRepository(Model)` (stores are internal):
 
 ```typescript
-import { useModelStore } from "@webda/core";
+import { useRepository } from "@webda/core";
 
-const postStore = useModelStore("WebdaSample/Post");
+const posts = useRepository(Post);
 
-postStore.on("Store.Created", ({ object }) => {
+posts.on("Created", ({ object }) => {
   console.log("Post created:", object.slug);
 });
 
-postStore.on("Store.Updated", ({ object, previous }) => {
+posts.on("Updated", ({ object, previous }) => {
   console.log("Post updated:", previous.title, "→", object.title);
 });
 
-postStore.on("Store.Deleted", ({ object_id }) => {
+posts.on("Deleted", ({ object_id }) => {
   console.log("Post deleted:", object_id);
 });
 
-postStore.on("Store.Queried", ({ query, results }) => {
+posts.on("Queried", ({ query, results }) => {
   console.log(`Query "${query}" returned ${results.length} results`);
 });
 ```
 
-Store event naming conventions:
-- `Store.Created`, `Store.Updated`, `Store.Deleted`, `Store.Patched`, `Store.Queried`
-- Pre-operation: `Store.Create`, `Store.Update`, `Store.Delete`, `Store.Patch`, `Store.Query`
-
-## The `@On` decorator
-
-In service classes, use `@On` to subscribe declaratively:
-
-```typescript
-import { Bean, Service } from "@webda/core";
-// @On is available from @webda/core in v4
-import { On } from "@webda/core";
-
-@Bean
-export class SearchIndexService extends Service {
-  @On("Store.Created:WebdaSample/Post")
-  async onPostCreated(event: any): Promise<void> {
-    const post = event.object;
-    await this.indexPost(post);
-  }
-
-  @On("Store.Deleted:WebdaSample/Post")
-  async onPostDeleted(event: any): Promise<void> {
-    await this.removeFromIndex(event.object_id);
-  }
-}
-```
+Event names (`ModelEvents` in `@webda/models`):
+- After the change: `Created`, `Updated`, `Patched`, `PartialUpdated`, `Deleted`, `Queried`, `Aggregated`
+- Before the change: `Create`, `Update`, `Patch`, `PartialUpdate`, `Delete`, `Query`, `Aggregate`
 
 ## Model custom events
 
@@ -161,6 +137,6 @@ pnpm test
 
 - [Architecture](./Architecture.md) — Core lifecycle state machine
 - [Lifecycle](./Lifecycle.md) — service lifecycle phases
-- [Stores](./Stores.md) — `Store.Created`, `Store.Updated`, etc.
+- [Stores](./Stores.md) — repository events
 - [Models Lifecycle](../models/Lifecycle.md) — model-level events
 - [GraphQL Subscriptions](../graphql/Subscriptions.md) — real-time event streaming

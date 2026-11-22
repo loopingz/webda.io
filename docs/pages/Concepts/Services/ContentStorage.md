@@ -50,21 +50,17 @@ Use `?credential=<profile-name>` to select named credentials configured on the p
 {
   "services": {
     "source": {
-      "type": "@webda/aws/S3Binary",
-      "params": {
-        "bucket": "source-bucket",
-        "credentialProfiles": {
-          "source": { "accessKeyId": "SOURCE_KEY", "secretAccessKey": "SOURCE_SECRET" }
-        }
+      "type": "Webda/S3Binary",
+      "bucket": "source-bucket",
+      "credentialProfiles": {
+        "source": { "accessKeyId": "SOURCE_KEY", "secretAccessKey": "SOURCE_SECRET" }
       }
     },
     "destination": {
-      "type": "@webda/gcp/Storage",
-      "params": {
-        "bucket": "destination-bucket",
-        "credentialProfiles": {
-          "destination": { "projectId": "destination-project", "keyFilename": "/run/secrets/destination-gcs.json" }
-        }
+      "type": "Webda/GoogleCloudStorage",
+      "bucket": "destination-bucket",
+      "credentialProfiles": {
+        "destination": { "projectId": "destination-project", "keyFilename": "/run/secrets/destination-gcs.json" }
       }
     }
   }
@@ -100,13 +96,11 @@ Services extending `CloudBinary` (`S3Binary`, `Storage`, `FileBinary`) automatic
 {
   "services": {
     "s3": {
-      "type": "@webda/aws/S3Binary",
-      "params": {
-        "bucket": "my-app-uploads",
-        "contentStorage": {
-          "register": true,
-          "default": true
-        }
+      "type": "Webda/S3Binary",
+      "bucket": "my-app-uploads",
+      "contentStorage": {
+        "register": true,
+        "default": true
       }
     }
   }

@@ -14,7 +14,6 @@ flowchart TD
     subgraph L1["Application Layer"]
         Application["Application\n(module discovery, config loading)"]
         UnpackedApp["UnpackedApplication\n(dev-mode auto-discovery)"]
-        Runner["Runner\n(startup orchestration)"]
     end
 
     subgraph L2["Core Runtime"]
@@ -68,13 +67,12 @@ Responsible for **discovering modules** and **loading configuration** before any
 
 - **`Application`** — reads `webda.config.json`, scans `webda.module.json` from installed packages, builds the model and service registry.
 - **`UnpackedApplication`** — development variant; auto-discovers source-level `webda.module.json` and creates default infrastructure services (Router, Registry, CryptoService, SessionManager).
-- **`Runner`** — orchestrates startup: `new Core(app)` → `core.init()` → `core.run()` → `SIGINT` graceful shutdown.
 
 ### 2. Core Runtime
 
 The central orchestrator.
 
-- **`Core`** — creates, resolves, and initializes all services. Tracks the lifecycle state machine: `initial → loading → initializing → ready → stopping → stopped`.
+- **`Core`** — creates, resolves, and initializes all services. Tracks the lifecycle state machine: `initial → loading → resolving → resolved → initializing → ready → stopping → stopped` (plus `reinitializing`).
 - **`InstanceStorage`** — `AsyncLocalStorage`-based storage that holds the current `Core`, `Application`, `Router`, and request context. Powers the hooks pattern.
 - **Core Events** — `Webda.Init`, `Webda.Request`, `Webda.Result`, `Webda.404`, `Webda.OperationSuccess`, `Webda.Configuration.Applied`.
 

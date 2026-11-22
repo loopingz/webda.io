@@ -14,13 +14,12 @@ This module is part of Webda Application Framework that allows you to quickly de
 
 <!-- README_HEADER -->
 
-> Kubernetes integration for Webda — `KubeRunner` dispatches async jobs as Kubernetes batch Jobs, `KubernetesSecretsStore` reads model data from K8s Secrets, `CronJobDeployer` manages CronJob lifecycle, and `KnativeDeployer` deploys the application as a Knative (or Cloud Run) Service.
+> Kubernetes integration for Webda — `KubeRunner` dispatches async jobs as Kubernetes batch Jobs, `KubernetesStore` stores models as custom resources, `KubernetesCronExporter` exports the application crons as CronJobs, and `KnativeDeployer` deploys the application as a Knative (or Cloud Run) Service.
 
 ## When to use it
 
 - You are using `@webda/async` and want async job workers to run as Kubernetes Jobs (one pod per job, auto-retried, auto-cleaned).
-- You want to store Webda model instances in Kubernetes Secrets (useful for small, sensitive configuration objects).
-- You need to deploy a scheduled Webda service operation as a Kubernetes CronJob.
+- You need to run the scheduled operations of the application as Kubernetes CronJobs (`webda kubernetes cronExport`).
 - You read Kubernetes resources from a service: typed API clients and a self-restarting informer for custom resources.
 - You store configuration-like models as Kubernetes custom resources (`KubernetesStore`), editable with kubectl/GitOps.
 - You reconcile those models like a Kubernetes controller (`KubernetesOperator`).
@@ -124,7 +123,7 @@ Run differences, the cold-start guidance, the stateless rules and the Eventing c
 //    NAME                          COMPLETIONS   DURATION
 //    kuberunner-abc123             1/1           12s
 //
-// 3. The Job pod runs: webda runAsyncAction
+// 3. The Job pod runs: webda async run
 //    → calls MyService.runReport(reportId) inside the cluster
 
 // To run locally (without Kubernetes), switch to ServiceRunner:
@@ -248,7 +247,7 @@ The informer needs the `list` and `watch` verbs on the resource.
 
 - API reference: see the auto-generated typedoc at `docs/pages/Modules/kubernetes/`.
 - Source: [`packages/kubernetes`](https://github.com/loopingz/webda.io/tree/main/packages/kubernetes)
-- Related: [`@webda/async`](../async) for the job orchestration layer; [`@webda/aws`](../aws) for `LambdaDeployer` as an AWS equivalent; [`@webda/core`](../core) for the `Runner` base class.
+- Related: [`@webda/async`](../async) for the job orchestration layer; [`@webda/aws`](../aws) for `LambdaPackager` and `CloudFormationDeployer` as AWS equivalents; [`@webda/core`](../core) for the `Runner` base class.
 
 <!-- README_FOOTER -->
 

@@ -35,13 +35,12 @@ pnpm add @webda/postgres
   "services": {
     "postStore": {
       "type": "PostgresStore",
-      "model": "MyApp/Post",
+      "models": ["MyApp/Post"],
       "postgresqlServer": {
         "host": "localhost",
         "port": 5432,
         "database": "myapp",
-        "user": "webda",
-        "password": "${POSTGRES_PASSWORD}"
+        "user": "webda"
       },
       "autoCreateTable": true
     }
@@ -56,7 +55,7 @@ Or rely on libpq environment variables (`PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSE
   "services": {
     "postStore": {
       "type": "PostgresStore",
-      "model": "MyApp/Post",
+      "models": ["MyApp/Post"],
       "autoCreateTable": true
     }
   }
@@ -121,27 +120,25 @@ lifecycle, the compatibility rules and the limitations.
 ## Usage
 
 ```typescript
-import { CoreModel, Model, Expose } from "@webda/core";
+import { CoreModel } from "@webda/core";
 
-@Model()
 export class Post extends CoreModel {
-  @Expose() title: string;
-  @Expose() content: string;
-  @Expose() publishedAt: Date;
+  title: string;
+  content: string;
+  publishedAt: Date;
 }
 
 // With PostgresStore configured, the standard Webda model API is backed by Postgres:
-const post = new Post();
-post.title = "Hello Postgres";
-await post.save(); // INSERT INTO posts ...
+const post = await Post.create({ title: "Hello Postgres" }); // INSERT INTO posts ...
 
 const found = await Post.ref(post.uuid).get(); // SELECT ... WHERE uuid = ?
 const results = await Post.query("title CONTAINS 'Hello'"); // filtered query
 
 // The table schema uses JSONB:
 //   CREATE TABLE IF NOT EXISTS posts (
-//     uuid TEXT PRIMARY KEY,
-//     data JSONB NOT NULL
+//     uuid VARCHAR(255) NOT NULL,
+//     data jsonb,
+//     CONSTRAINT posts_pkey PRIMARY KEY (uuid)
 //   );
 ```
 
@@ -200,7 +197,7 @@ when the operation succeeds, rolled back when it throws. An operation writing se
 
 - API reference: see the auto-generated typedoc at `docs/pages/Modules/postgres/`.
 - Source: [`packages/postgres`](https://github.com/loopingz/webda.io/tree/main/packages/postgres)
-- Related: [`@webda/mongodb`](../mongodb) for a document-store alternative; [`@webda/aws`](../aws) for `DynamoStore`; [`@webda/core`](../core) for the `Store` base class.
+- Related: [`@webda/mongo`](../mongodb) for a document-store alternative; [`@webda/aws`](../aws) for `DynamoStore`; [`@webda/core`](../core) for the `Store` base class.
 
 <!-- README_FOOTER -->
 

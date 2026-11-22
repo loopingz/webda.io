@@ -23,7 +23,7 @@ pnpm create @webda my-app --store postgres --transports rest,graphql --yes
 
 | Flag                       | Values                                         | Default                                 |
 | -------------------------- | ---------------------------------------------- | --------------------------------------- |
-| `--store`                  | `memory`, `file`, `mongodb`, `postgres`        | `memory`                                |
+| `--store`                  | `memory`, `file`, `sqlite`, `mongodb`, `postgres` | `memory`                             |
 | `--transports`             | comma list of `rest`, `graphql`, `grpc`, `mcp` | `rest`                                  |
 | `--namespace`              | application namespace                          | from the directory name                 |
 | `--pm`                     | `pnpm`, `npm`, `yarn`                          | the package manager running the command |

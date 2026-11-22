@@ -3,11 +3,11 @@
 We use the `JSONB` type and use postgres as a NoSQL store for now.
 More optimizations will come
 
-The Store requires the database and table to be created before
+The database must exist; the store creates its tables at init (`autoCreateTable`, default `true`, with a `VARCHAR(255)` primary key)
 
 ## Create table
 
-To create the table simply run
+To create the table yourself (`"autoCreateTable": false`) run
 
 ```sql
 CREATE TABLE IF NOT EXISTS ${tableName}

@@ -2,7 +2,7 @@
 
 Services to handle binary files.
 
-Available implementations: S3Binary, FileBinary, GoogleStorageBinary
+Available implementations: S3Binary, FileBinary, GoogleCloudStorage, AzureBlobBinary
 
 These services are responsible for storing and retrieving binary files attached to CoreModel.
 
@@ -58,11 +58,11 @@ S3Binary and GCS Storage usage markers now name the model: `@<model>_<attribute>
 
 ## Map
 
-Binary services define who is responsible for what fields of your CoreModel. With a map, you can define which fields of which objects can store binaries.
+Binary services define who is responsible for what fields of your CoreModel. With the `models` parameter, you can define which fields of which models can store binaries (`*` for every model or every attribute, the default is `{ "*": ["*"] }`).
 
 ```javascript title="webda.config.json"
-"map": {
-	"users": ["s3images"]
+"models": {
+	"MyApp/User": ["s3images"]
 }
 ```
 

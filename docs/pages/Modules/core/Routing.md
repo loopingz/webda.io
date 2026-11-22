@@ -24,7 +24,7 @@ export class StatusService extends Service {
   @Route("/admin/flush", ["POST"])
   async flush(ctx: WebContext): Promise<void> {
     await this.clearCache();
-    ctx.statusCode(204);
+    ctx.status(204);
   }
 }
 ```
@@ -42,10 +42,10 @@ export class StatusService extends Service {
 ```typescript
 @Route("/posts/{slug}", ["GET"])
 async getPost(ctx: WebContext): Promise<void> {
-  const slug = ctx.getPathParameter("slug");
+  const slug = ctx.parameter("slug");
   const post = await Post.ref(slug).get();
   if (!post) {
-    ctx.statusCode(404);
+    ctx.status(404);
     return;
   }
   ctx.write(post);
@@ -58,14 +58,14 @@ async getPost(ctx: WebContext): Promise<void> {
 
 | HTTP method | URL | Operation |
 |-------------|-----|-----------|
-| `GET` | `/posts` | List (with WQL `query` param) |
+| `PUT` | `/posts` | Query (WQL in the `q` body field; `GET /posts?q=` when `queryMethod` is `GET`) |
 | `POST` | `/posts` | Create |
 | `GET` | `/posts/:slug` | Get one |
 | `PUT` | `/posts/:slug` | Replace |
 | `PATCH` | `/posts/:slug` | Partial update |
 | `DELETE` | `/posts/:slug` | Delete |
 | `POST` | `/posts/:slug/publish` | Custom `@Operation()` method |
-| `GET` | `/posts/:slug/comments` | List related `Contains<Comment>` |
+| `PUT` | `/posts/:slug/comments` | Query related `Contains<Comment>` |
 | `POST` | `/posts/:slug/comments` | Create comment in relation |
 
 Route URLs are derived from:
@@ -73,15 +73,17 @@ Route URLs are derived from:
 - The `[WEBDA_PLURAL]` symbol if set
 - The `[WEBDA_PRIMARY_KEY]` fields (`:slug` for `Post`, `:uuid` for `UuidModel`)
 
-## Query parameters for list endpoints
+## Query endpoint
 
-The list endpoint (`GET /posts`) accepts:
-- `?query=<WQL>` — filter expression
-- `?limit=<n>` — max results
-- `?offset=<token>` — continuation token
+The query endpoint (`PUT /posts` by default) takes a JSON body:
+- `q` — WQL filter expression; `LIMIT` and `OFFSET '<continuationToken>'` go in the query itself
+- `count` — also return the total (first page only)
+
+With `queryMethod: "GET"` on the REST transport, the same fields are query string parameters (`GET /posts?q=...&count=true`).
 
 ```bash
-curl "https://localhost:18080/posts?query=status%20%3D%20'published'&limit=10"
+curl -X PUT "https://localhost:18080/posts" -H "Content-Type: application/json" \
+  -d "{\"q\": \"status = 'published' LIMIT 10\"}"
 ```
 
 ## Content negotiation
@@ -90,13 +92,13 @@ The Router supports Accept headers. By default it returns JSON. REST and gRPC tr
 
 ## Viewing routes at runtime
 
-Check the OpenAPI spec to see all routes:
+The REST transport serves the OpenAPI spec on `GET` of its base url (`/` by default) when `exposeOpenAPI` is set (default: in debug mode):
 
 ```bash
-curl -sk https://localhost:18080/openapi.json | jq '.paths | keys'
+curl -sk https://localhost:18080/ | jq '.paths | keys'
 ```
 
-Or use the WebUI at `/admin` (if `ResourceService` is configured).
+`webda openapi` also writes the spec to a file.
 
 ## OpenAPI spec generation
 
@@ -124,7 +126,7 @@ async createPost(ctx: WebContext): Promise<void> { ... }
 cd sample-apps/blog-system
 # (server running at https://localhost:18080)
 
-curl -sk https://localhost:18080/openapi.json | jq '.paths | keys | .[:15]'
+curl -sk https://localhost:18080/ | jq '.paths | keys | .[:15]'
 ```
 
 ```json

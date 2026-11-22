@@ -1,10 +1,12 @@
 # Throttler
 
-Webda have a util to allow you to parallelize your code and limit the number of parallel execution.
+`Throttler`, from `@webda/utils`, allows you to parallelize your code and limit the number of parallel execution.
 
 ## Usage
 
 ```typescript
+import { Throttler } from "@webda/utils";
+
 // To limit to 20 parallel execution
 const throtter = new Throttler(20);
 for await (const item of items) {

@@ -1,10 +1,11 @@
 # Acl Model
 
-This implement a basic Acl Model system
+`ResourceAcl` (`@webda/core`) implements a basic ACL system: an array of entries `{ action, type: "USER" | "GROUP", principal, allow }` stored as a model attribute. The model delegates its permissions to it:
 
-It expose two new route if model is exposed via Store:
+```typescript
+async canAct(context: IOperationContext, action: string) {
+  return ResourceAcl.from(this.acl ?? []).canAct(context, action);
+}
+```
 
-- `GET /store/{uuid}/acl`
-- `PUT /store/{uuid}/acl`
-
-A phantom attribute `_permissions` is added on when the model is retrieved via `GET`
+See [Model Permissions](../../Modules/models/Permissions.md#resourceacl).

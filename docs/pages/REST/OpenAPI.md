@@ -13,14 +13,14 @@ webda openapi --include-hidden
 You can save it to a file by typing
 
 ```
-webda openapi myapi.json
+webda openapi --output myapi.json
 ```
 
 Webda complete the api definition as best as it can with the information it has.
 But everytime you had a `Route` you can include your own additional configuration
 
 ```
-@Route("/cloudprojects/{uuid}/scans/{environment}/report", "GET", false, {
+@Route("/cloudprojects/{uuid}/scans/{environment}/report", "GET", {
     // My openapi additional information
 })
 ```

@@ -39,7 +39,7 @@ pnpm add @webda/hawk
     },
     "apiKeyStore": {
       "type": "MemoryStore",
-      "model": "MyApp/ApiKey"
+      "models": ["MyApp/ApiKey"]
     }
   }
 }
@@ -57,19 +57,15 @@ pnpm add @webda/hawk
 ```typescript
 // 1. Create an API key for a client
 import { ApiKey } from "@webda/hawk";
-import { Bean, Inject } from "@webda/core";
-import HawkService from "@webda/hawk";
+import { Bean, Service } from "@webda/core";
+import { randomBytes } from "node:crypto";
 
 @Bean
 export class ApiKeyManager extends Service {
-  @Inject("hawk")
-  hawk: HawkService;
-
-  async issueKey(clientId: string): Promise<ApiKey> {
-    const key = new ApiKey();
-    key.clientId = clientId;
-    // key.key and key.algorithm are auto-generated
-    return key.save();
+  async issueKey(name: string): Promise<ApiKey> {
+    // The key id is its uuid, algorithm defaults to sha256
+    // (a key created through the REST API gets a generated secret)
+    return ApiKey.create({ name, __secret: randomBytes(48).toString("base64") });
   }
 }
 

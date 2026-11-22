@@ -16,8 +16,8 @@ This module is part of Webda Application Framework that allows you to quickly de
 
 A pure, driver-free function from compiled Webda model metadata (`Schemas.Stored`, `Relations`, `Reflection`,
 `PrimaryKey`, `Ancestors`) to a **`RelationalSchemaPlan`**: tables, typed columns, primary keys, foreign keys, junction
-tables and indexes. Relational stores render the same plan in their own dialect (#838 `PostgresRelationalStore`, #841
-`SequelizeStore`).
+tables and indexes. Relational stores render the same plan in their own dialect (`PostgresRelationalStore`,
+`SQLiteRelationalStore`).
 
 It has no runtime dependency: no database, no logging, no Webda core. Warnings are returned in the plan.
 
@@ -67,4 +67,4 @@ policy change, primary key change, hierarchy change, layout option change). `all
 a table, column, model or attribute to a forced `WARN`.
 
 The plan is consumed by `@webda/sql` (`RelationalRepository`, `RelationalSchemaManager`) and rendered by
-`PostgresRelationalStore` in `@webda/postgres`.
+`PostgresRelationalStore` in `@webda/postgres` and `SQLiteRelationalStore` in `@webda/sqlite`.

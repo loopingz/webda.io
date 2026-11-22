@@ -5,7 +5,8 @@ We do not have a testing framework built into the application, but you can use t
 We have done some abstraction based on the great work from `@testdeck`, you can create your test with:
 
 ```typescript
-import { suite, test, WebdaTest } from "@webda/core";
+import { suite, test } from "@webda/test";
+import { WebdaTest } from "@webda/core/lib/test";
 
 @suite
 class MyTest extends WebdaTest {

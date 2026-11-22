@@ -14,7 +14,7 @@ This module is part of Webda Application Framework that allows you to quickly de
 
 <!-- README_HEADER -->
 
-> Webda runtime service bundle — router, cluster coordination, proxy, invitation system, version endpoint, and core utility models bundled for use in any Webda deployment.
+> Webda runtime service bundle — cluster coordination, proxy, invitation system, version endpoint, and core utility models bundled for use in any Webda deployment.
 
 ## When to use it
 
@@ -33,16 +33,16 @@ pnpm add @webda/runtime
 
 ### Services
 
-- `ClusterService` — Coordinates multiple Webda instances via a pub/sub channel; broadcasts invalidation events ([source](./src/services/cluster.ts))
-- `EchoService` — Development helper that echoes request bodies back to the caller ([source](./src/services/echo.ts))
-- `InvitationService` — Token-based invitation/join-code system for model membership ([source](./src/services/invitationservice.ts))
-- `ProxyService` — HTTP reverse proxy that forwards requests matching a URL prefix to an upstream host ([source](./src/services/proxy.ts))
-- `VersionService` — Exposes a `/version` endpoint returning the application name and version ([source](./src/services/version.ts))
+- `ClusterService` — Coordinates multiple Webda instances via a pub/sub channel; broadcasts invalidation events ([source](./src/services/cluster.service.ts))
+- `EchoService` — Serves a static result on a fixed route ([source](./src/services/echo.service.ts))
+- `InvitationService` — Token-based invitation/join-code system for model membership ([source](./src/services/invitationservice.service.ts))
+- `ProxyService` — HTTP reverse proxy that forwards requests matching a URL prefix to an upstream host ([source](./src/services/proxy.service.ts))
+- `VersionService` — Exposes a `/version` endpoint returning the application name and version ([source](./src/services/version.service.ts))
 
-### Utility models
+### Utility models and services
 
-- `BinaryModel` — Base model with binary attachment support ([source](./src/utils/binarymodel.ts))
-- `PasswordModel` — Secure password hashing helper ([source](./src/utils/password.ts))
+- `BinaryModel` — Base model with binary attachment support ([source](./src/models/binarymodel.model.ts))
+- `PasswordEncryptionService` — Registers the `password` encrypter for configuration secrets ([source](./src/utils/password.service.ts))
 
 ## Quick config example
 
@@ -56,7 +56,7 @@ pnpm add @webda/runtime
     "proxy": {
       "type": "ProxyService",
       "url": "/legacy",
-      "upstream": "http://old-service:8080"
+      "backend": "http://old-service:8080"
     }
   }
 }

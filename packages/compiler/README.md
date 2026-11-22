@@ -51,7 +51,7 @@ What it does:
 3. Generates per-model JSON Schemas (input, output, stored)
 4. Writes `webda.module.json` at the project root
 5. Merges dependency modules from `node_modules`
-6. Writes `.webda-config-schema.json` and `.webda-deployment-schema.json`
+6. Writes `.webda/config.schema.json` and `.webda/deployment.schema.json`
 
 #### `webdac code`
 
@@ -91,7 +91,7 @@ It no longer generates code: `webdac build` does, without touching your sources.
   "models": {
     "MyApp/Post": {
       "Import": "lib/models/post:Post",
-      "Schema": { ... }
+      "Schemas": { "Input": { ... }, "Output": { ... }, "Stored": { ... } }
     }
   },
   "deployers": {},

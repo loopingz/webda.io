@@ -40,7 +40,7 @@ pnpm add @webda/debug
 }
 ```
 
-`DebugService` listens on port **18181** by default. No additional parameters are required for basic use — the service auto-wires to core events on `resolve()`.
+`webda debug` starts the debug server on port **18181** by default (`--port`), next to the application server (`--servePort`, 18080). No additional parameters are required for basic use — the service auto-wires to core events on `resolve()`.
 
 ## Usage
 
@@ -50,22 +50,14 @@ pnpm add @webda/debug
 //   webda debug
 //
 // The service exposes:
-//   GET  http://localhost:18181/         → Serves the built-in debug web UI
-//   GET  http://localhost:18181/api/...  → Introspection endpoints:
+//   GET  http://localhost:18181/         → Serves the bundled debug web UI (with `webda debug --web --local`)
+//   GET  http://localhost:18181/api/...  → Introspection endpoints (session token required):
 //     /api/routes     — registered routes
 //     /api/models     — model definitions
 //     /api/services   — active services
 //     /api/operations — registered operations
 //     /api/config     — resolved configuration
 //   WS   ws://localhost:18181/ws         → Live event push (requests + logs)
-
-// To manually start the debug server in tests:
-import { DebugService } from "@webda/debug";
-import { Core } from "@webda/core";
-
-const debug = await new DebugService(Core.get(), "debugService").resolve().init();
-// Connects to port 18181 — open http://localhost:18181 in a browser
-await debug.stop();
 ```
 
 ## Reference

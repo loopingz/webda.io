@@ -2,7 +2,7 @@
 
 `Webda/PostgresRelationalStore` stores models in **typed tables**: one column per field, primary and foreign keys,
 junction tables for the link collections, indexes. The schema is generated from the compiled model metadata by
-[`@webda/sql-schema`](../sql-schema/README.md); the models, the `Repository<T>` API, WebdaQL and the repository events
+[`@webda/sql-schema`](https://github.com/loopingz/webda.io/tree/main/packages/sql-schema); the models, the `Repository<T>` API, WebdaQL and the repository events
 are the same as with the JSONB [`PostgresStore`](./PostgresStore.md).
 
 ```json

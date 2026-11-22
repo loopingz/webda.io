@@ -32,20 +32,19 @@ pnpm add @webda/aws
 
 ### Runtime services
 
-- `DynamoStore` — DynamoDB-backed Store for any Webda model ([source](./src/services/dynamodb.ts))
-- `S3Binary` — S3-backed Binary service for file uploads and downloads ([source](./src/services/s3binary.ts))
-- `SQSQueue` — SQS-backed Queue for durable task queuing ([source](./src/services/sqsqueue.ts))
-- `CloudWatchLogger` — Streams application logs to CloudWatch Logs ([source](./src/services/cloudwatchlogger.ts))
-- `SecretsManager` — Resolves configuration parameters from AWS Secrets Manager ([source](./src/services/secretsmanager.ts))
-- `Route53` — DNS record management via Route53 ([source](./src/services/route53.ts))
-- `LambdaServer` — Adapts incoming Lambda events to Webda's HTTP context ([source](./src/services/lambdaserver.ts))
-- `LambdaCaller` — Invokes other Lambda functions as service calls ([source](./src/services/lambdacaller.ts))
+- `DynamoStore` — DynamoDB-backed Store for any Webda model ([source](./src/services/dynamodb.service.ts))
+- `S3Binary` — S3-backed Binary service for file uploads and downloads ([source](./src/services/s3binary.service.ts))
+- `SQSQueue` — SQS-backed Queue for durable task queuing ([source](./src/services/sqsqueue.service.ts))
+- `CloudWatchLogger` — Streams application logs to CloudWatch Logs ([source](./src/services/cloudwatchlogger.service.ts))
+- `AWSSecretsManager` — Resolves configuration parameters from AWS Secrets Manager ([source](./src/services/secretsmanager.service.ts))
+- `AWSCommands` — `webda aws route53 export|import|sync` and `webda aws copyTable` commands, DNS helpers in `Route53Service` ([source](./src/services/awscommands.service.ts))
+- `LambdaServer` — Adapts incoming Lambda events to Webda's HTTP context ([source](./src/services/lambdaserver.service.ts))
+- `LambdaCaller` — Invokes other Lambda functions as service calls ([source](./src/services/lambdacaller.service.ts))
 
-### Deployers (shell/build-time)
+### Deployers (build-time)
 
-- `LambdaDeployer` — Packages and deploys the application as an AWS Lambda function ([source](./src/deployers/lambda-entrypoint.ts))
-- `CloudFormationDeployer` — Full infrastructure deployment via AWS CloudFormation ([source](./src/deployers/cloudformation.ts))
-- `LambdaPackager` — Bundles the application for Lambda deployment ([source](./src/deployers/lambdapackager.ts))
+- `CloudFormationDeployer` — Full infrastructure deployment via AWS CloudFormation ([source](./src/deployers/cloudformation.service.ts))
+- `LambdaPackager` — Bundles the application for Lambda deployment ([source](./src/deployers/lambdapackager.service.ts)); the packaged handler is [`lambda-entrypoint`](./src/deployers/lambda-entrypoint.ts)
 
 ## Quick config example
 
@@ -54,7 +53,7 @@ pnpm add @webda/aws
   "services": {
     "userStore": {
       "type": "DynamoStore",
-      "model": "MyApp/User",
+      "models": ["MyApp/User"],
       "table": "my-app-users",
       "region": "us-east-1"
     },

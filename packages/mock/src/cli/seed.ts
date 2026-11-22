@@ -12,7 +12,8 @@ export type SeedParsed = {
 };
 
 /**
- * Parse `webda mock seed` argv. Recognises:
+ * Parse `webda mock seed`-style argv, for a seed script or command of your own
+ * (no `webda mock` command is registered by this package). Recognises:
  *   --ModelName N         count for a model
  *   --seed N              deterministic seed
  *   --mode dev|demo|…

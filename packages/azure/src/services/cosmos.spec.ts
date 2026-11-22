@@ -211,8 +211,6 @@ class CosmosTest extends AzureTest {
     );
     sdk.failWrite = true;
     await expect(repository.delete("advanced")).rejects.toBeInstanceOf(UpdateConditionFailError);
-    await expect(raw.deleteMany()).rejects.toThrow("bulk delete");
-    await expect(raw.updateMany()).rejects.toThrow("bulk update");
     const results: any[] = [];
     for await (const item of raw.iterate("LIMIT 100")) results.push(item);
     expect(results.some(item => item.uuid === "advanced")).toBe(true);
@@ -287,6 +285,27 @@ class CosmosTest extends AzureTest {
     } finally {
       store.parameters.throughput = undefined;
     }
+  }
+
+  @test async bulkStatementsGoThroughThePerKeyPrimitives() {
+    const store = useDynamicService<CosmosStore>("Cosmos");
+    const raw = (store.getRepository(useModel("WebdaTest/Task")) as any).repository as CosmosRepository<any>;
+    sdk.documents.clear();
+    await raw.create({ uuid: "bulk-1", name: "old", count: 1 } as any);
+    await raw.create({ uuid: "bulk-2", name: "old", count: 1 } as any);
+    await raw.create({ uuid: "bulk-3", name: "old", count: 1 } as any);
+
+    // The SDK mock does not filter: what is checked is that the WHERE reaches Cosmos and each match is written
+    sdk.query.mockClear();
+    expect(await raw.updateMany("UPDATE SET name = 'new' WHERE count = 1")).toBe(3);
+    expect(sdk.query.mock.calls[0]![0].query).toContain('c["value"]["count"]');
+    for (const uuid of ["bulk-1", "bulk-2", "bulk-3"]) expect((await raw.get(uuid)).name).toBe("new");
+
+    expect(await raw.deleteMany("DELETE WHERE name = 'new' LIMIT 2")).toBe(2);
+    expect(sdk.documents.size).toBe(1);
+    expect(await raw.deleteMany("DELETE WHERE name = :name", { name: "new" })).toBe(1);
+    expect(sdk.documents.size).toBe(0);
+    await expect(raw.deleteMany("name = 'new'")).rejects.toThrow("deleteMany needs a DELETE statement");
   }
 
   @test emptyBooleanQueriesPreserveTheirMeaning() {

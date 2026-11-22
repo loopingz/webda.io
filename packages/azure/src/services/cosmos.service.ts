@@ -518,18 +518,21 @@ export class CosmosRepository<T extends ModelClass> extends MemoryRepository<T> 
     } while (parsed.continuationToken);
   }
   /**
-   * Perform delete many.
+   * Delete in bulk: the generic fallback (matching keys collected up to LIMIT, then deleted one by one with
+   * this repository's ETag-conditioned `delete`), no per-object event. A Cosmos transactional batch only
+   * spans one partition, so it is not used here.
    * @override
    */
-  async deleteMany(): Promise<number> {
-    throw new WebdaError.NotImplemented("Cosmos bulk delete is not supported");
+  async deleteMany(statement: string | QL.Query, params?: QL.QueryParameters): Promise<number> {
+    return this.deleteManyByKey(statement, params);
   }
   /**
-   * Perform update many.
+   * Update in bulk: the generic fallback (matching keys collected up to LIMIT, then patched one by one with
+   * this repository's ETag-conditioned `patch`), no per-object event.
    * @override
    */
-  async updateMany(): Promise<number> {
-    throw new WebdaError.NotImplemented("Cosmos bulk update is not supported");
+  async updateMany(statement: string | QL.Query, params?: QL.QueryParameters): Promise<number> {
+    return this.updateManyByKey(statement, params);
   }
 }
 

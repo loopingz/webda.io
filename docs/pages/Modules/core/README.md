@@ -35,7 +35,7 @@ The central orchestrator that manages the service lifecycle and dependency graph
 
 All application logic lives in services. Every service extends `Service` which provides logging, metrics, dependency injection, and event emission.
 
-- **Service** -- Base class for all application services. Provides `@Inject` decorator for DI, `@Route` for HTTP endpoints, logger per instance, metrics support, and lifecycle hooks (`init()`, `resolve()`, `stop()`).
+- **Service** -- Base class for all application services. Provides `@Inject` decorator for DI, `@Operation` for operations (REST, GraphQL, gRPC, MCP) and `@Route` for raw HTTP endpoints, logger per instance, metrics support, and lifecycle hooks, called in this order: `resolve()`, `init()`, `stop()`.
 - **ServiceParameters** -- Base configuration class with change watching support. Services declare their config shape by extending this class.
 - **CryptoService** -- Encryption, JWT signing/verification, key management with rotation support. Pluggable encrypters.
 - **BinaryService** -- Abstract file/binary storage with metadata, integrity challenges, and model-attribute mapping.

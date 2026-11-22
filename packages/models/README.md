@@ -16,7 +16,7 @@ This module is part of Webda Application Framework that allows you to quickly de
 
 ## @webda/models
 
-The domain model layer for Webda applications. Provides the base `Model` and `UuidModel` classes, relationship types (`BelongTo`, `Contains`, `OneToMany`, `ManyToMany`), primary key definitions and lifecycle events.
+The domain model layer for Webda applications. Provides the base `Model` and `UuidModel` classes, relationship types (`BelongTo`, `Contains`, `OneToMany`, `ManyToMany`), primary key definitions and lifecycle events. Model operations use the `@Operation` decorator of `@webda/core`.
 
 ### When to use it
 
@@ -31,7 +31,7 @@ npm install @webda/models
 ### Quick start
 
 ```typescript
-import { Model, UuidModel, BelongTo, Contains, ManyToMany, WEBDA_PRIMARY_KEY } from "@webda/models";
+import { Model, UuidModel, Contains, ManyToMany, RelateTo, WEBDA_PRIMARY_KEY } from "@webda/models";
 import { Operation } from "@webda/core";
 import type { User } from "./User";
 import type { Comment } from "./Comment";
@@ -58,11 +58,11 @@ export class Post extends Model {
   createdAt!: Date;
 
   // Relationships
-  author!: BelongTo<User>;
+  author!: RelateTo<User>; // a BelongTo<User> would delete the posts with their author
   comments!: Contains<Comment>;
   tags!: ManyToMany<Tag>;
 
-  // Custom action → POST /posts/:slug/publish
+  // Custom action → PUT /posts/{slug}/publish
   @Operation()
   async publish(destination: "linkedin" | "twitter"): Promise<string> {
     return `${destination}_${this.slug}_${Date.now()}`;
@@ -87,11 +87,11 @@ export class User extends UuidModel {
 
 | Type | Description | Blog-system example |
 |------|-------------|---------------------|
-| `BelongTo<T>` | Many-to-one reference | `Comment.author → User` |
+| `BelongTo<T>` | Link to the parent: deleting the parent deletes the model (`CASCADE` by default) | `Comment.post → Post` |
 | `Contains<T>` | One-to-many (parent owns children) | `Post.comments → [Comment]` |
 | `OneToMany<T, Owner, Field>` | One-to-many foreign key | `User.posts → [Post]` |
 | `ManyToMany<T>` | Many-to-many via join table | `Post.tags ↔ [Tag]` via `PostTag` |
-| `RelateTo<T>` | Soft link (reference without ownership) | — |
+| `RelateTo<T>` / `ManyToOne<T>` | Many-to-one link without ownership | `Comment.author → User` |
 
 ### Primary keys
 
@@ -118,7 +118,8 @@ async publish(destination: "linkedin" | "twitter"): Promise<string> { ... }
 static async login(email: string, password: string): Promise<boolean> { ... }
 ```
 
-Instance operations become `POST /models/:key/method`; static operations become `POST /models/method`.
+Instance operations become `PUT /<plural>/{key}/<method>` and static ones `PUT /<plural>/<method>` (e.g.
+`PUT /posts/{slug}/publish`, `PUT /users/login`); `@Operation({ rest: { method, path } })` changes the method or the path.
 
 ### See also
 

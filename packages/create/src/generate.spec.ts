@@ -30,7 +30,7 @@ function fixture(): { templatesDir: string; agentDir: string } {
   write("templates/base/webda.config.json", JSON.stringify({ services: { RESTService: { type: "R" } } }));
   write("templates/features/store-file/package.json", JSON.stringify({ dependencies: { "@webda/fs": "workspace:*" } }));
   write("templates/features/store-file/webda.config.json", JSON.stringify({ services: { Registry: { type: "F" } } }));
-  write("agent/AGENTS.md", "# __APP_NAME__\n\n<!-- WEBDA:APP -->\n");
+  write("agent/AGENTS.md", "# __APP_NAME__\n\n__PM__ test\n\n<!-- WEBDA:APP -->\n");
   write("agent/CLAUDE.md", "@AGENTS.md\n");
   write("agent/skills/webda-models/SKILL.md", "---\nname: webda-models\n---\n");
   return { templatesDir: join(root, "templates"), agentDir: join(root, "agent") };
@@ -68,9 +68,9 @@ class GenerateTest {
     assert.deepStrictEqual(pkg.webda, { namespace: "MyShop" });
     assert.strictEqual(files.get("src/app.ts"), "// MyShop in my-shop\n");
     assert.deepStrictEqual(JSON.parse(files.get("webda.config.json")).services.Registry, { type: "F" });
-    assert.match(files.get("AGENTS.md"), /^# my-shop\n\n- Store: JSON files/);
+    assert.match(files.get("AGENTS.md"), /^# my-shop\n\npnpm test\n\n- Store: JSON files/);
     for (const [path, content] of files) {
-      assert.doesNotMatch(content, /__APP_NAME__|__NAMESPACE__|workspace:|"managed"/, path);
+      assert.doesNotMatch(content, /__APP_NAME__|__NAMESPACE__|__PM__|workspace:|"managed"/, path);
     }
   }
 

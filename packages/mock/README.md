@@ -50,8 +50,8 @@ import { generate, generateGraph } from "@webda/mock";
 // Annotate your model fields
 class Post {
   @Mock.word accessor title!: string;
-  @Mock.paragraph accessor body!: string;
-  @Mock.pastDate accessor publishedAt!: Date;
+  @Mock.lorem({ paragraphs: 1 }) accessor body!: string;
+  @Mock.pastDate() accessor publishedAt!: Date;
 }
 
 class User {

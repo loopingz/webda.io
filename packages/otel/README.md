@@ -34,7 +34,7 @@ pnpm add @webda/otel
 {
   "services": {
     "otel": {
-      "type": "OtelService",
+      "type": "Webda/OtelService",
       "name": "my-webda-app",
       "traceExporter": {
         "type": "otlp",

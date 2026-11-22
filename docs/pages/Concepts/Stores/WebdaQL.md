@@ -12,6 +12,9 @@ IN array
 LIKE
 ```
 
+Values are strings (`'open'` or `"open"`), numbers (`42`) and the uppercase booleans `TRUE` and `FALSE`
+(`done = FALSE`): lowercase `true`/`false` is a syntax error.
+
 ```
 AND:
 OR:

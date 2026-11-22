@@ -80,7 +80,7 @@ export async function generate(input: {
   for (const [path, content] of await readTree(join(agentDir, "skills"))) {
     files.set(`.agents/skills/${path}`, content);
   }
-  return finalizePaths(files, { APP_NAME: appName, NAMESPACE: options.namespace });
+  return finalizePaths(files, { APP_NAME: appName, NAMESPACE: options.namespace, PM: options.pm });
 }
 
 /**

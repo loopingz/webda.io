@@ -25,17 +25,17 @@ pnpm add @webda/fs
 {
   "services": {
     "postStore": {
-      "type": "FileStore",
+      "type": "Webda/FileStore",
       "model": "MyApp/Post",
       "folder": "./data/posts"
     },
     "uploads": {
-      "type": "FileBinary",
+      "type": "Webda/FileBinary",
       "folder": "./data/uploads",
       "maxSize": 10485760
     },
     "fileQueue": {
-      "type": "FileQueue",
+      "type": "Webda/FileQueue",
       "folder": "./data/queue"
     }
   }
@@ -46,8 +46,13 @@ pnpm add @webda/fs
 
 | Parameter | Type | Default | Required | Description |
 |---|---|---|---|---|
-| `folder` | string | — | Yes | Directory where each model instance is stored as a JSON file |
+| `folder` | string | — | Yes | Directory where each model instance is stored as one `<key>.json` file (see below) |
 | `beautify` | string \| number | — | No | Indentation passed to `JSON.stringify` (e.g. `2` for pretty-print) |
+
+A file holds the `@webda/serialize` envelope of the instance, not a plain object:
+`{"$serializer": {...}, "value": {...}, "__type": "MyApp/Post"}`. The fields are under `value`, and `$serializer` keeps the
+types (dates, sets, binaries...) needed to load it back. Read and write the files through the model API
+(`Post.ref(uuid).get()`), not by hand.
 
 ### FileBinary parameters
 

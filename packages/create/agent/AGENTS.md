@@ -5,10 +5,10 @@ A [Webda](https://webda.io) v4 application. Webda is a model-driven Node.js fram
 ## Commands
 
 ```bash
-npm run build   # compile src/ to lib/ and generate webda.module.json and .webda/
-npm run debug   # build, then start the dev server with the interactive debug console on http://localhost:18080
-npm run serve   # build, then start the HTTP server on http://localhost:18080 (no terminal UI)
-npm test        # build, then run the tests
+__PM__ run build   # compile src/ to lib/ and generate webda.module.json and .webda/
+__PM__ run debug   # build, then start the dev server with the interactive debug console on http://localhost:18080
+__PM__ run serve   # build, then start the HTTP server on http://localhost:18080 (no terminal UI)
+__PM__ test        # build, then run the tests
 ```
 
 ## Layout
@@ -22,11 +22,11 @@ npm test        # build, then run the tests
 ## Rules
 
 - Design the models first; put behaviour that is not about one model in a service.
-- Persist through the model: `Task.create({...})`, `Task.ref(uuid).get()`, `Task.query("done = false")`, or `useRepository(Task)`. Never inject or call a store.
+- Persist through the model: `Task.create({...})`, `Task.ref(uuid).get()`, `Task.query("done = FALSE")`, or `useRepository(Task)`. Never inject or call a store.
 - Configuration belongs in `webda.config.json` and `deployments/`, not in code.
 - Never edit generated files: `.webda/`, `webda.module.json`, `lib/`.
-- After a change, run `npm run build` then `npm test`.
-- Agents and non-interactive shells: use `npm run serve`; `npm run debug` opens a fullscreen terminal UI.
+- After a change, run `__PM__ run build` then `__PM__ test`.
+- Agents and non-interactive shells: use `__PM__ run serve`; `__PM__ run debug` opens a fullscreen terminal UI.
 
 ## This app
 

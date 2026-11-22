@@ -14,13 +14,13 @@ This module is part of Webda Application Framework that allows you to quickly de
 
 <!-- README_HEADER -->
 
-> Elasticsearch indexing service for Webda — automatically mirrors model saves to one or more Elasticsearch indices, with optional date-split partitioning and a search/delete API.
+> Elasticsearch indexing service for Webda — automatically mirrors model saves to one or more Elasticsearch indices, with optional date-split partitioning and a `search()` API.
 
 ## When to use it
 
 - You want full-text or aggregation queries on your Webda models without changing your primary store.
 - You need time-series index partitioning (daily/monthly/yearly) for log or metric models.
-- You want to expose a search endpoint directly from Webda without writing custom ES glue code.
+- You want to search your models from your own services with the Elasticsearch query DSL, without writing the indexing glue.
 
 ## Install
 
@@ -34,18 +34,16 @@ pnpm add @webda/elasticsearch
 {
   "services": {
     "search": {
-      "type": "ElasticSearchService",
+      "type": "Webda/ElasticSearchService",
       "client": {
         "node": "http://localhost:9200"
       },
       "indexes": {
         "posts": {
-          "model": "MyApp/Post",
-          "url": "/search/posts"
+          "model": "MyApp/Post"
         },
         "events": {
           "model": "MyApp/Event",
-          "url": "/search/events",
           "dateSplit": {
             "frequency": "daily",
             "attribute": "createdAt"
@@ -62,9 +60,11 @@ pnpm add @webda/elasticsearch
 | `client` | object | — | Yes | Elasticsearch `ClientOptions` passed directly to `@elastic/elasticsearch` Client constructor (e.g. `{ node, auth }`) |
 | `indexes` | object | `{}` | Yes | Map of index name → index configuration |
 | `indexes.<n>.model` | string | — | Yes | Fully qualified model name to index (e.g. `"MyApp/Post"`) |
-| `indexes.<n>.url` | string | — | No | URL prefix to expose search/delete endpoints |
 | `indexes.<n>.dateSplit.frequency` | string | `"monthly"` | No | Time-based index split: `yearly`, `monthly`, `weekly`, `daily`, or `hourly` |
 | `indexes.<n>.dateSplit.attribute` | string | — | No | Model attribute containing the date used for index partitioning |
+
+The service registers no route: search the indexes from your code with `search(index, query)`, which returns the hits
+loaded as instances of the index model.
 
 ## Usage
 

@@ -36,7 +36,7 @@ pnpm add @webda/amqp
 {
   "services": {
     "taskQueue": {
-      "type": "AMQPQueue",
+      "type": "Webda/AMQPQueue",
       "url": "amqp://localhost:5672",
       "queue": "my-tasks"
     }
@@ -57,7 +57,7 @@ pnpm add @webda/amqp
 {
   "services": {
     "eventBus": {
-      "type": "AMQPPubSub",
+      "type": "Webda/AMQPPubSub",
       "url": "amqp://localhost:5672",
       "channel": "my-events",
       "exchange": { "type": "fanout", "durable": true }

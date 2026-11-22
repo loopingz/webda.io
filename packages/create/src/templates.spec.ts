@@ -56,6 +56,10 @@ class TemplatesTest {
     }
     assert.ok(files.get("README.md").startsWith("# demo-app\n"), "README.md title");
     assert.ok(files.get("AGENTS.md").startsWith("# demo-app\n"), "AGENTS.md title");
+    for (const path of ["AGENTS.md", "README.md"]) {
+      assert.match(files.get(path), /^pnpm run build /m, `${path} uses the selected package manager`);
+      assert.doesNotMatch(files.get(path), /\bnpm (run|test)\b|__PM__/, `${path} has no npm command left`);
+    }
     assert.ok(files.get("vitest.config.ts").includes("loadEnv"), "vitest loads .env");
     const coreDevDeps = JSON.parse(readFileSync(join(repoRoot, "packages/core/package.json"), "utf8")).devDependencies;
     assert.strictEqual(JSON.parse(files.get("package.json")).devDependencies.sinon, coreDevDeps.sinon);

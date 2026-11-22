@@ -55,6 +55,9 @@ WQL supports three primitive value types in filter expressions:
 | **Number**  | `42`, `0`, `-5`, `3.14` (no exponent form such as `1e3`) |
 | **Boolean** | `TRUE`, `FALSE`                                          |
 
+Booleans are uppercase only: `done = FALSE`. Lowercase `true` and `false` are not values but field names, so
+`done = false` is a syntax error.
+
 Sets, used by `IN`, are written with square brackets: `status IN ['draft', 'review']`. They cannot be empty.
 
 A character the grammar does not know (for example `#`) is a syntax error; it is never silently ignored.

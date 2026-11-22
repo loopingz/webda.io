@@ -36,7 +36,7 @@ pnpm add @webda/mongo
 {
   "services": {
     "userStore": {
-      "type": "MongoStore",
+      "type": "Webda/MongoStore",
       "models": ["MyApp/User"],
       "collection": "users",
       "database": "my-app"
@@ -51,7 +51,7 @@ Set the connection URL via the `WEBDA_MONGO_URL` environment variable (recommend
 {
   "services": {
     "userStore": {
-      "type": "MongoStore",
+      "type": "Webda/MongoStore",
       "models": ["MyApp/User"],
       "mongoUrl": "mongodb+srv://user:pass@cluster.mongodb.net",
       "collection": "users",

@@ -42,6 +42,8 @@ featured = TRUE
 deleted = FALSE
 ```
 
+`TRUE` and `FALSE` are uppercase only: `deleted = false` is a syntax error.
+
 ### Timestamp comparison with NOW()
 
 Use `NOW()` on the right-hand side of comparison operators to compare against dynamic timestamps in milliseconds:

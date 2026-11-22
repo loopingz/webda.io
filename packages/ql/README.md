@@ -48,9 +48,9 @@ DELETE [WHERE expression] [LIMIT n]
 UPDATE SET a = v, b.c = v [WHERE expression] [LIMIT n]
 ```
 
-Keywords are uppercase only: `select`, `delete`, `set`, `where`... in lowercase are field names. Since the
-aggregation syntax, uppercase `COUNT`, `SUM`, `AVG`, `MIN`, `MAX`, `AS`, `DISTINCT` and `GROUP BY` are reserved too
-(breaking for attributes with those uppercase names).
+Keywords and the booleans `TRUE`/`FALSE` are uppercase only: `select`, `delete`, `set`, `where`... in lowercase are
+field names, and `done = false` is a syntax error. Since the aggregation syntax, uppercase `COUNT`, `SUM`, `AVG`,
+`MIN`, `MAX`, `AS`, `DISTINCT` and `GROUP BY` are reserved too (breaking for attributes with those uppercase names).
 
 **Filter expressions** support:
 

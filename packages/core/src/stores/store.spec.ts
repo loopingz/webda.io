@@ -913,6 +913,18 @@ class StoreFieldsMigrationTest extends WebdaApplicationTest {
       assert.strictEqual(store.checkKeys().length, 1);
       store.getKeyspace = model => useModelId(model)!;
       assert.deepStrictEqual(store.checkKeys(), []);
+
+      // Models without a key list are skipped; missing ancestors read as none
+      class NoKey extends UuidModel {
+        static Metadata: any = { Identifier: "WebdaTest/KeyNone" };
+      }
+      class NoAncestors extends UuidModel {
+        static Metadata: any = { Identifier: "WebdaTest/KeyBare", PrimaryKey: ["slug"] };
+      }
+      const shared = new MemoryStore("shared", {});
+      assert.deepStrictEqual(shared.checkKeys([NoKey, NoAncestors, Article] as any), [
+        { keyspace: "shared", models: ["WebdaTest/KeyArticle", "WebdaTest/KeyBare"] }
+      ]);
     } finally {
       for (const id of ["KeyArticle", "KeyLabel", "KeyFeatured"]) delete models[`WebdaTest/${id}`];
       Store.computeStores();

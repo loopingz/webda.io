@@ -77,6 +77,9 @@ class FireStoreTest extends WebdaApplicationTest {
     assert.strictEqual(store.resolveCollection(useModel("Webda/User")), "people");
     const store2 = this.createStore({ collection: "main", models: ["Webda/User", "Webda/OwnerModel"] });
     assert.strictEqual(store2.resolveCollection(useModel("Webda/OwnerModel")), "webda_ownermodel");
+    // Each collection is its own keyspace for the key collision check
+    assert.strictEqual(store.getKeyspace(useModel("Webda/User")), "people");
+    assert.strictEqual(store2.getKeyspace(useModel("Webda/OwnerModel")), "webda_ownermodel");
     assert.ok(store2.getRepository(useModel("Webda/OwnerModel")) instanceof EventRepository);
   }
 

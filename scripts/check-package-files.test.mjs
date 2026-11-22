@@ -4,7 +4,7 @@ import assert from "node:assert";
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { findUnpublishedModules } from "./check-package-files.mjs";
+import { findUnpublishedModules, findUnreleasedPackages } from "./check-package-files.mjs";
 
 /**
  * Create a packages/ folder with the given packages.
@@ -49,4 +49,35 @@ test("ignores private packages, packages without a module and packages publishin
 
 test("every published package of the repository ships its webda.module.json", () => {
   assert.deepStrictEqual(findUnpublishedModules(join(import.meta.dirname, "..", "packages")), []);
+});
+
+test("reports a published package missing from the release-please config or manifest", () => {
+  const root = mkdtempSync(join(tmpdir(), "check-package-files-"));
+  try {
+    for (const [name, pkg] of Object.entries({
+      core: { name: "@webda/core" },
+      email: { name: "@webda/email" },
+      sdk: { name: "@webda/sdk" },
+      ui: { name: "@webda/ui", private: true }
+    })) {
+      mkdirSync(join(root, "packages", name), { recursive: true });
+      writeFileSync(join(root, "packages", name, "package.json"), JSON.stringify(pkg));
+    }
+    writeFileSync(
+      join(root, "release-please-config.json"),
+      JSON.stringify({ packages: { "packages/core": {}, "packages/sdk": {} } })
+    );
+    writeFileSync(join(root, ".release-please-manifest.json"), JSON.stringify({ "packages/core": "1.0.0" }));
+    assert.deepStrictEqual(findUnreleasedPackages(root), [
+      "@webda/email (.release-please-manifest.json)",
+      "@webda/email (release-please-config.json)",
+      "@webda/sdk (.release-please-manifest.json)"
+    ]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("every published package of the repository is released by release-please", () => {
+  assert.deepStrictEqual(findUnreleasedPackages(join(import.meta.dirname, "..")), []);
 });

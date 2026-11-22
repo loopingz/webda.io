@@ -34,6 +34,7 @@
   "packages/otel": "4.0.0-rc.1",
   "packages/postgres": "4.0.0-rc.1",
   "packages/ql": "4.0.0-rc.1",
+  "packages/react-email": "4.0.0-rc.1",
   "packages/runtime": "4.0.0-rc.1",
   "packages/sdk": "4.0.0-rc.1",
   "packages/sealed-client": "4.0.0-rc.1",

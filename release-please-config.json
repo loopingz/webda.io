@@ -43,6 +43,7 @@
     "packages/otel": {},
     "packages/postgres": {},
     "packages/ql": {},
+    "packages/react-email": {},
     "packages/runtime": {},
     "packages/sdk": {},
     "packages/sealed-client": {},

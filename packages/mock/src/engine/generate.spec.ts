@@ -1,7 +1,9 @@
 import { expect, vi } from "vitest";
 import { suite, test } from "@webda/test";
-import { Mock } from "@webda/models";
+import { Mock, ModelLink, RelationRepository } from "@webda/models";
 import { generate } from "./generate.js";
+import { generateGraph } from "./graph.js";
+import { SessionPool } from "./pool.js";
 
 class Person {
   @Mock.firstName accessor firstName!: string;
@@ -89,7 +91,6 @@ class GenerateTest {
       @Mock({ kind: "boolean" }) accessor flag!: boolean;
       @Mock.custom(ctx => `idx-${ctx.index}`) accessor customField!: string;
       @Mock.ai({ prompt: "bio", maxTokens: 50 }) accessor bio!: string;
-      @Mock.count(2) accessor relCount!: unknown;
       @Mock({ kind: "nonexistent" }) accessor unknownKindField!: unknown;
       accessor unknownUnhinted!: { x: number };
     }
@@ -116,7 +117,6 @@ class GenerateTest {
     expect(typeof row.flag).toBe("boolean");
     expect(row.customField).toBe("idx-0");
     expect(row.bio).toBe("ai-text");
-    expect(row.relCount).toBeUndefined();
     expect((row as any).unknownKindField).toBeUndefined();
   }
 
@@ -180,5 +180,117 @@ class GenerateTest {
     expect(row.past.getTime()).toBeGreaterThan(now - 367 * day);
     expect(row.future.getTime()).toBeLessThan(now + 367 * day);
     expect(row.future.getTime()).toBeGreaterThan(now - 1000);
+  }
+
+  @test({ name: "internal fields are only generated when explicitly decorated" })
+  async internalFields() {
+    class Account {
+      @Mock.email accessor email!: string;
+      _mfaAttempts = 0;
+      accessor _escrowAttempts: number = 0;
+      __secret: string = "";
+      @Mock.integer({ min: 5, max: 5 }) accessor _seeded!: number;
+    }
+    const [row] = await generate(Account, { seed: 1, mode: "test" });
+    expect(row.email).toMatch(/@/);
+    expect(row._mfaAttempts).toBe(0);
+    expect(row._escrowAttempts).toBe(0);
+    expect(row.__secret).toBe("");
+    expect(row._seeded).toBe(5);
+    // Strict mode does not require a hint for internal fields
+    await expect(generate(Account, { seed: 1, mode: "test", strict: true })).resolves.toHaveLength(1);
+  }
+
+  @test({ name: "linkExisting picks from the pool, linkNew creates, count fills arrays" })
+  async relations() {
+    class Author {
+      @Mock.uuid accessor uuid!: string;
+    }
+    class Post {
+      @Mock({ kind: "linkExisting", options: { model: Author } }) accessor author!: Author;
+      @Mock({ kind: "linkNew", options: { model: () => Author } }) accessor editor!: Author;
+      @Mock({ kind: "count", options: { n: 2, model: Author } }) accessor reviewers!: Author[];
+      @Mock({ kind: "count", options: { min: 1, max: 1, model: Author } }) accessor readers!: Author[];
+    }
+    const graph = await generateGraph({ Author: 3, Post: 4 }, { models: [Author, Post], seed: 3, mode: "test" });
+    const authors = graph.Author as Author[];
+    const posts = graph.Post as Post[];
+    // The first post links one of the requested authors; later ones may also link authors created by linkNew
+    expect(authors).toContain(posts[0].author);
+    for (const post of posts) {
+      expect(post.author).toBeInstanceOf(Author);
+      expect(post.editor).toBeInstanceOf(Author);
+      expect(authors).not.toContain(post.editor);
+      expect(post.reviewers).toHaveLength(2);
+      expect(new Set(post.reviewers).size).toBe(2);
+      expect(post.readers).toHaveLength(1);
+    }
+  }
+
+  @test({ name: "relations create instances when the pool is short" })
+  async relationsEmptyPool() {
+    class Tag {
+      @Mock.word accessor label!: string;
+    }
+    class Note {
+      @Mock({ kind: "linkExisting", options: { model: Tag } }) accessor tag!: Tag;
+      @Mock({ kind: "count", options: { n: 3, model: Tag } }) accessor tags!: Tag[];
+      @Mock({ kind: "count", options: { model: Tag } }) accessor extra: Tag[] = [];
+    }
+    const pool = new SessionPool();
+    const [note] = await generate(Note, { seed: 2, mode: "test", pool });
+    expect(note.tag).toBeInstanceOf(Tag);
+    expect(note.tags).toHaveLength(3);
+    expect(note.extra.length).toBeGreaterThanOrEqual(0);
+    expect(note.extra.length).toBeLessThanOrEqual(3);
+    // tag created one, tags reused it and created two more
+    expect(note.tags).toContain(note.tag);
+    expect(pool.size(Tag)).toBeGreaterThanOrEqual(3);
+  }
+
+  @test({ name: "relation objects are set in place and their target is inferred" })
+  async relationObjects() {
+    class Owner {
+      @Mock.uuid accessor uuid!: string;
+    }
+    const links = { [RelationRepository]: { getRootModel: () => Owner }, set: vi.fn() };
+    const related = { getQuery: () => "" };
+    class Item {
+      @Mock.linkExisting owner = new ModelLink(Owner);
+      @Mock.count(2) links = links;
+      @Mock.linkNew related = related;
+    }
+    const [item] = await generate(Item, { seed: 4, mode: "test" });
+    expect(item.owner.getPrimaryKey()).toBeInstanceOf(Owner);
+    expect(links.set).toHaveBeenCalledOnce();
+    expect(links.set.mock.calls[0][0]).toHaveLength(2);
+    expect(item.related).toBe(related);
+  }
+
+  @test({ name: "a relation without a resolvable target throws" })
+  async relationWithoutTarget() {
+    class Orphan {
+      @Mock.linkExisting accessor parent!: unknown;
+    }
+    await expect(generate(Orphan, { seed: 1, mode: "test" })).rejects.toThrow(
+      /target model of relation field "parent"/
+    );
+  }
+
+  @test({ name: "linkNew cycles stop after a few levels" })
+  async relationCycle() {
+    class Node {
+      @Mock.uuid accessor uuid!: string;
+      @Mock({ kind: "linkNew", options: { model: () => Node } }) accessor next!: Node;
+      @Mock({ kind: "count", options: { n: 1, model: () => Other } }) accessor others!: unknown[];
+    }
+    class Other {
+      @Mock({ kind: "linkExisting", options: { model: () => Missing } }) accessor missing!: unknown;
+    }
+    class Missing {}
+    const [root] = await generate(Node, { seed: 5, mode: "test" });
+    let depth = 0;
+    for (let n: Node | undefined = root; n; n = n.next) depth++;
+    expect(depth).toBe(4);
   }
 }

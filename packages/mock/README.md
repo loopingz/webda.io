@@ -85,6 +85,29 @@ class Product {
 const products = await generate(Product, { count: 3, mode: "demo", ai });
 ```
 
+### Relations and internal fields
+
+```typescript
+class Order {
+  // One existing Customer from the session pool (a new one when the pool has none)
+  @Mock({ kind: "linkExisting", options: { model: Customer } }) accessor customer!: ModelLink<Customer>;
+  // Always a new Address
+  @Mock({ kind: "linkNew", options: { model: () => Address } }) accessor shipping!: ModelLink<Address>;
+  // 1 to 5 distinct Products: pooled first, then new ones
+  @Mock({ kind: "count", options: { min: 1, max: 5, model: Product } }) accessor items!: ModelLinksSimpleArray<Product>;
+}
+```
+
+`@Mock.linkExisting`, `@Mock.linkNew` and `@Mock.count(n)` work without `model` when the field already holds a
+relation object (`ModelLink`, `ModelLinksSimpleArray`) that knows its target. Relation objects are set in place;
+a `ModelRelated` field is left as is, since it is filled from the other side.
+
+Fields starting with `_` (such as `_mfaAttempts`) are internal: they are only generated when they carry an explicit
+`@Mock.*` decorator.
+
+There is no `webda mock seed` command yet: call `generateGraph()` (or `MockService.seed()`) from a script, and
+`parseSeedArgs()` from `@webda/mock/cli` to read `--Model N` style arguments.
+
 ## Modes
 
 | Mode | Seed default | AI | Use case |

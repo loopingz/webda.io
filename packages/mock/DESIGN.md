@@ -26,7 +26,7 @@ Generate mock data for `@webda/models` classes that is **coherent with the domai
 - `generate(ModelClass, opts)` standalone function.
 - `generateGraph(spec, opts)` multi-model graph generation with topological ordering.
 - `MockService` webda bean that wires generation to Stores.
-- `webda mock seed` / `webda mock clear` CLI subcommands.
+- `webda mock seed` / `webda mock clear` CLI subcommands (planned: not registered yet, see 7.3).
 - Pluggable `AIProvider` interface with a default `AnthropicProvider`.
 
 **Out of scope (v1):**
@@ -307,6 +307,9 @@ webda mock clear [--Task]                      # specific models or all
 ```
 
 The CLI is a thin wrapper: parses args, instantiates `MockService` in the current deployment context, calls `seed()` or `clear()`.
+
+> **Status:** not shipped. No `webda mock` command is registered yet. `@webda/mock/cli` exports `parseSeedArgs()`, and
+> `@webda/mock/service` the `MockService`, to wire a seed script or command in your own project.
 
 ### 7.4 Typical flows
 

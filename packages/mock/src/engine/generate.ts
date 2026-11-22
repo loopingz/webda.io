@@ -1,4 +1,4 @@
-import { readMockMeta, type MockKind, type MockMeta } from "@webda/models";
+import { readMockMeta, RelationModel, RelationRepository, type MockKind, type MockMeta } from "@webda/models";
 import type { Faker } from "@faker-js/faker";
 
 import { makeFaker } from "./faker.js";
@@ -44,14 +44,42 @@ export type MockContext = {
 };
 
 /**
+ * Kinds that link the generated instance to instances of another model
+ */
+const RELATION_KINDS = new Set<MockKind>(["count", "linkExisting", "linkNew"]);
+
+/**
+ * How many levels of linked instances a relation may create (guards `linkNew` cycles)
+ */
+const MAX_LINK_DEPTH = 3;
+
+/**
  * Generate `count` instances of `ModelClass`, resolving each field through the
  * fallback chain (explicit `@Mock.*` → name-heuristic → type fallback → throw/skip).
+ *
+ * Fields starting with `_` are internal (counters, secrets, bookkeeping): they are
+ * only generated when they carry an explicit `@Mock.*` decorator.
+ *
+ * Relation fields (`@Mock.linkExisting`, `@Mock.linkNew`, `@Mock.count`) are filled
+ * after the other fields, from the session pool or with freshly generated instances.
  *
  * @param ModelClass - the target model constructor.
  * @param options - generation options (count, seed, mode, overrides, ai, pool, strict).
  * @returns the generated instances.
  */
 export async function generate<T>(ModelClass: ModelClass<T>, options: GenerateOptions<T> = {}): Promise<T[]> {
+  return generateAt(ModelClass, options, 0);
+}
+
+/**
+ * Generate instances, `depth` levels below the instance that asked for them.
+ *
+ * @param ModelClass - the target model constructor.
+ * @param options - generation options.
+ * @param depth - number of relations followed to reach this call.
+ * @returns the generated instances.
+ */
+async function generateAt<T>(ModelClass: ModelClass<T>, options: GenerateOptions<T>, depth: number): Promise<T[]> {
   const count = options.count ?? 1;
   const mode = options.mode ?? (process.env.VITEST ? "test" : "dev");
   const seedDefault = mode === "test" ? 0 : Date.now();
@@ -89,6 +117,7 @@ export async function generate<T>(ModelClass: ModelClass<T>, options: GenerateOp
   const out: T[] = [];
   for (let i = 0; i < count; i++) {
     const instance = new ModelClass() as Record<string, unknown>;
+    const relations: { fieldName: string; kind: MockKind; opts: Record<string, unknown> }[] = [];
     for (const fieldName of fieldNames) {
       if (options.overrides && fieldName in (options.overrides as object)) {
         instance[fieldName] = (options.overrides as Record<string, unknown>)[fieldName];
@@ -108,6 +137,13 @@ export async function generate<T>(ModelClass: ModelClass<T>, options: GenerateOp
       let kind: MockKind | null = meta?.kind ?? null;
       const opts: Record<string, unknown> = meta?.options ?? {};
 
+      if (kind && RELATION_KINDS.has(kind)) {
+        // Filled once every other field is set, so the instance has its primary key
+        relations.push({ fieldName, kind, opts });
+        continue;
+      }
+      // Internal fields are never inferred, even in strict mode
+      if (!kind && fieldName.startsWith("_")) continue;
       if (!kind && !options.strict) {
         kind = inferKind({
           fieldName,
@@ -124,6 +160,26 @@ export async function generate<T>(ModelClass: ModelClass<T>, options: GenerateOp
         throw new Error(`generate: mode="test" forbids @Mock.ai (field "${fieldName}")`);
       }
       instance[fieldName] = await resolveKind(kind, opts, ctx);
+    }
+    for (const { fieldName, kind, opts } of relations) {
+      await fillRelation(instance, fieldName, kind, opts, {
+        pool,
+        depth,
+        generate: (Target, n) =>
+          generateAt(
+            Target,
+            {
+              count: n,
+              mode,
+              ai: options.ai,
+              strict: options.strict,
+              pool,
+              seed: faker.number.int({ min: 0, max: 2 ** 31 - 1 })
+            },
+            depth + 1
+          ),
+        count: (min, max) => faker.number.int({ min, max })
+      });
     }
     out.push(instance as T);
     pool.add(instance);
@@ -202,12 +258,88 @@ async function resolveKind(kind: MockKind, opts: Record<string, unknown>, ctx: M
       const o = opts as { prompt: string; maxTokens?: number };
       return ctx.ai(o.prompt, { maxTokens: o.maxTokens });
     }
-    case "count":
-    case "linkExisting":
-    case "linkNew":
-      // Relation kinds are handled by generateGraph, not here.
-      return undefined;
     default:
       return undefined;
+  }
+}
+
+/**
+ * What a relation needs from the generation in progress
+ */
+type RelationEnv = {
+  pool: SessionPool;
+  depth: number;
+  generate: (Target: ModelClass<unknown>, n: number) => Promise<unknown[]>;
+  count: (min: number, max: number) => number;
+};
+
+/**
+ * Find the model a relation field points to: the `model` option (a class, or a
+ * thunk returning one for forward references), else the class held by the
+ * field's relation object (`ModelLink`, `ModelLinksSimpleArray`, ...).
+ *
+ * @param opts - decorator-time options of the relation.
+ * @param current - the field's current value on the fresh instance.
+ * @returns the target model, or undefined when it cannot be found.
+ */
+function relationTarget(opts: Record<string, unknown>, current: any): ModelClass<unknown> | undefined {
+  const model = opts.model as Function | undefined;
+  if (typeof model === "function") {
+    return (model.prototype ? model : (model as () => ModelClass<unknown>)()) as ModelClass<unknown>;
+  }
+  return current?.[RelationModel] ?? current?.[RelationRepository]?.getRootModel?.();
+}
+
+/**
+ * Fill one relation field of a generated instance.
+ *
+ * - `linkExisting`: one instance picked from the pool, a new one when the pool has none
+ * - `linkNew`: always a new instance
+ * - `count`: `n` (or `min`..`max`, default 0..3) distinct instances, pooled first then new
+ *
+ * A relation object exposing `set()` (`ModelLink`, `ModelLinksSimpleArray`) is set in
+ * place; an empty field receives the instance(s). Any other value, such as a
+ * `ModelRelated` which is filled from the other side, is left untouched.
+ *
+ * @param instance - the instance being generated.
+ * @param fieldName - the relation field.
+ * @param kind - `linkExisting`, `linkNew` or `count`.
+ * @param opts - decorator-time options of the relation.
+ * @param env - pool and child generation of the current run.
+ */
+async function fillRelation(
+  instance: Record<string, unknown>,
+  fieldName: string,
+  kind: MockKind,
+  opts: Record<string, unknown>,
+  env: RelationEnv
+): Promise<void> {
+  const current = instance[fieldName] as any;
+  const settable = typeof current?.set === "function";
+  if (!settable && current != null && !Array.isArray(current)) return;
+  const Target = relationTarget(opts, current);
+  if (!Target) {
+    throw new Error(
+      `generate: cannot find the target model of relation field "${fieldName}", declare it with @Mock({ kind: "${kind}", options: { model: Target } })`
+    );
+  }
+  const canCreate = env.depth < MAX_LINK_DEPTH;
+  let value: unknown;
+  if (kind === "count") {
+    const o = opts as { n?: number; min?: number; max?: number };
+    const min = o.min ?? 0;
+    const n = o.n ?? env.count(min, o.max ?? Math.max(min, 3));
+    const items: unknown[] = env.pool.pickMany(Target, n);
+    if (items.length < n && canCreate) items.push(...(await env.generate(Target, n - items.length)));
+    value = items;
+  } else {
+    value = kind === "linkExisting" ? env.pool.pickOne(Target) : null;
+    if (value === null && canCreate) [value] = await env.generate(Target, 1);
+    if (value == null) return;
+  }
+  if (settable) {
+    current.set(value);
+  } else {
+    instance[fieldName] = value;
   }
 }

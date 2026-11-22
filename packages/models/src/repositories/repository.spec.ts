@@ -605,4 +605,51 @@ export class CovRepositoryTest {
     assert.strictEqual(res5.results.length, 10);
     assert.ok(res5.continuationToken);
   }
+
+  @test
+  async covSimulateFindAndMissingStorage() {
+    const repo = new MemoryRepository(QueryDocument, ["id"]);
+    for (let i = 0; i < 5; i++) {
+      await repo.create(new QueryDocument({ id: i + 1, order: 5 - i, state: "CA" }));
+    }
+    const { parse } = await import("@webda/ql");
+    const ids = ["1", "2", "3", "4", "5"];
+
+    // simulateFind with limit + continuationToken (offset + early limit return)
+    const page1 = await MemoryRepository.simulateFind(parse("LIMIT 2"), ids, repo);
+    assert.strictEqual(page1.results.length, 2);
+    assert.strictEqual(page1.continuationToken, "2");
+    const page2 = await MemoryRepository.simulateFind(
+      { ...parse("LIMIT 2"), continuationToken: page1.continuationToken },
+      ids,
+      repo
+    );
+    assert.strictEqual(page2.results.length, 2);
+    assert.strictEqual(page2.results[0].id, 3);
+
+    // simulateFind with ORDER BY
+    const ordered = await MemoryRepository.simulateFind(parse("ORDER BY order ASC LIMIT 3"), ids, repo);
+    assert.deepStrictEqual(
+      ordered.results.map(d => d.id),
+      [5, 4, 3]
+    );
+
+    // findInStorage throws when a listed key disappears before get (type-indexed path)
+    const indexedStorage = {
+      keys: () => ["1"],
+      keysOfTypes: () => ["1"],
+      get: () => undefined
+    } as any;
+    const indexedRepo = new MemoryRepository(QueryDocument, ["id"], "#", indexedStorage);
+    await assert.rejects(() => indexedRepo.query(""), /Not found: 1/);
+
+    // findInStorage throws when a listed key is missing on plain Map path
+    const plainStorage = {
+      keys: () => ["1"],
+      get: () => undefined
+    } as any;
+    const plainRepo = new MemoryRepository(QueryDocument, ["id"], "#", plainStorage);
+    (plainRepo as any).buildClassFilterIdentifiers = () => ["QueryDocument"];
+    await assert.rejects(() => plainRepo.query(""), /Not found: 1/);
+  }
 }

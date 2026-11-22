@@ -1917,6 +1917,12 @@ export abstract class BinaryService<
     }
     const file = await req.getRawInput(size ?? this.parameters.maxFileSize);
     const buffer = Buffer.from(file);
+    // The raw body is described by its Content-Type (a multipart one describes the envelope, not the file)
+    const contentType =
+      req instanceof WebContext ? req.getHttpContext()?.getUniqueHeader("content-type", "").split(";")[0].trim() : "";
+    if (contentType && !contentType.toLowerCase().startsWith("multipart/")) {
+      mimetype ??= contentType;
+    }
     mimetype ??= "application/octet-stream";
     name ??= "data.bin";
     return new MemoryBinaryFile(buffer, {

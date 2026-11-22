@@ -1530,6 +1530,31 @@ class BinaryServiceUnitTest extends WebdaApplicationTest {
   }
 
   /**
+   * `getFile` takes the mimetype of a raw body from its Content-Type, never from a multipart envelope
+   */
+  @test
+  async getFileMimetypeFromContentType() {
+    const svc = this.makeService();
+    const upload = async (headers: Record<string, string>, parameters: any = {}) => {
+      const ctx = new WebContext(
+        new HttpContext("test.webda.io", "POST", "/", "http", 80, headers).setBody(Buffer.from("png"))
+      );
+      ctx.setParameters(parameters);
+      return svc.getFile(ctx);
+    };
+    assert.strictEqual((await upload({ "content-type": "image/png; charset=binary" })).mimetype, "image/png");
+    assert.strictEqual(
+      (await upload({ "content-type": "image/png" }, { mimetype: "image/gif" })).mimetype,
+      "image/gif"
+    );
+    assert.strictEqual(
+      (await upload({ "content-type": "multipart/form-data; boundary=X" })).mimetype,
+      "application/octet-stream"
+    );
+    assert.strictEqual((await upload({})).mimetype, "application/octet-stream");
+  }
+
+  /**
    * `getFile` computes the challenge as md5("WEBDA" || bytes), also for content that is not valid UTF-8
    */
   @test

@@ -208,7 +208,12 @@ export class OperationContext<Input = any, Parameters = any, Output = any> exten
       if (err instanceof HttpError) {
         throw err;
       }
-      useLog("ERROR", err, `Body: '${data}'`);
+      // Never log the body: it is client data, possibly large or sensitive
+      if (err instanceof SyntaxError) {
+        useLog("WARN", "Request body is not valid JSON, ignored");
+      } else {
+        useLog("ERROR", err);
+      }
       this._sanitized = sanitizedOptions.defaultValue;
     }
     return this._sanitized;

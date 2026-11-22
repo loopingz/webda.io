@@ -264,8 +264,7 @@
                 {
                   "allOf": [
                     {
-                      "additionalProperties": false,
-                      "type": "object"
+                      "description": "Resolve the primary key type: if T is a union of keys, returns `Pick<K, T>`;\nif T is a single key, returns `K[T]` directly."
                     },
                     {
                       "additionalProperties": false,

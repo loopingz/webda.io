@@ -906,3 +906,22 @@ describe("top-level schemas of a hand-written project", () => {
     ]);
   });
 });
+
+describe("setters declared on a generic base", () => {
+  it("leaves a conditional on the base's type parameter unconstrained", () => {
+    // The checker API has no write type for an instantiated accessor, so the
+    // setter parameter is read off the generic declaration and `T` is never
+    // substituted. The checker defers the conditional on `T`; how a deferred
+    // conditional's apparent type looks has changed between TypeScript 7.1
+    // nightlies, and it must not leak `Pick<T, …>` into the module.
+    const owned = generateModelSchemas(classOf("dto.model.ts", "OwnedThing"), {
+      project: session.ctx.project,
+      checker: session.ctx.checker
+    });
+    expect(owned.Input.properties!.owner.anyOf).toEqual([
+      { type: "string" },
+      { description: "Resolves to the key itself for a single key, to a picked object for several." }
+    ]);
+    expect(Object.keys(owned.Input.definitions ?? {}).filter(key => key.includes("<T"))).toEqual([]);
+  });
+});

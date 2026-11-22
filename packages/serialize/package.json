@@ -57,7 +57,7 @@
     "@vitest/coverage-v8": "^5.1.0",
     "@webda/test": "workspace:^",
     "skott": "^0.35.12",
-    "typescript": "7.1.0-dev.20261102.1",
+    "typescript": "7.1.0-dev.20261121.1",
     "vite": "^7.3.7"
   },
   "type": "module",

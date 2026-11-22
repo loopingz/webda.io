@@ -327,6 +327,18 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
   }
 
   /**
+   * Without `url` the download route is not registered: stream the content from the attribute route instead of
+   * redirecting to it
+   * @override
+   */
+  async getRedirectUrlFromObject(binaryMap: BinaryMap, context: WebContext, expires?: number): Promise<string | null> {
+    if (this.parameters.url === undefined) {
+      return null;
+    }
+    return super.getRedirectUrlFromObject(binaryMap, context, expires);
+  }
+
+  /**
    * Get signed url to download an element
    *
    * @param map - the binary map
@@ -494,6 +506,10 @@ export class FileBinary<T extends FileBinaryParameters = FileBinaryParameters> e
       // Proof of possession: attach the stored binary
       await this.attach(object, target, { hash: info.hash, challenge: info.challenge });
       return;
+    }
+    // Without `url` the upload route is not registered: the content is sent to the attribute route (POST)
+    if (this.parameters.url === undefined) {
+      throw new WebdaError.NotFound("No redirect url");
     }
     if (!fs.existsSync(this._getPath(info.hash))) {
       fs.mkdirSync(this._getPath(info.hash));

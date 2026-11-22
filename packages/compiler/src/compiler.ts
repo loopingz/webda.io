@@ -1,13 +1,13 @@
 import { createHash } from "node:crypto";
 import { existsSync, globSync, mkdirSync, readFileSync, statSync, watch as watchFiles, type FSWatcher } from "node:fs";
 import { createRequire } from "node:module";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { FileUtils, listSharedImports } from "@webda/utils";
 import { useLog } from "@webda/workout";
 import { listDeploymentFiles } from "./configuration.js";
 import type { WebdaProject } from "./definition.js";
-import { writeModule } from "./module.js";
+import { DEPENDENCY_SECTIONS, findPackage, writeModule } from "./module.js";
 import { build } from "./schema-backend.js";
 
 /** Packages whose version decides whether a cached build is still valid. */
@@ -91,32 +91,6 @@ export function getGeneratorVersions(
     generatorVersions.set(appRoot, versions);
   }
   return versions;
-}
-
-/** Sections of a `package.json` whose packages the application's types can come from. */
-const DEPENDENCY_SECTIONS = ["dependencies", "devDependencies", "peerDependencies", "optionalDependencies"];
-
-/**
- * Locate an installed package the way Node does: `node_modules/<name>` in the
- * application root, then in each parent folder.
- *
- * Not `require.resolve`, as not every package exports `./package.json`.
- * @param name - package name
- * @param appRoot - application root
- * @returns the package folder, or undefined when it is not installed
- */
-function findPackage(name: string, appRoot: string): string | undefined {
-  let dir = appRoot;
-  while (true) {
-    const candidate = join(dir, "node_modules", name);
-    if (existsSync(join(candidate, "package.json"))) {
-      return candidate;
-    }
-    if (dirname(dir) === dir) {
-      return undefined;
-    }
-    dir = dirname(dir);
-  }
 }
 
 /**

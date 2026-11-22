@@ -208,11 +208,14 @@ Repository — the events fire whether the write came from `Model.create()`,
 | --------------- | ---------------- | ---------------------------------------- |
 | `Create`        | `Created`        | `{ object_id, object }`                  |
 | `Update`        | `Updated`        | `{ object_id, object, previous }`        |
-| `Patch`         | `Patched`        | `{ object_id, object, previous }`        |
+| `Patch`         | `Patched`        | `{ object_id, object, patch, previous }` |
 | `Delete`        | `Deleted`        | `{ object_id }`                          |
 | `PartialUpdate` | `PartialUpdated` | `{ object_id, partial_update }`          |
 | `Query`         | `Queried`        | `{ query, results, continuationToken? }` |
 | `Aggregate`     | `Aggregated`     | `{ query }` / `{ query, rows, native }`  |
+
+`Patch` carries the patch data as `object`. `Patched` carries the patched object as `object`, read back once the
+patch is applied, and the patch data as `patch`.
 
 ```typescript
 import { useRepository } from "@webda/core";

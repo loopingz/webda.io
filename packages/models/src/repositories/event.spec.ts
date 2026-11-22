@@ -6,6 +6,7 @@ import { MemoryRepository } from "./memory";
 import type { QueryExecutionInfo } from "./monitoring";
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
+import { vi } from "vitest";
 import { SubClassModel, TestModel } from "../model.spec";
 import { parse } from "@webda/ql";
 
@@ -127,6 +128,31 @@ class EventClearTest {
     assert.strictEqual(ids.Create, item.uuid);
     assert.strictEqual(ids.Created, item.uuid);
     assert.strictEqual((await repo.get(item.uuid)).name, "n");
+  }
+
+  @test
+  async patchedEventCarriesPatchedObject() {
+    const memRepo = new MemoryRepository(SubClassModel, ["uuid"]);
+    const repo = new EventRepository(SubClassModel, ["uuid"], memRepo);
+    await repo.create({ uuid: "p1", name: "n", age: 1, collection: [] } as any);
+    // Without a Patched listener the object is not read back
+    const get = vi.spyOn(memRepo, "get");
+    await repo.patch("p1", { age: 2 } as any);
+    assert.strictEqual(get.mock.calls.length, 0);
+    const events: any[] = [];
+    repo.on("Patch" as any, (evt: any) => events.push(["Patch", evt]));
+    repo.on("Patched" as any, (evt: any) => events.push(["Patched", evt]));
+    await repo.patch("p1", { age: 3 } as any);
+    assert.strictEqual(get.mock.calls.length, 1);
+    assert.deepStrictEqual(events[0], ["Patch", { object_id: "p1", object: { age: 3 } }]);
+    const [name, patched] = events[1];
+    assert.strictEqual(name, "Patched");
+    assert.strictEqual(patched.object_id, "p1");
+    // The object is the whole patched object, the patch data stays available
+    assert.ok(patched.object instanceof SubClassModel);
+    assert.strictEqual(patched.object.name, "n");
+    assert.strictEqual(patched.object.age, 3);
+    assert.deepStrictEqual(patched.patch, { age: 3 });
   }
 
   @test

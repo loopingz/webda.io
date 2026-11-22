@@ -179,12 +179,12 @@ export class FileStore<K extends FileStoreParameters = FileStoreParameters>
   }
 
   /**
-   * Create the storage folder if does not exist
+   * Create the storage folder, and its missing parents, if it does not exist
    */
   computeParameters() {
     super.computeParameters();
     if (!fs.existsSync(this.parameters.folder)) {
-      fs.mkdirSync(this.parameters.folder);
+      fs.mkdirSync(this.parameters.folder, { recursive: true });
     }
   }
 

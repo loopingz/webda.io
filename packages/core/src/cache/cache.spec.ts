@@ -7,6 +7,7 @@ import { ModelDefinition } from "../models/types.js";
 import { TestIdent } from "../test/objects.js";
 import { User } from "../models/user.model.js";
 import * as util from "util";
+import { Session } from "../session/session.js";
 
 let callCount = 0;
 function processKey(method: string, args: any[]) {
@@ -150,6 +151,30 @@ class CacheTest {
       assert.strictEqual(obj.sessionCachedMethod("test", 1), 6);
       assert.strictEqual(obj.sessionCachedMethod("test", 1), 6);
       assert.strictEqual(obj.sessionCachedMethod("test", 2), 5);
+    });
+  }
+
+  @test
+  async sessionCacheBehindTheSessionProxy() {
+    const session = new Session().getProxy();
+    const obj = new MyObject();
+    callCount = 0;
+    await runWithContext({ getSession: () => session } as any, async () => {
+      assert.strictEqual(obj.sessionCachedMethod("test", 1), 1);
+      assert.strictEqual(obj.sessionCachedMethod("test", 1), 1);
+    });
+    // The cache is not part of the session data
+    assert.strictEqual(session.isDirty(), false);
+    assert.strictEqual(JSON.stringify(session).includes("caches"), false);
+  }
+
+  @test
+  async sessionCacheWithoutSession() {
+    const obj = new MyObject();
+    callCount = 0;
+    await runWithContext({ getSession: () => undefined } as any, async () => {
+      assert.strictEqual(obj.sessionCachedMethod("test", 1), 1);
+      assert.strictEqual(obj.sessionCachedMethod("test", 1), 2);
     });
   }
 }

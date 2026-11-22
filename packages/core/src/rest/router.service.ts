@@ -1203,7 +1203,9 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
     if (ctx.getHttpContext().getMethod() === "OPTIONS" || this._requestFilters.length === 0) {
       return true;
     }
-    return (await Promise.all(this._requestFilters.map(filter => filter.checkRequest(ctx, "AUTH")))).some(v => v);
+    const results = await Promise.all(this._requestFilters.map(filter => filter.checkRequest(ctx, "AUTH")));
+    // A filter answering undefined has no opinion: the request proceeds if no filter has one
+    return results.some(v => v === true) || results.every(v => v === undefined);
   }
 
   /**

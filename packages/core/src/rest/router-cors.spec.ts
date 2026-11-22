@@ -267,6 +267,30 @@ class RouterCorsTest extends WebdaApplicationTest {
   }
 
   @test
+  async requestFilterWithoutOpinion() {
+    const filters = this.router["_requestFilters"];
+    this.router["_requestFilters"] = [];
+    try {
+      const ctx = (url: string) => new WebContext(new HttpContext("api.example.com", "GET", url, "https", 443, {}));
+      // A filter governing only /owned has no opinion on other routes
+      this.router.registerRequestFilter({
+        checkRequest: async c => (c.getHttpContext().getRelativeUri() === "/owned" ? false : undefined)
+      });
+      assert.strictEqual(await this.router.checkRequest(ctx("/test")), true);
+      assert.strictEqual(await this.router.checkRequest(ctx("/owned")), false);
+      // Once a filter has an opinion, a request needs one filter to allow it
+      let allow = false;
+      this.router.registerRequestFilter({ checkRequest: async () => allow });
+      assert.strictEqual(await this.router.checkRequest(ctx("/test")), false);
+      allow = true;
+      assert.strictEqual(await this.router.checkRequest(ctx("/test")), true);
+      assert.strictEqual(await this.router.checkRequest(ctx("/owned")), true);
+    } finally {
+      this.router["_requestFilters"] = filters;
+    }
+  }
+
+  @test
   async csrfRejectsCrossOriginCookieMutation() {
     this.allow(["https://ui.example.com"]);
     let executed = 0;

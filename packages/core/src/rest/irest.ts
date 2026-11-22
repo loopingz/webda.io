@@ -154,7 +154,10 @@ export interface RouteInfo {
  *
  * Services implementing this interface can accept or reject HTTP requests
  * based on authentication, authorization, or other criteria. If at least one
- * registered filter returns `true`, the request proceeds.
+ * registered filter returns `true`, the request proceeds. A filter that only
+ * governs some routes returns `undefined` for the others: it has no opinion on
+ * them, and a request no filter has an opinion on proceeds, as it does when no
+ * filter is registered.
  *
  * The compiler detects this interface via the `@WebdaCapability` tag and
  * automatically registers implementing services with the Router during
@@ -181,9 +184,9 @@ export interface RequestFilter<T extends IWebContext = IWebContext> {
    *
    * @param context - The current request context
    * @param type - Always `"AUTH"` for request filters
-   * @returns `true` to allow the request, `false` to reject it
+   * @returns `true` to allow the request, `false` to reject it, `undefined` for no opinion
    */
-  checkRequest(context: T, type: "AUTH"): Promise<boolean>;
+  checkRequest(context: T, type: "AUTH"): Promise<boolean | undefined>;
 }
 
 /**

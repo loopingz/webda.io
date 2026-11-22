@@ -188,20 +188,20 @@ class AsyncJobServiceTest extends AsyncTest {
     const jobHash = crypto.createHmac(AsyncJobService.HMAC_ALGO, action.__secretKey).update(jobTime).digest("hex");
     const context = await this.newContext();
     context.setHttpContext(new HttpContext("test.webda.io", "GET", "/", "https", 443, {}));
-    assert.strictEqual(await this.service.checkRequest(context), false);
+    assert.strictEqual(await this.service.checkRequest(context), undefined);
     context.setHttpContext(
       new HttpContext("test.webda.io", "GET", "/", "https", 443, {
         "X-Job-Id": "plop"
       })
     );
-    assert.strictEqual(await this.service.checkRequest(context), false);
+    assert.strictEqual(await this.service.checkRequest(context), undefined);
     context.setHttpContext(
       new HttpContext("test.webda.io", "GET", "/", "https", 443, {
         "X-Job-Id": "plop",
         "X-Job-Time": jobTime
       })
     );
-    assert.strictEqual(await this.service.checkRequest(context), false);
+    assert.strictEqual(await this.service.checkRequest(context), undefined);
     context.setHttpContext(
       new HttpContext("test.webda.io", "GET", "/", "https", 443, {
         "X-Job-Id": "plop",
@@ -209,7 +209,7 @@ class AsyncJobServiceTest extends AsyncTest {
         "X-Job-Hash": jobHash
       })
     );
-    assert.strictEqual(await this.service.checkRequest(context), false);
+    assert.strictEqual(await this.service.checkRequest(context), undefined);
     context.setHttpContext(
       new HttpContext("test.webda.io", "GET", "/status", "https", 443, {
         "X-Job-Id": "plop",
@@ -217,7 +217,7 @@ class AsyncJobServiceTest extends AsyncTest {
         "X-Job-Hash": jobHash
       })
     );
-    assert.strictEqual(await this.service.checkRequest(context), false);
+    assert.strictEqual(await this.service.checkRequest(context), undefined);
     context.setHttpContext(
       new HttpContext("test.webda.io", "GET", "/async/status", "https", 443, {
         "X-Job-Id": "plop",
@@ -226,6 +226,9 @@ class AsyncJobServiceTest extends AsyncTest {
       })
     );
     assert.strictEqual(await this.service.checkRequest(context), true);
+    // The status url without the job headers is refused
+    context.setHttpContext(new HttpContext("test.webda.io", "POST", "/async/status", "https", 443, {}));
+    assert.strictEqual(await this.service.checkRequest(context), false);
   }
 
   @test

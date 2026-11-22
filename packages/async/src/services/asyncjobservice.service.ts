@@ -298,10 +298,13 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
 
   /**
    * Allow job status report url
+   *
+   * The filter only governs the status url: it has no opinion (`undefined`) on
+   * any other route, so it does not make the router refuse them
    * @param context - the web context
-   * @returns true if the request is a job status report
+   * @returns true if the request is a job status report, undefined for other urls
    */
-  async checkRequest(context: WebContext): Promise<boolean> {
+  async checkRequest(context: WebContext): Promise<boolean | undefined> {
     const url = context.getHttpContext().getRelativeUri();
     // Only for status endpoint - operations endpoint should still be authorized by something else
     if (url === `${this.parameters.url}/status`) {
@@ -309,7 +312,7 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
       const httpContext = context.getHttpContext();
       return ["X-Job-Id", "X-Job-Time", "X-Job-Hash"].every(v => httpContext.getUniqueHeader(v) !== undefined);
     }
-    return false;
+    return undefined;
   }
 
   /**

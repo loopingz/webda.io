@@ -648,6 +648,52 @@ class CompilerTest {
   }
 
   /**
+   * The configuration schemas, operations and build hooks depend on the
+   * configuration, so a change to it alone must rebuild (#1116).
+   */
+  @test
+  async requireCompilationChecksConfiguration() {
+    const dir = mkdtempSync(path.join(tmpdir(), "webdac-config-"));
+    try {
+      const project = {
+        getAppPath: (p: string = "") => path.join(dir, p),
+        getDigest: () => "digest"
+      } as unknown as WebdaProject;
+      writeFileSync(path.join(dir, "webda.module.json"), JSON.stringify({ moddas: {}, models: {} }));
+      mkdirSync(path.join(dir, ".webda"));
+      mkdirSync(path.join(dir, "lib"));
+      const compiler = new Compiler(project);
+      (compiler as any).updateCache();
+      assert.strictEqual(compiler.requireCompilation(), false, "no configuration must not rebuild");
+
+      writeFileSync(path.join(dir, "webda.config.json"), JSON.stringify({ services: {} }));
+      assert.strictEqual(compiler.requireCompilation(), true, "a new configuration must rebuild");
+      (compiler as any).updateCache();
+      assert.strictEqual(compiler.requireCompilation(), false, "unchanged configuration must not rebuild");
+
+      writeFileSync(path.join(dir, "webda.config.json"), JSON.stringify({ services: { sdk: { type: "Sdk" } } }));
+      assert.strictEqual(compiler.requireCompilation(), true, "a changed configuration must rebuild");
+      (compiler as any).updateCache();
+
+      mkdirSync(path.join(dir, "deployments"));
+      writeFileSync(path.join(dir, "deployments", "README.md"), "not a deployment");
+      assert.strictEqual(compiler.requireCompilation(), false, "other files of deployments/ are not read");
+      writeFileSync(path.join(dir, "deployments", "production.json"), JSON.stringify({ services: {} }));
+      assert.strictEqual(compiler.requireCompilation(), true, "a new deployment must rebuild");
+      (compiler as any).updateCache();
+      assert.strictEqual(compiler.requireCompilation(), false);
+
+      const cachePath = path.join(dir, ".webda", "cache");
+      const { configurationDigest, ...legacy } = JSON.parse(readFileSync(cachePath, "utf8"));
+      assert.ok(configurationDigest);
+      writeFileSync(cachePath, JSON.stringify(legacy));
+      assert.strictEqual(compiler.requireCompilation(), true, "a cache without configuration digest must rebuild");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
+  /**
    * The `@Shared` allowlist comes from the application's configuration, and is
    * left to the content mapper's default when there is no configuration file.
    */

@@ -2,6 +2,7 @@ import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { Readable } from "stream";
 import * as WebdaQL from "@webda/ql";
+import { MemoryLogger, useWorkerOutput } from "@webda/workout";
 import { WebContext } from "./webcontext";
 import { OperationContext } from "./operationcontext";
 import { HttpContext } from "./httpcontext";
@@ -210,6 +211,40 @@ class ContextAppTest extends WebdaAsyncStorageTest {
     assert.strictEqual(await ctx.getInput(), undefined);
     assert.deepStrictEqual(await ctx.getInput({ defaultValue: {} }), {});
     assert.strictEqual(parsed, false);
+  }
+
+  @test
+  async binaryInput() {
+    for (const type of ["application/octet-stream", "image/png", "audio/ogg", "video/mp4", "font/woff2"]) {
+      const ctx = new WebContextMock(
+        new HttpContext("test.webda.io", "POST", "/", "http", 80, { "content-type": type }).setBody("\x89PNG")
+      );
+      let parsed = false;
+      ctx.getRawInputAsString = async () => {
+        parsed = true;
+        return "";
+      };
+      // A binary body is never JSON: return the default without reading or logging it
+      assert.deepStrictEqual(await ctx.getInput({ defaultValue: {} }), {}, type);
+      assert.strictEqual(parsed, false, type);
+    }
+  }
+
+  @test
+  async invalidJsonInputIsNotLogged() {
+    const memory = new MemoryLogger(useWorkerOutput(), "TRACE");
+    try {
+      this.ctx.getRawInputAsString = async () => "secret-body{";
+      assert.strictEqual(await this.ctx.getInput(), undefined);
+      const logs = memory.getLogs().map(l => JSON.stringify(l.log));
+      assert.ok(
+        logs.some(l => l.includes("WARN") && l.includes("not valid JSON")),
+        "the invalid body is reported"
+      );
+      assert.ok(!logs.some(l => l.includes("secret-body")), "the body is never logged");
+    } finally {
+      memory.close();
+    }
   }
 
   @test

@@ -108,13 +108,14 @@ export class WebContext<T = any, P = any, U = any> extends OperationContext<T, P
   }
 
   /**
-   * A multipart body (file upload) is never JSON: return the default value
-   * instead of letting the parent try to `JSON.parse` it and log an error.
+   * A multipart or binary body (file upload: `application/octet-stream`, `image/*`, `audio/*`, `video/*`,
+   * `font/*`) is never JSON: return the default value instead of letting the parent try to `JSON.parse` it.
    * The raw body stays available to `getRawInput()`/`getRawStream()`.
    * @override
    */
   async getInput(sanitizedOptions?: Parameters<OperationContext["getInput"]>[0]): Promise<T> {
-    if (this.getHttpContext()?.getUniqueHeader("content-type", "").toLowerCase().startsWith("multipart/")) {
+    const contentType = this.getHttpContext()?.getUniqueHeader("content-type", "").toLowerCase() ?? "";
+    if (/^(multipart\/|application\/octet-stream|image\/|audio\/|video\/|font\/)/.test(contentType)) {
       return sanitizedOptions?.defaultValue;
     }
     return super.getInput(sanitizedOptions);

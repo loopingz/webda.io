@@ -355,6 +355,8 @@ export function buildCli(ops: OperationsFile, handler: OperationHandler, argv?: 
  * @param cli - The yargs CLI instance to add commands to
  * @param serviceCommands - Command map from {@link collectServiceCommands}
  * @param handler - Called when a service command is invoked, receives command name and parsed args
+ * @param operationGroups - operation command groups sharing their first word with a service command, merged into
+ * that command group (a second yargs command of the same name would hide the first)
  *
  * @example
  * ```typescript
@@ -371,7 +373,8 @@ export function buildCli(ops: OperationsFile, handler: OperationHandler, argv?: 
 export function addServiceCommandsToCli(
   cli: Argv,
   serviceCommands: { [name: string]: import("../services/servicecommands.js").ServiceCommandInfo },
-  handler: (cmdName: string, args: Record<string, any>) => Promise<void>
+  handler: (cmdName: string, args: Record<string, any>) => Promise<void>,
+  operationGroups: Map<string, OperationGroup> = new Map()
 ): Argv {
   // Add global --service filter
   cli.option("service", {
@@ -384,11 +387,19 @@ export function addServiceCommandsToCli(
     cli,
     Object.entries(serviceCommands).map(([name, info]) => ({ name, info, parts: name.split(" ") })),
     [],
-    handler
+    handler,
+    operationGroups
   );
 
   return cli;
 }
+
+/**
+ * Operation commands of one group (`task create`, `task list`): adds the actions to the group command
+ * @param y - the yargs instance of the group command
+ * @param taken - actions already used by service commands of the same group, skipped
+ */
+export type OperationGroup = (y: Argv, taken: Set<string>) => void;
 
 /**
  * Register a level of service commands, nesting the subcommands (`config pki generate`) as yargs command groups
@@ -396,12 +407,14 @@ export function addServiceCommandsToCli(
  * @param commands - the commands under this level, with their name split in words
  * @param prefix - the words of this level
  * @param handler - called when a service command is invoked
+ * @param operationGroups - operation groups merged into the first-level command of the same word
  */
 function addCommandTree(
   y: Argv,
   commands: { name: string; parts: string[]; info: import("../services/servicecommands.js").ServiceCommandInfo }[],
   prefix: string[],
-  handler: (cmdName: string, args: Record<string, any>) => Promise<void>
+  handler: (cmdName: string, args: Record<string, any>) => Promise<void>,
+  operationGroups: Map<string, OperationGroup> = new Map()
 ): void {
   const groups = new Map<string, typeof commands>();
   for (const command of commands) {
@@ -412,7 +425,8 @@ function addCommandTree(
   for (const [word, group] of groups) {
     const leaf = group.find(c => c.parts.length === prefix.length + 1);
     const children = group.filter(c => c.parts.length > prefix.length + 1);
-    if (!children.length) {
+    const operations = prefix.length === 0 ? operationGroups.get(word) : undefined;
+    if (!children.length && !operations) {
       // Simple command (no subcommands)
       y.command(
         word,
@@ -435,6 +449,8 @@ function addCommandTree(
         );
       }
       addCommandTree(groupY, children, [...prefix, word], handler);
+      // The operations of the service named like the command: its own subcommands keep their names
+      operations?.(groupY, new Set([...(leaf ? [word] : []), ...children.map(c => c.parts[prefix.length + 1])]));
       return groupY.demandCommand(1, `Specify a subcommand for ${path}`);
     });
   }
@@ -1323,18 +1339,18 @@ async function runCommandLine(options: RunCliOptions, applicationCli: boolean): 
         });
       }
 
-      // Add service commands (serve, build, etc. from @Command decorators)
-      addServiceCommandsToCli(cli, serviceCommands, async (cmdName, args) => {
-        matchedCommand = { type: "service", name: cmdName, args };
-      });
-
-      // Add operation commands
-      if (ops) {
-        const groups = groupOperations(ops.operations);
-        for (const [group, operations] of groups) {
-          cli.command(group.toLowerCase(), `${group} operations`, groupY => {
+      // Operation commands, grouped by service or model
+      const operationGroups = new Map<string, { group: string; add: OperationGroup }>();
+      for (const [group, operations] of ops ? groupOperations(ops.operations) : []) {
+        operationGroups.set(group.toLowerCase(), {
+          group,
+          add: (groupY, taken) => {
             for (const op of operations) {
               const action = op.id.substring(op.id.indexOf(".") + 1).toLowerCase();
+              if (taken.has(action)) {
+                useLog("WARN", `Operation ${op.id} is hidden by the command '${group.toLowerCase()} ${action}'`);
+                continue;
+              }
               const hasInput = op.input && op.input !== "void";
               const paramDef = paramDefOf(op, ops!);
               const cmd = paramDef?.positional ? `${action} <${paramDef.positional}>` : action;
@@ -1355,9 +1371,33 @@ async function runCommandLine(options: RunCliOptions, applicationCli: boolean): 
                 }
               );
             }
-            return groupY.demandCommand(1, `Specify an action for ${group.toLowerCase()}`);
-          });
-        }
+          }
+        });
+      }
+      // A service command whose first word is an operation group (`notifier work` and the Notifier operations)
+      // shares one command group with it
+      const commandWords = new Set(Object.keys(serviceCommands).map(name => name.split(" ")[0]));
+      const sharedGroups = new Map(
+        [...operationGroups].filter(([word]) => commandWords.has(word)).map(([word, { add }]) => [word, add])
+      );
+
+      // Add service commands (serve, build, etc. from @Command decorators)
+      addServiceCommandsToCli(
+        cli,
+        serviceCommands,
+        async (cmdName, args) => {
+          matchedCommand = { type: "service", name: cmdName, args };
+        },
+        sharedGroups
+      );
+
+      // Add the other operation groups
+      for (const [word, { group, add }] of operationGroups) {
+        if (sharedGroups.has(word)) continue;
+        cli.command(word, `${group} operations`, groupY => {
+          add(groupY, new Set());
+          return groupY.demandCommand(1, `Specify an action for ${word}`);
+        });
       }
 
       cli

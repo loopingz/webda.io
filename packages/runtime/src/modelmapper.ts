@@ -58,6 +58,9 @@ interface ModelMapperInfo {
  * Mapper service
  *
  * Ensure each ModelMapped properties is in-sync with their respective model
+ *
+ * It only keeps the copies in sync: `maps[].cascadeDelete` (`@CascadeDelete`) is applied by the `RelationIntegrity`
+ * service of `@webda/core`, with the other delete policies.
  */
 export class ModelMapper extends Service {
   /**

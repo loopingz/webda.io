@@ -80,7 +80,7 @@ When the rule does not depend on the object, override the **static** `canAct(con
 ### 2. Link posts to tags
 
 ```typescript title="src/models/Post.model.ts (additions)"
-import { BelongTo, Contains, ManyToMany, Model, WEBDA_PRIMARY_KEY } from "@webda/models";
+import { Contains, ManyToMany, ManyToOne, Model, WEBDA_PRIMARY_KEY } from "@webda/models";
 import type { Tag } from "./Tag.model.js";
 
 export class Post extends Model {
@@ -95,7 +95,7 @@ export class Post extends Model {
 ### 3. Create `src/models/PostTag.model.ts` — the join model
 
 ```typescript title="src/models/PostTag.model.ts"
-import { Model, WEBDA_PRIMARY_KEY, BelongTo, RelateTo } from "@webda/models";
+import { Model, WEBDA_PRIMARY_KEY, ManyToOne, RelateTo } from "@webda/models";
 import type { Post } from "./Post.model.js";
 import type { Tag } from "./Tag.model.js";
 import { isModelActionAllowed } from "@webda/core";
@@ -118,7 +118,11 @@ export class PostTag extends Model {
   createdAt!: Date;
 
   // Relations to actual objects
-  post!: BelongTo<Post>;
+  /**
+   * Post tagged: deleting the post deletes its tag links
+   * @OnDelete CASCADE
+   */
+  post!: ManyToOne<Post>;
   tag!: RelateTo<Tag>;
 
   /**
@@ -145,7 +149,7 @@ export class PostTag extends Model {
 ```
 
 - **Composite key** — `["post", "tag"]` makes the pair unique: a post can only be tagged once with the same tag. `PostTag.ref({ post: "hello-world", tag: "javascript" }).get()` loads one link in code.
-- **`BelongTo` vs `RelateTo`** — both store the key of the target. `BelongTo` marks the owner (the tag link is part of the post); `RelateTo` is a plain reference. Neither deletes anything in cascade.
+- **`ManyToOne` vs `RelateTo`** — both are aliases of `ModelLink` and store the key of the target. `@OnDelete CASCADE` on `post` deletes the tag links of a deleted post; `tag` has no policy, so deleting a tag keeps its links (add `@OnDelete CASCADE` there too to remove them). See [Delete policies](../../Modules/models/Relationships.md#delete-policies).
 - **`isModelActionAllowed(post, context, "update", Post)`** — asks the `Post` permission rules (static and instance) instead of duplicating them. The dynamic `import()` avoids a circular import between the two model files.
 
 `ManyToMany` and a join model are two ways to model the same link. The join model is a model of its own: it has its key, its permissions, its routes, and can carry data (here `createdAt`).

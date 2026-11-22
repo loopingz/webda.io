@@ -90,7 +90,8 @@
           {
             "attribute": "post",
             "model": "WebdaSample/Post",
-            "type": "LINK"
+            "type": "LINK",
+            "onDelete": "CASCADE"
           },
           {
             "attribute": "author",
@@ -158,7 +159,7 @@
               "type": "boolean"
             },
             "post": {
-              "description": "Post",
+              "description": "Post commented: deleting the post deletes its comments",
               "type": "string"
             },
             "updatedAt": {
@@ -205,7 +206,7 @@
               "type": "boolean"
             },
             "post": {
-              "description": "Post",
+              "description": "Post commented: deleting the post deletes its comments",
               "type": "string"
             },
             "uuid": {
@@ -250,7 +251,7 @@
               "type": "boolean"
             },
             "post": {
-              "description": "Post",
+              "description": "Post commented: deleting the post deletes its comments",
               "type": "string"
             },
             "updatedAt": {
@@ -330,6 +331,20 @@
             "attribute": "tags",
             "model": "WebdaSample/Tag",
             "type": "LINKS_ARRAY"
+          }
+        ],
+        "dependents": [
+          {
+            "model": "WebdaSample/Comment",
+            "attribute": "post",
+            "type": "LINK",
+            "onDelete": "CASCADE"
+          },
+          {
+            "model": "WebdaSample/PostTag",
+            "attribute": "post",
+            "type": "LINK",
+            "onDelete": "CASCADE"
           }
         ]
       },
@@ -949,7 +964,8 @@
           {
             "attribute": "post",
             "model": "WebdaSample/Post",
-            "type": "LINK"
+            "type": "LINK",
+            "onDelete": "CASCADE"
           },
           {
             "attribute": "tag",
@@ -989,7 +1005,7 @@
               "type": "string"
             },
             "post": {
-              "description": "Post",
+              "description": "Post tagged: deleting the post deletes its tag links",
               "type": "string"
             },
             "tag": {
@@ -1016,7 +1032,7 @@
               "type": "string"
             },
             "post": {
-              "description": "Post",
+              "description": "Post tagged: deleting the post deletes its tag links",
               "type": "string"
             },
             "tag": {
@@ -1043,7 +1059,7 @@
               "type": "string"
             },
             "post": {
-              "description": "Post",
+              "description": "Post tagged: deleting the post deletes its tag links",
               "type": "string"
             },
             "tag": {

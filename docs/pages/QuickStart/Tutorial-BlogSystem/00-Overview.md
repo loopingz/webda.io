@@ -61,19 +61,19 @@ GraphQL and gRPC expose the same model operations and permissions.
 
 ## The plan
 
-| Page                                          | What you do                                                        |
-| --------------------------------------------- | ------------------------------------------------------------------ |
-| [01 — Setup](./01-Setup.md)                   | Create the project with `npm create @webda`                        |
-| [02 — User model](./02-User-Model.md)         | First model, JSDoc validation, `canAct`, register/login operations |
-| [03 — Post model](./03-Post-Model.md)         | Custom primary key (`slug`), `BelongTo`, author-only permissions   |
-| [04 — Comment model](./04-Comment-Model.md)   | Two `BelongTo` relations, the author set by the server             |
-| [05 — Tag + PostTag](./05-Tag-And-PostTag.md) | Static `canAct`, join table with a composite primary key           |
-| [06 — UserFollow](./06-UserFollow.md)         | Self-referential composite-key model                               |
-| [07 — Service layer](./07-Services.md)        | `@WebdaModda` services, `@Bean`, `@Operation` on services          |
-| [08 — REST tour](./08-REST-API.md)            | How routes, queries, errors and permissions map to HTTP            |
-| [09 — GraphQL](./09-GraphQL.md)               | Add `@webda/graphql`, run queries and mutations                    |
-| [10 — gRPC](./10-gRPC.md)                     | Add `@webda/grpc`, call with `grpcurl`                             |
-| [11 — Next steps](./11-NextSteps.md)          | Authentication, persistent stores, deployment, testing             |
+| Page                                          | What you do                                                             |
+| --------------------------------------------- | ----------------------------------------------------------------------- |
+| [01 — Setup](./01-Setup.md)                   | Create the project with `npm create @webda`                             |
+| [02 — User model](./02-User-Model.md)         | First model, JSDoc validation, `canAct`, register/login operations      |
+| [03 — Post model](./03-Post-Model.md)         | Custom primary key (`slug`), `ManyToOne`, author-only permissions       |
+| [04 — Comment model](./04-Comment-Model.md)   | Two `ManyToOne` relations, cascade delete, the author set by the server |
+| [05 — Tag + PostTag](./05-Tag-And-PostTag.md) | Static `canAct`, join table with a composite primary key                |
+| [06 — UserFollow](./06-UserFollow.md)         | Self-referential composite-key model                                    |
+| [07 — Service layer](./07-Services.md)        | `@WebdaModda` services, `@Bean`, `@Operation` on services               |
+| [08 — REST tour](./08-REST-API.md)            | How routes, queries, errors and permissions map to HTTP                 |
+| [09 — GraphQL](./09-GraphQL.md)               | Add `@webda/graphql`, run queries and mutations                         |
+| [10 — gRPC](./10-gRPC.md)                     | Add `@webda/grpc`, call with `grpcurl`                                  |
+| [11 — Next steps](./11-NextSteps.md)          | Authentication, persistent stores, deployment, testing                  |
 
 ## Quick clone — I just want to browse the finished code
 

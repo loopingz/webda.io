@@ -98,6 +98,7 @@ export default defineConfig({
       "src/services/prometheus.spec.ts",
       //"src/services/resource.spec.ts",
       "src/services/resource-unit.spec.ts",
+      "src/services/relationintegrity.spec.ts",
       "src/services/command.spec.ts",
       "src/services/servicecommands.spec.ts",
       "src/services/service.spec.ts",

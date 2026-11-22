@@ -5,6 +5,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { FileUtils, listSharedImports } from "@webda/utils";
 import { useLog } from "@webda/workout";
+import { listDeploymentFiles } from "./configuration.js";
 import type { WebdaProject } from "./definition.js";
 import { writeModule } from "./module.js";
 import { build } from "./schema-backend.js";
@@ -165,6 +166,29 @@ export function getDependencyDigest(appRoot: string): string {
 }
 
 /**
+ * Digest of the application configuration: `webda.config.(json|jsonc|yaml|yml)`
+ * and the files of its `deployments` folder.
+ *
+ * They are not sources, yet the configuration schemas, `operations.json` and
+ * the build hooks of the configured services all depend on them, so a change
+ * to them alone must rebuild.
+ * @param appRoot - application root
+ * @returns the MD5 hex digest
+ */
+export function getConfigurationDigest(appRoot: string): string {
+  const hash = createHash("md5");
+  const files = [
+    ...["json", "jsonc", "yaml", "yml"].map(ext => join(appRoot, `webda.config.${ext}`)).filter(f => existsSync(f)),
+    ...listDeploymentFiles(join(appRoot, "deployments"))
+  ];
+  for (const f of files) {
+    hash.update(`${f.substring(appRoot.length)}\0`);
+    hash.update(readFileSync(f));
+  }
+  return hash.digest("hex");
+}
+
+/**
  * Compiler
  *
  * Builds an application on TypeScript 7.1 through `@webda/content-mapper`:
@@ -236,6 +260,7 @@ export class Compiler {
       sourceDigest?: string;
       moduleDigest?: string;
       dependencyDigest?: string;
+      configurationDigest?: string;
       generator?: Record<string, string>;
     } = FileUtils.load(f, "json");
     const generator = getGeneratorVersions(this.project.getAppPath(), this.resolveGenerator);
@@ -254,6 +279,10 @@ export class Compiler {
     }
     if (webdaCache.dependencyDigest !== getDependencyDigest(this.project.getAppPath())) {
       useLog("INFO", "Dependencies changed, rebuilding");
+      return true;
+    }
+    if (webdaCache.configurationDigest !== getConfigurationDigest(this.project.getAppPath())) {
+      useLog("INFO", "Configuration changed, rebuilding");
       return true;
     }
     // Cross-check the on-disk webda.module.json: sources may be unchanged but
@@ -387,10 +416,10 @@ export class Compiler {
   }
 
   /**
-   * Persist the build cache: source and dependency digests plus the generated
-   * module file's content hash, so {@link requireCompilation} can detect
-   * source-file changes, rebuilt or upgraded dependencies and external
-   * mutations of webda.module.json.
+   * Persist the build cache: source, dependency and configuration digests plus
+   * the generated module file's content hash, so {@link requireCompilation}
+   * can detect source-file changes, rebuilt or upgraded dependencies,
+   * configuration changes and external mutations of webda.module.json.
    */
   private updateCache(): void {
     const f = this.project.getAppPath(".webda/cache");
@@ -398,11 +427,13 @@ export class Compiler {
       sourceDigest?: string;
       moduleDigest?: string;
       dependencyDigest?: string;
+      configurationDigest?: string;
       generator?: Record<string, string>;
     } = existsSync(f) ? FileUtils.load(f, "json") : {};
     webdaCache.sourceDigest = this.project.getDigest();
     webdaCache.moduleDigest = this.fileDigest(this.project.getAppPath("webda.module.json"));
     webdaCache.dependencyDigest = getDependencyDigest(this.project.getAppPath());
+    webdaCache.configurationDigest = getConfigurationDigest(this.project.getAppPath());
     webdaCache.generator = { ...getGeneratorVersions(this.project.getAppPath(), this.resolveGenerator) };
     FileUtils.save(webdaCache, f, "json");
   }

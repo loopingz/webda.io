@@ -65,7 +65,11 @@ useRepository(Post).on("Deleted", ({ object_id }) => {
 
 ## MemoryStore — in-process store
 
-`MemoryStore` is the default store for development and testing. It stores records in a JavaScript `Map` and evaluates WQL queries in-memory.
+`MemoryStore` is the default store for development, testing, and browser/client runtimes. It stores records in a JavaScript `Map` and evaluates WQL queries in-memory without any native or `node:sqlite` dependency.
+
+> **Choosing between `MemoryStore` and `SQLiteStore`**:
+> Use `MemoryStore` for browser/client environments (where `node:sqlite` is unavailable), zero-setup unit tests, or point-lookup KV workloads (`get`, `exists`, `update`, `delete`).
+> For Node.js applications running WebdaQL queries, `ORDER BY`, aggregations, or needing durable persistence, prefer [`SQLiteStore`](../sqlite/README.md) (`@webda/sqlite`): it pushes queries to SQLite and is faster on queries and sorting while still supporting an in-memory mode.
 
 Configuration:
 

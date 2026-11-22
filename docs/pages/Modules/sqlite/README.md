@@ -13,12 +13,12 @@ backend for tests and development, or a durable backend for CLI tools, single-no
 
 ## When to use it
 
-| Need                                                                             | Pick                                          |
-| -------------------------------------------------------------------------------- | --------------------------------------------- |
-| Throw-away data in tests, zero setup, fastest                                    | `MemoryStore` / `MemoryQueue` (`@webda/core`) |
-| A durable single file, WebdaQL pushed to SQL, queue and pub/sub on the same file | `@webda/sqlite`                               |
-| One JSON file per object you can read by hand                                    | `@webda/fs`                                   |
-| Several hosts, heavy concurrent traffic                                          | `@webda/postgres`                             |
+| Need                                                                                             | Pick                                          |
+| ------------------------------------------------------------------------------------------------ | --------------------------------------------- |
+| Browser/client runtime (no `node:sqlite`), zero-setup tests, or fast point-lookup KV operations  | `MemoryStore` / `MemoryQueue` (`@webda/core`) |
+| Node.js in-memory or durable single file, faster WebdaQL queries/sorting pushed to SQL, queue/pub/sub | `@webda/sqlite`                               |
+| One JSON file per object you can read by hand                                                    | `@webda/fs`                                   |
+| Several hosts, heavy concurrent traffic                                                          | `@webda/postgres`                             |
 
 ## Modes
 

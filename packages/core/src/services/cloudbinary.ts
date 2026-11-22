@@ -124,9 +124,13 @@ export abstract class CloudBinary<T extends CloudBinaryParameters = CloudBinaryP
    * @param binaryMap - the binary map definition
    * @param context - the execution context
    * @param expires - the expiration time
-   * @returns the result
+   * @returns the signed URL, or null to stream the content instead
    */
-  async getRedirectUrlFromObject(binaryMap, context, expires: number = this.parameters.urlExpiry) {
+  async getRedirectUrlFromObject(
+    binaryMap,
+    context,
+    expires: number = this.parameters.urlExpiry
+  ): Promise<null | string> {
     return this.getSignedUrlFromMap(binaryMap, expires, context);
   }
 

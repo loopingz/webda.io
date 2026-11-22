@@ -122,6 +122,37 @@ class FileBinaryChallengeTest extends WebdaApplicationTest {
     return { user, hash: (await this.hashes(content)).hash };
   }
 
+  /**
+   * Without `url` no download or upload route is registered: downloads stream through the attribute route instead
+   * of redirecting to `undefined/download/...`, and a challenge needing an upload answers 404
+   */
+  @test
+  async withoutUrlNoRedirect() {
+    const { user, hash } = await this.storedFor("served without url");
+    const ctx = await this.newContext();
+    const map: any = { hash, mimetype: "text/plain" };
+    assert.match(await this.binary.getRedirectUrlFromObject(map, ctx), /\/download\/data\//);
+    const url = this.binary.getParameters().url;
+    this.binary.getParameters().url = undefined;
+    try {
+      assert.strictEqual(await this.binary.getRedirectUrlFromObject(map, ctx), null);
+      const unknown = await this.hashes("never uploaded");
+      await assert.rejects(
+        () => this.binary.putRedirectUrl(user, "images", { ...unknown, size: 14 } as any, ctx),
+        WebdaError.NotFound
+      );
+      assert.ok(!fs.existsSync(this.binary._getPath(unknown.hash)), "no pending upload folder");
+      // A proven challenge needs no upload: it still attaches
+      const { challenge } = await this.hashes("served without url");
+      assert.strictEqual(
+        await this.binary.putRedirectUrl(user, "profile", { hash, challenge, size: 18 } as any, ctx),
+        undefined
+      );
+    } finally {
+      this.binary.getParameters().url = url;
+    }
+  }
+
   @test
   async challengeAttachesOnlyProvenContent() {
     const { hash } = await this.storedFor("the victim's private file");

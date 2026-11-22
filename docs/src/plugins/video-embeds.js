@@ -9,7 +9,7 @@
  * <!-- webda-video:<deck> -->
  * [![<title>](https://i.ytimg.com/vi/<id>/hqdefault.jpg)](https://www.youtube.com/watch?v=<id>)
  *
- * [Version française](https://www.youtube.com/watch?v=<fr>) · [Slides (PDF)](https://webda.io/presentations/<deck>/<deck>.pdf)
+ * [Version française](https://www.youtube.com/watch?v=<fr>) · [Slides](https://webda.io/presentations/<deck>/)
  * <!-- /webda-video -->
  * ```
  *

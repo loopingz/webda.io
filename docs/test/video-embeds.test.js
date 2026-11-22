@@ -10,7 +10,7 @@ const { findBlocks } = remarkVideoEmbeds;
 const THUMBNAIL =
   "[![Webda and GraphQL](https://i.ytimg.com/vi/AbCdEfGhIjK/hqdefault.jpg)](https://www.youtube.com/watch?v=AbCdEfGhIjK)";
 const LINKS =
-  "[Version française](https://www.youtube.com/watch?v=ZyXwVuTsRqP) · [Slides (PDF)](https://webda.io/presentations/webda-graphql/webda-graphql.pdf)";
+  "[Version française](https://www.youtube.com/watch?v=ZyXwVuTsRqP) · [Slides](https://webda.io/presentations/webda-graphql/)";
 
 /**
  * A managed block, as the bot writes it.
@@ -70,7 +70,7 @@ function assertEmbed(output) {
   assert.match(output, /loading: "lazy"/);
   assert.match(output, /className: "webda-video"/);
   assert.match(output, /"https:\/\/www\.youtube\.com\/watch\?v=ZyXwVuTsRqP"/);
-  assert.match(output, /"https:\/\/webda\.io\/presentations\/webda-graphql\/webda-graphql\.pdf"/);
+  assert.match(output, /"https:\/\/webda\.io\/presentations\/webda-graphql\/"/);
   assert.doesNotMatch(output, /i\.ytimg\.com/);
   assert.doesNotMatch(output, /webda-video:/);
   assert.match(output, /After/);

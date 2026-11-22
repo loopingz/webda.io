@@ -26,9 +26,9 @@ export async function examples() {
   const note = await Note.create({ text: "Hello", archived: false });
   const loaded = await Note.ref(note.getUUID()).get();
   await Note.ref(note.getUUID()).patch({ archived: true });
-  const { results, continuationToken } = await Note.query("archived = false ORDER BY text LIMIT 10");
+  const { results, continuationToken } = await Note.query("archived = FALSE ORDER BY text LIMIT 10");
   const same = await Note.query("text = ?", [loaded.text]);
-  for await (const item of Note.iterate("archived = true")) {
+  for await (const item of Note.iterate("archived = TRUE")) {
     await item.delete();
   }
   useRepository(Note).on("Created", event => useLog("INFO", "Note created", event));

@@ -26,6 +26,8 @@ building the image:
       "name": "knative",
       "type": "Webda/KnativeDeployer",
       "containerDeployer": "image",
+      // Used by `knative manifest`; `deploy` replaces it with the pushed digest
+      "image": "ghcr.io/acme/api:${git.version}",
       "namespace": "apps",
       "minScale": 1,
       "maxScale": 20,
@@ -52,7 +54,8 @@ webda -d production knative delete --yes
 unit calls the image unit itself and pins the revision to the pushed digest
 (`ghcr.io/acme/api@sha256:...`), so leave the `ContainerDeployer` unit first or let the Knative unit push
 for it. Without `containerDeployer`, set `image` to the reference to deploy (templates like
-`${git.version}` apply).
+`${git.version}` apply). Only `deploy` asks the `containerDeployer` unit for the image: `knative manifest` reads
+`image` and fails without it, so set both to review the manifest before deploying.
 
 The Service is created, then [server-side applied](https://kubernetes.io/docs/reference/using-api/server-side-apply/)
 with the `webda` field manager: fields set by other tools (a `kubectl annotate`) are kept, the fields of the
@@ -96,7 +99,7 @@ Every string accepts the deployment templates (`${package.version}`, `${git.shor
 | `platform`             | `"knative"` \| `"cloudrun"`                           | `"knative"`                                    | Adjusts the manifest for Cloud Run, see below                                                                                         |
 | `namespace`            | string                                                | `"default"`                                    | Namespace of the Service (the project on Cloud Run)                                                                                   |
 | `name`                 | string                                                | `"${package.name}"`                            | Name of the Service, sanitized to a DNS-1123 label (`@acme/api` gives `acme-api`)                                                     |
-| `image`                | string                                                | —                                              | Image to deploy, required unless `containerDeployer` provides it                                                                      |
+| `image`                | string                                                | —                                              | Image to deploy, required unless `containerDeployer` provides it; `knative manifest` always needs it                                  |
 | `containerDeployer`    | string                                                | —                                              | Name of a `Webda/ContainerDeployer` unit: `deploy` pushes with it and deploys the digest                                              |
 | `env`                  | object                                                | `{}`                                           | Environment variables, `WEBDA_HEALTH_PATH` is added from `healthPath`                                                                 |
 | `envFrom`              | `{ secretRef?, configMapRef?, prefix? }[]`            | `[]`                                           | Secrets and ConfigMaps loaded as environment variables                                                                                |

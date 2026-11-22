@@ -72,6 +72,8 @@ usually chained to the `Webda/ContainerDeployer` of `@webda/oci`:
       "name": "knative",
       "type": "Webda/KnativeDeployer",
       "containerDeployer": "image",
+      // Used by `knative manifest`; `deploy` replaces it with the pushed digest
+      "image": "ghcr.io/acme/api:${git.version}",
       "namespace": "apps",
       "minScale": 1,
       "env": { "NODE_ENV": "production" }
@@ -81,7 +83,7 @@ usually chained to the `Webda/ContainerDeployer` of `@webda/oci`:
 ```
 
 ```bash
-webda -d production knative manifest   # print the Service without touching the cluster
+webda -d production knative manifest   # print the Service without touching the cluster (needs `image`)
 webda -d production deploy             # push the image, create or server-side apply the Service, wait for Ready
 webda -d production knative status     # URL, revisions, traffic
 webda -d production knative delete --yes
@@ -101,6 +103,9 @@ webda -d production knative delete --yes
 | `triggers`                         | array            | `[]`                | Knative Eventing `Trigger`s delivering a Broker to the `Webda/CloudEventsReceiver` route (`path`)  |
 | `template` / `output`              | object \| string | —                   | Deep-merged overrides, file the manifest is written to                                             |
 | `config` / `context` / `timeout`   |                  | kubeconfig          | Cluster access, as the other services                                                              |
+
+Only `deploy` asks the `containerDeployer` unit for the image: `knative manifest` reads `image` and fails without it,
+so set both when you want to review the manifest before deploying.
 
 The application needs no Knative-specific configuration: the `HttpServer` listens on `$PORT`, answers the
 readiness probe on `healthPath` and drains its in-flight requests on `SIGTERM`. With `triggers`, `knative manifest`

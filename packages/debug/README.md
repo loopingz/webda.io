@@ -34,7 +34,7 @@ pnpm add @webda/debug
 {
   "services": {
     "debugService": {
-      "type": "DebugService"
+      "type": "Webda/DebugService"
     }
   }
 }

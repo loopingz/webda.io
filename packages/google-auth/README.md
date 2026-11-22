@@ -43,8 +43,9 @@ pnpm add @webda/auth @webda/google-auth
     "google": {
       "type": "Webda/GoogleAuthentication",
       "client_id": "1234-web.apps.googleusercontent.com",
-      // Values are not interpolated: commit the secret encrypted (webda config encrypt)
-      "client_secret": "encrypt:<client secret>",
+      // Values are not interpolated: commit the secret encrypted (webda config encrypt). Name the encrypter
+      // (local, gcp, aws...) unless parameters.configurationEncryption.default is set
+      "client_secret": "encrypt:local:<client secret>",
       // Register exactly this url in the Google Cloud console; set it explicitly behind a proxy
       "redirect_uri": "https://api.example.com/auth/google/callback",
       "redirects": {

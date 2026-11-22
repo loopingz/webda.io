@@ -52,18 +52,18 @@ pnpm add @webda/aws
 {
   "services": {
     "userStore": {
-      "type": "DynamoStore",
+      "type": "Webda/DynamoStore",
       "models": ["MyApp/User"],
       "table": "my-app-users",
       "region": "us-east-1"
     },
     "uploadBucket": {
-      "type": "S3Binary",
+      "type": "Webda/S3Binary",
       "bucket": "my-app-uploads",
       "region": "us-east-1"
     },
     "taskQueue": {
-      "type": "SQSQueue",
+      "type": "Webda/SQSQueue",
       "queue": "https://sqs.us-east-1.amazonaws.com/123456789/my-tasks"
     }
   }

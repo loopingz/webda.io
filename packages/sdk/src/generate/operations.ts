@@ -76,6 +76,18 @@ export function actionBodyType(
 }
 
 /**
+ * Whether the action body (`<Model>.<action>.input`) has required fields: an action without parameters, or with
+ * optional ones only, can be called without a body
+ * @param manifest - the manifest
+ * @param op - an action operation
+ * @returns true when the body schema lists required fields
+ */
+export function actionBodyRequired(manifest: SdkManifest, op: SdkManifestOperation): boolean {
+  const schema = op.action && op.model ? manifest.schemas[`${op.model}.${op.action.name}.input`] : undefined;
+  return Array.isArray(schema?.required) && schema.required.length > 0;
+}
+
+/**
  * Return the output type
  * @param manifest - the manifest
  * @param op - the operation

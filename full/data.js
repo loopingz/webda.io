@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795330345013,
+  "lastUpdate": 1795330347696,
   "repoUrl": "https://github.com/loopingz/webda.io",
   "entries": {
     "Throughput (full)": [
@@ -3140,6 +3140,1155 @@ window.BENCHMARK_DATA = {
             "range": "± 14.89",
             "unit": "ms",
             "extra": "ops=5 errors=0 p50=1025.507ms max=1051.722ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "Remi Cattiau",
+            "username": "loopingz",
+            "email": "remi@cattiau.com"
+          },
+          "committer": {
+            "name": "GitHub",
+            "username": "web-flow",
+            "email": "noreply@github.com"
+          },
+          "id": "a73c597003c03f83d8c36c5a177b1817cb1378d6",
+          "message": "chore: update TypeScript to 7.1.0-dev.20261121.1 (#1093)\n\n* fix(content-mapper): treat a deferred conditional type as unconstrained\n\nA setter declared on a generic base (`set _user(value: … | PrimaryKeyType<T>)`\non `AbstractOwnerModel<T>`) is read off its declaration, so `T` is never\nsubstituted and `PK<T, …>` stays a deferred conditional. The converter fell\nthrough to its apparent type, which TypeScript 7.1.0-dev.20261121.1 now\nreports as the constraint of both branches, leaking a\n`Pick<T, T[unique symbol][number]>` definition into webda.module.json.\n\nThe checker only defers a conditional that depends on an unresolved type\nparameter, so handle it like the bare type parameter: it constrains nothing.\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>\n\n* chore: update TypeScript to 7.1.0-dev.20261121.1\n\nNo 7.1 release candidate is published yet; move every pin from the\n2026-11-02 nightly to the latest one and regenerate the module files.\n\nThe only module change is the `_user` primary-key slot of owner models,\nfrom an empty object to the unconstrained schema produced by the previous\ncommit.\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>\n\n---------\n\nCo-authored-by: Claude Opus 5.5 <noreply@anthropic.com>",
+          "timestamp": "2026-11-22T02:24:59Z",
+          "url": "https://github.com/loopingz/webda.io/commit/a73c597003c03f83d8c36c5a177b1817cb1378d6"
+        },
+        "date": 1795330347005,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "pubsub/AMQPPubSub/pubsub.publish[concurrency=1,subscribers=0] p99",
+            "value": 0.01,
+            "range": "± 0.01",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.003ms max=0.991ms"
+          },
+          {
+            "name": "pubsub/AMQPPubSub/pubsub.publish[concurrency=10,subscribers=0] p99",
+            "value": 0.101,
+            "range": "± 0.044",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.039ms max=1.341ms"
+          },
+          {
+            "name": "pubsub/AMQPPubSub/pubsub.publish[concurrency=50,subscribers=0] p99",
+            "value": 0.465,
+            "range": "± 0.121",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.175ms max=1.44ms"
+          },
+          {
+            "name": "pubsub/AMQPPubSub/pubsub.e2e.latency[ratePerSec=100,subscribers=1] p99",
+            "value": 0.915,
+            "range": "± 0.133",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.501ms max=1.77ms"
+          },
+          {
+            "name": "pubsub/AMQPPubSub/pubsub.e2e.latency[ratePerSec=1000,subscribers=1] p99",
+            "value": 0.41,
+            "range": "± 0.147",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.207ms max=4.098ms"
+          },
+          {
+            "name": "pubsub/AMQPPubSub/pubsub.e2e.throughput[messages=10000,publishConcurrency=10,subscribers=1] p99",
+            "value": 141.689,
+            "range": "± 26.997",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=102.367ms max=142.213ms"
+          },
+          {
+            "name": "pubsub/AMQPPubSub/pubsub.fanout[messages=10000,subscribers=1] p99",
+            "value": 139.198,
+            "range": "± 30.012",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=104.53ms max=139.985ms"
+          },
+          {
+            "name": "pubsub/AMQPPubSub/pubsub.fanout[messages=2000,subscribers=5] p99",
+            "value": 111.477,
+            "range": "± 30.979",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=64.291ms max=111.542ms"
+          },
+          {
+            "name": "pubsub/AMQPPubSub/pubsub.fanout[messages=500,subscribers=20] p99",
+            "value": 105.578,
+            "range": "± 30.887",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=74.908ms max=105.644ms"
+          },
+          {
+            "name": "pubsub/AMQPPubSub/pubsub.payload[payloadBytes=100,subscribers=1] p99",
+            "value": 0.289,
+            "range": "± 0.058",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.119ms max=0.588ms"
+          },
+          {
+            "name": "pubsub/AMQPPubSub/pubsub.payload[payloadBytes=10240,subscribers=1] p99",
+            "value": 1.471,
+            "range": "± 0.263",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.182ms max=4.895ms"
+          },
+          {
+            "name": "pubsub/AMQPPubSub/pubsub.payload[payloadBytes=262144,subscribers=1] p99",
+            "value": 6.324,
+            "range": "± 1.016",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=1.325ms max=8.11ms"
+          },
+          {
+            "name": "queue/AMQPQueue/queue.send[concurrency=1,payloadBytes=100] p99",
+            "value": 0.022,
+            "range": "± 0.019",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.005ms max=1.791ms"
+          },
+          {
+            "name": "queue/AMQPQueue/queue.send[concurrency=10,payloadBytes=100] p99",
+            "value": 0.137,
+            "range": "± 0.061",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.037ms max=1.811ms"
+          },
+          {
+            "name": "queue/AMQPQueue/queue.send[concurrency=50,payloadBytes=100] p99",
+            "value": 0.668,
+            "range": "± 0.164",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.183ms max=1.613ms"
+          },
+          {
+            "name": "queue/AMQPQueue/queue.consume[maxConsumers=1,messages=10000,workMs=2,workerParallelism=true] p99",
+            "value": 23806.87,
+            "range": "± 6897.465",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=12138.316ms max=24041.751ms"
+          },
+          {
+            "name": "queue/AMQPQueue/queue.consume[maxConsumers=1,messages=10000,workMs=2,workerParallelism=false] p99",
+            "value": 24125.637,
+            "range": "± 7016.022",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=12163.482ms max=24377.295ms"
+          },
+          {
+            "name": "queue/AMQPQueue/queue.consume[maxConsumers=5,messages=10000,workMs=2,workerParallelism=true] p99",
+            "value": 4978.639,
+            "range": "± 1411.494",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=2589.983ms max=5028.97ms"
+          },
+          {
+            "name": "queue/AMQPQueue/queue.consume[maxConsumers=5,messages=10000,workMs=2,workerParallelism=false] p99",
+            "value": 4836.033,
+            "range": "± 1368.209",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=2514.485ms max=4882.17ms"
+          },
+          {
+            "name": "queue/AMQPQueue/queue.consume[maxConsumers=10,messages=10000,workMs=2,workerParallelism=true] p99",
+            "value": 2615.149,
+            "range": "± 728.426",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=1366.295ms max=2642.412ms"
+          },
+          {
+            "name": "queue/AMQPQueue/queue.consume[maxConsumers=10,messages=10000,workMs=2,workerParallelism=false] p99",
+            "value": 2556.428,
+            "range": "± 709.41",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=1352.663ms max=2581.594ms"
+          },
+          {
+            "name": "queue/AMQPQueue/queue.e2e.latency[maxConsumers=10,ratePerSec=100] p99",
+            "value": 40.927,
+            "range": "± 11.842",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=20.955ms max=41.845ms"
+          },
+          {
+            "name": "queue/AMQPQueue/queue.e2e.latency[maxConsumers=10,ratePerSec=1000] p99",
+            "value": 69.206,
+            "range": "± 14.542",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=21.791ms max=103.219ms"
+          },
+          {
+            "name": "queue/AMQPQueue/queue.redelivery[failureRate=0.05,messages=100] p99",
+            "value": 1040.712,
+            "range": "± 19.057",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=1002.439ms max=1040.712ms"
+          },
+          {
+            "name": "queue/SQSQueue/queue.send[concurrency=1,payloadBytes=100] p99",
+            "value": 5.284,
+            "range": "± 3.134",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=2.361ms max=306.708ms emulated"
+          },
+          {
+            "name": "queue/SQSQueue/queue.send[concurrency=10,payloadBytes=100] p99",
+            "value": 22.086,
+            "range": "± 9.986",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=11.313ms max=315.621ms emulated"
+          },
+          {
+            "name": "queue/SQSQueue/queue.send[concurrency=50,payloadBytes=100] p99",
+            "value": 360.448,
+            "range": "± 38.547",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=50.823ms max=389.808ms emulated"
+          },
+          {
+            "name": "queue/SQSQueue/queue.drain.raw[concurrency=1,messages=10000] p99",
+            "value": 27179.09,
+            "range": "± 4552.229",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=19646.12ms max=27330.085ms emulated"
+          },
+          {
+            "name": "queue/SQSQueue/queue.drain.raw[concurrency=10,messages=10000] p99",
+            "value": 13446.939,
+            "range": "± 547.576",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=12599.689ms max=13522.436ms emulated"
+          },
+          {
+            "name": "queue/SQSQueue/queue.drain.raw[concurrency=50,messages=10000] p99",
+            "value": 13153.337,
+            "range": "± 379.799",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=12448.694ms max=13606.322ms emulated"
+          },
+          {
+            "name": "queue/SQSQueue/queue.consume[maxConsumers=1,messages=10000,workMs=2,workerParallelism=true] p99",
+            "value": 79859.548,
+            "range": "± 19648.153",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=43486.544ms max=80664.855ms emulated"
+          },
+          {
+            "name": "queue/SQSQueue/queue.consume[maxConsumers=1,messages=10000,workMs=2,workerParallelism=false] p99",
+            "value": 77577.847,
+            "range": "± 19116.32",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=44392.514ms max=78248.935ms emulated"
+          },
+          {
+            "name": "queue/SQSQueue/queue.consume[maxConsumers=5,messages=10000,workMs=2,workerParallelism=true] p99",
+            "value": 24427.626,
+            "range": "± 3699.307",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=17918.067ms max=24561.844ms emulated"
+          },
+          {
+            "name": "queue/SQSQueue/queue.consume[maxConsumers=5,messages=10000,workMs=2,workerParallelism=false] p99",
+            "value": 93683.974,
+            "range": "± 22300.34",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=30450.647ms max=95563.022ms emulated"
+          },
+          {
+            "name": "queue/SQSQueue/queue.consume[maxConsumers=10,messages=10000,workMs=2,workerParallelism=true] p99",
+            "value": 53854.863,
+            "range": "± 10150.252",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=36775.657ms max=54190.408ms emulated"
+          },
+          {
+            "name": "queue/SQSQueue/queue.e2e.latency[maxConsumers=10,ratePerSec=100] p99",
+            "value": 107.217,
+            "range": "± 24.071",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=50.921ms max=382.992ms emulated"
+          },
+          {
+            "name": "queue/SQSQueue/queue.e2e.latency[maxConsumers=10,ratePerSec=1000] p99",
+            "value": 67041.755,
+            "range": "± 14839.569",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=40533.754ms max=67545.072ms emulated"
+          },
+          {
+            "name": "queue/SQSQueue/queue.redelivery[failureRate=0.05,messages=100] p99",
+            "value": 1787.822,
+            "range": "± 289.934",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=1589.641ms max=1787.822ms emulated"
+          },
+          {
+            "name": "queue/MemoryQueue/queue.send[concurrency=1,payloadBytes=100] p99",
+            "value": 0.006,
+            "range": "± 0.011",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.002ms max=1.056ms"
+          },
+          {
+            "name": "queue/MemoryQueue/queue.send[concurrency=10,payloadBytes=100] p99",
+            "value": 0.053,
+            "range": "± 0.1",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.023ms max=3.176ms"
+          },
+          {
+            "name": "queue/MemoryQueue/queue.send[concurrency=50,payloadBytes=100] p99",
+            "value": 0.262,
+            "range": "± 0.039",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.116ms max=0.443ms"
+          },
+          {
+            "name": "queue/MemoryQueue/queue.drain.raw[concurrency=1,messages=10000] p99",
+            "value": 4404.019,
+            "range": "± 1332.255",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=3332.375ms max=4404.019ms"
+          },
+          {
+            "name": "queue/MemoryQueue/queue.drain.raw[concurrency=10,messages=10000] p99",
+            "value": 4383.048,
+            "range": "± 1331.989",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=3319.792ms max=4383.048ms"
+          },
+          {
+            "name": "queue/MemoryQueue/queue.drain.raw[concurrency=50,messages=10000] p99",
+            "value": 4362.076,
+            "range": "± 1313.908",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=3326.083ms max=4362.076ms"
+          },
+          {
+            "name": "queue/MemoryQueue/queue.consume[maxConsumers=1,messages=10000,workMs=2,workerParallelism=true] p99",
+            "value": 26122.125,
+            "range": "± 7629.959",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=14076.084ms max=26357.006ms"
+          },
+          {
+            "name": "queue/MemoryQueue/queue.consume[maxConsumers=1,messages=10000,workMs=2,workerParallelism=false] p99",
+            "value": 25400.705,
+            "range": "± 7411.066",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=13841.203ms max=25618.809ms"
+          },
+          {
+            "name": "queue/MemoryQueue/queue.consume[maxConsumers=5,messages=10000,workMs=2,workerParallelism=true] p99",
+            "value": 6396.314,
+            "range": "± 1858.782",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=3877.634ms max=6442.451ms"
+          },
+          {
+            "name": "queue/MemoryQueue/queue.consume[maxConsumers=5,messages=10000,workMs=2,workerParallelism=false] p99",
+            "value": 6455.034,
+            "range": "± 1880.661",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=3938.451ms max=6496.977ms"
+          },
+          {
+            "name": "queue/MemoryQueue/queue.consume[maxConsumers=10,messages=10000,workMs=2,workerParallelism=true] p99",
+            "value": 5507.121,
+            "range": "± 1649.366",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=3584.033ms max=5528.093ms"
+          },
+          {
+            "name": "queue/MemoryQueue/queue.consume[maxConsumers=10,messages=10000,workMs=2,workerParallelism=false] p99",
+            "value": 5263.852,
+            "range": "± 1543.014",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=3577.741ms max=5289.017ms"
+          },
+          {
+            "name": "queue/MemoryQueue/queue.e2e.latency[maxConsumers=10,ratePerSec=100] p99",
+            "value": 0.332,
+            "range": "± 4.508",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.058ms max=80.151ms"
+          },
+          {
+            "name": "queue/MemoryQueue/queue.e2e.latency[maxConsumers=10,ratePerSec=1000] p99",
+            "value": 0.092,
+            "range": "± 0.175",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.014ms max=9.036ms"
+          },
+          {
+            "name": "queue/MemoryQueue/queue.redelivery[failureRate=0.05,messages=100] p99",
+            "value": 1001.914,
+            "range": "± 0.419",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=1000.866ms max=1001.914ms"
+          },
+          {
+            "name": "store/MemoryStore/store.get[concurrency=1,dataset=10000,docSize=small] p99",
+            "value": 0.015,
+            "range": "± 0.027",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.004ms max=2.664ms"
+          },
+          {
+            "name": "store/MemoryStore/store.exists[concurrency=1,dataset=10000,docSize=small] p99",
+            "value": 0.005,
+            "range": "± 0.002",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.003ms max=0.14ms"
+          },
+          {
+            "name": "store/MemoryStore/store.update[concurrency=1,dataset=10000,docSize=small] p99",
+            "value": 0.027,
+            "range": "± 0.01",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.01ms max=0.818ms"
+          },
+          {
+            "name": "store/MemoryStore/store.patch[concurrency=1,dataset=10000,docSize=small] p99",
+            "value": 0.041,
+            "range": "± 0.024",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.013ms max=1.783ms"
+          },
+          {
+            "name": "store/MemoryStore/store.setAttribute[concurrency=1,dataset=10000,docSize=small] p99",
+            "value": 0.042,
+            "range": "± 0.025",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.013ms max=1.675ms"
+          },
+          {
+            "name": "store/MemoryStore/store.incrementAttribute[concurrency=1,dataset=10000,docSize=small] p99",
+            "value": 0.043,
+            "range": "± 0.019",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.016ms max=1.694ms"
+          },
+          {
+            "name": "store/MemoryStore/store.upsert[concurrency=1,dataset=10000,docSize=small] p99",
+            "value": 0.05,
+            "range": "± 0.029",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.031ms max=1.735ms"
+          },
+          {
+            "name": "store/MemoryStore/store.query.eq[concurrency=1,dataset=10000,docSize=small] p99",
+            "value": 1.706,
+            "range": "± 0.116",
+            "unit": "ms",
+            "extra": "ops=500 errors=0 p50=1.123ms max=1.977ms"
+          },
+          {
+            "name": "store/MemoryStore/store.query.range[concurrency=1,dataset=10000,docSize=small] p99",
+            "value": 3.469,
+            "range": "± 0.156",
+            "unit": "ms",
+            "extra": "ops=500 errors=0 p50=2.865ms max=4.6ms"
+          },
+          {
+            "name": "store/MemoryStore/store.query.in[concurrency=1,dataset=10000,docSize=small] p99",
+            "value": 1.123,
+            "range": "± 0.088",
+            "unit": "ms",
+            "extra": "ops=500 errors=0 p50=0.636ms max=1.257ms"
+          },
+          {
+            "name": "store/MemoryStore/store.query.orderBy[concurrency=1,dataset=10000,docSize=small] p99",
+            "value": 64.586,
+            "range": "± 1.129",
+            "unit": "ms",
+            "extra": "ops=500 errors=0 p50=59.081ms max=71.107ms"
+          },
+          {
+            "name": "store/MemoryStore/store.create[concurrency=1,dataset=10000,docSize=small] p99",
+            "value": 0.041,
+            "range": "± 0.021",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.027ms max=1.392ms"
+          },
+          {
+            "name": "store/MemoryStore/store.delete[concurrency=1,dataset=10000,docSize=small] p99",
+            "value": 0.002,
+            "range": "± 0.009",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.001ms max=0.822ms"
+          },
+          {
+            "name": "store/MemoryStore/store.get[concurrency=10,dataset=10000,docSize=small] p99",
+            "value": 0.061,
+            "range": "± 0.005",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.04ms max=0.099ms"
+          },
+          {
+            "name": "store/MemoryStore/store.exists[concurrency=10,dataset=10000,docSize=small] p99",
+            "value": 0.035,
+            "range": "± 0.004",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.018ms max=0.085ms"
+          },
+          {
+            "name": "store/MemoryStore/store.update[concurrency=10,dataset=10000,docSize=small] p99",
+            "value": 0.145,
+            "range": "± 0.039",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.081ms max=1.182ms"
+          },
+          {
+            "name": "store/MemoryStore/store.patch[concurrency=10,dataset=10000,docSize=small] p99",
+            "value": 0.232,
+            "range": "± 0.051",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.164ms max=1.508ms"
+          },
+          {
+            "name": "store/MemoryStore/store.setAttribute[concurrency=10,dataset=10000,docSize=small] p99",
+            "value": 0.244,
+            "range": "± 0.056",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.163ms max=1.726ms"
+          },
+          {
+            "name": "store/MemoryStore/store.incrementAttribute[concurrency=10,dataset=10000,docSize=small] p99",
+            "value": 0.254,
+            "range": "± 0.071",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.186ms max=1.77ms"
+          },
+          {
+            "name": "store/MemoryStore/store.upsert[concurrency=10,dataset=10000,docSize=small] p99",
+            "value": 0.4,
+            "range": "± 0.095",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.314ms max=2.101ms"
+          },
+          {
+            "name": "store/MemoryStore/store.query.eq[concurrency=10,dataset=10000,docSize=small] p99",
+            "value": 13.132,
+            "range": "± 0.522",
+            "unit": "ms",
+            "extra": "ops=500 errors=0 p50=11.428ms max=13.132ms"
+          },
+          {
+            "name": "store/MemoryStore/store.query.range[concurrency=10,dataset=10000,docSize=small] p99",
+            "value": 33.653,
+            "range": "± 0.888",
+            "unit": "ms",
+            "extra": "ops=500 errors=0 p50=28.967ms max=33.653ms"
+          },
+          {
+            "name": "store/MemoryStore/store.query.in[concurrency=10,dataset=10000,docSize=small] p99",
+            "value": 9.044,
+            "range": "± 0.666",
+            "unit": "ms",
+            "extra": "ops=500 errors=0 p50=6.222ms max=9.044ms"
+          },
+          {
+            "name": "store/MemoryStore/store.query.orderBy[concurrency=10,dataset=10000,docSize=small] p99",
+            "value": 786.956,
+            "range": "± 7.253",
+            "unit": "ms",
+            "extra": "ops=500 errors=0 p50=760.218ms max=786.956ms"
+          },
+          {
+            "name": "store/MemoryStore/store.create[concurrency=10,dataset=10000,docSize=small] p99",
+            "value": 0.404,
+            "range": "± 0.104",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.266ms max=3.006ms"
+          },
+          {
+            "name": "store/MemoryStore/store.delete[concurrency=10,dataset=10000,docSize=small] p99",
+            "value": 0.033,
+            "range": "± 0.07",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.009ms max=2.216ms"
+          },
+          {
+            "name": "store/MemoryStore/store.contention.increment[concurrency=10,dataset=10000,docSize=small] p99",
+            "value": 0.452,
+            "range": "± 0.063",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.287ms max=1.753ms"
+          },
+          {
+            "name": "store/MemoryStore/store.get[concurrency=50,dataset=10000,docSize=small] p99",
+            "value": 0.339,
+            "range": "± 0.048",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.205ms max=0.815ms"
+          },
+          {
+            "name": "store/MemoryStore/store.exists[concurrency=50,dataset=10000,docSize=small] p99",
+            "value": 0.158,
+            "range": "± 0.011",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.096ms max=0.17ms"
+          },
+          {
+            "name": "store/MemoryStore/store.update[concurrency=50,dataset=10000,docSize=small] p99",
+            "value": 0.535,
+            "range": "± 0.073",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.404ms max=1.407ms"
+          },
+          {
+            "name": "store/MemoryStore/store.patch[concurrency=50,dataset=10000,docSize=small] p99",
+            "value": 1.225,
+            "range": "± 0.162",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.798ms max=2.394ms"
+          },
+          {
+            "name": "store/MemoryStore/store.setAttribute[concurrency=50,dataset=10000,docSize=small] p99",
+            "value": 1.043,
+            "range": "± 0.132",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.78ms max=2.39ms"
+          },
+          {
+            "name": "store/MemoryStore/store.incrementAttribute[concurrency=50,dataset=10000,docSize=small] p99",
+            "value": 1.637,
+            "range": "± 0.263",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.886ms max=3.686ms"
+          },
+          {
+            "name": "store/MemoryStore/store.upsert[concurrency=50,dataset=10000,docSize=small] p99",
+            "value": 2.652,
+            "range": "± 0.27",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=1.664ms max=3.963ms"
+          },
+          {
+            "name": "store/MemoryStore/store.query.eq[concurrency=50,dataset=10000,docSize=small] p99",
+            "value": 87.163,
+            "range": "± 8.742",
+            "unit": "ms",
+            "extra": "ops=500 errors=0 p50=58.196ms max=87.163ms"
+          },
+          {
+            "name": "store/MemoryStore/store.query.range[concurrency=50,dataset=10000,docSize=small] p99",
+            "value": 158.597,
+            "range": "± 1.913",
+            "unit": "ms",
+            "extra": "ops=500 errors=0 p50=154.403ms max=158.597ms"
+          },
+          {
+            "name": "store/MemoryStore/store.query.in[concurrency=50,dataset=10000,docSize=small] p99",
+            "value": 39.748,
+            "range": "± 2.761",
+            "unit": "ms",
+            "extra": "ops=500 errors=0 p50=30.851ms max=39.748ms"
+          },
+          {
+            "name": "store/MemoryStore/store.query.orderBy[concurrency=50,dataset=10000,docSize=small] p99",
+            "value": 4743.758,
+            "range": "± 11.602",
+            "unit": "ms",
+            "extra": "ops=500 errors=0 p50=4722.786ms max=4743.758ms"
+          },
+          {
+            "name": "store/MemoryStore/store.create[concurrency=50,dataset=10000,docSize=small] p99",
+            "value": 2.132,
+            "range": "± 0.213",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=1.349ms max=3.432ms"
+          },
+          {
+            "name": "store/MemoryStore/store.delete[concurrency=50,dataset=10000,docSize=small] p99",
+            "value": 0.102,
+            "range": "± 0.024",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.049ms max=0.35ms"
+          },
+          {
+            "name": "store/MemoryStore/store.contention.increment[concurrency=50,dataset=10000,docSize=small] p99",
+            "value": 1.58,
+            "range": "± 0.084",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=1.381ms max=2.302ms"
+          },
+          {
+            "name": "store/MemoryStore/store.query.paginate[dataset=10000,docSize=small,pageSize=100] p99",
+            "value": 206.701,
+            "range": "± 5.983",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=195.297ms max=206.701ms"
+          },
+          {
+            "name": "store/MemoryStore/store.iterate[dataset=10000,docSize=small,pageSize=100] p99",
+            "value": 203.162,
+            "range": "± 4.702",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=192.807ms max=203.162ms"
+          },
+          {
+            "name": "store/MemoryStore/store.updateMany[dataset=10000,docSize=small,pageSize=100] p99",
+            "value": 161.874,
+            "range": "± 2.997",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=155.058ms max=161.874ms"
+          },
+          {
+            "name": "store/MemoryStore/store.deleteMany[bulkSize=100,docSize=small] p99",
+            "value": 95.551,
+            "range": "± 2.637",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=88.998ms max=95.551ms"
+          },
+          {
+            "name": "store/MemoryStore/store.get[concurrency=1,dataset=10000,docSize=large] p99",
+            "value": 0.026,
+            "range": "± 0.038",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.01ms max=3.418ms"
+          },
+          {
+            "name": "store/MemoryStore/store.exists[concurrency=1,dataset=10000,docSize=large] p99",
+            "value": 0.004,
+            "range": "± 0.002",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.003ms max=0.043ms"
+          },
+          {
+            "name": "store/MemoryStore/store.update[concurrency=1,dataset=10000,docSize=large] p99",
+            "value": 0.034,
+            "range": "± 0.018",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.016ms max=0.964ms"
+          },
+          {
+            "name": "store/MemoryStore/store.patch[concurrency=1,dataset=10000,docSize=large] p99",
+            "value": 0.054,
+            "range": "± 0.056",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.012ms max=3.099ms"
+          },
+          {
+            "name": "store/MemoryStore/store.setAttribute[concurrency=1,dataset=10000,docSize=large] p99",
+            "value": 0.054,
+            "range": "± 0.053",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.012ms max=3.015ms"
+          },
+          {
+            "name": "store/MemoryStore/store.incrementAttribute[concurrency=1,dataset=10000,docSize=large] p99",
+            "value": 0.057,
+            "range": "± 0.058",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.016ms max=2.869ms"
+          },
+          {
+            "name": "store/MemoryStore/store.upsert[concurrency=1,dataset=10000,docSize=large] p99",
+            "value": 0.067,
+            "range": "± 0.102",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.042ms max=3.576ms"
+          },
+          {
+            "name": "store/MemoryStore/store.query.eq[concurrency=1,dataset=10000,docSize=large] p99",
+            "value": 2.576,
+            "range": "± 0.123",
+            "unit": "ms",
+            "extra": "ops=500 errors=0 p50=2.091ms max=2.935ms"
+          },
+          {
+            "name": "store/MemoryStore/store.query.range[concurrency=1,dataset=10000,docSize=large] p99",
+            "value": 6.238,
+            "range": "± 0.227",
+            "unit": "ms",
+            "extra": "ops=500 errors=0 p50=5.587ms max=8.348ms"
+          },
+          {
+            "name": "store/MemoryStore/store.query.in[concurrency=1,dataset=10000,docSize=large] p99",
+            "value": 2.497,
+            "range": "± 0.246",
+            "unit": "ms",
+            "extra": "ops=500 errors=0 p50=1.208ms max=2.732ms"
+          },
+          {
+            "name": "store/MemoryStore/store.query.orderBy[concurrency=1,dataset=10000,docSize=large] p99",
+            "value": 159.252,
+            "range": "± 3.906",
+            "unit": "ms",
+            "extra": "ops=425 errors=0 p50=140.378ms max=163.054ms"
+          },
+          {
+            "name": "store/MemoryStore/store.create[concurrency=1,dataset=10000,docSize=large] p99",
+            "value": 0.054,
+            "range": "± 0.139",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.037ms max=7.164ms"
+          },
+          {
+            "name": "store/MemoryStore/store.delete[concurrency=1,dataset=10000,docSize=large] p99",
+            "value": 0.002,
+            "range": "± 0.003",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.001ms max=0.231ms"
+          },
+          {
+            "name": "store/MemoryStore/store.get[concurrency=10,dataset=10000,docSize=large] p99",
+            "value": 0.122,
+            "range": "± 0.034",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.084ms max=0.822ms"
+          },
+          {
+            "name": "store/MemoryStore/store.exists[concurrency=10,dataset=10000,docSize=large] p99",
+            "value": 0.045,
+            "range": "± 0.006",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.02ms max=0.112ms"
+          },
+          {
+            "name": "store/MemoryStore/store.update[concurrency=10,dataset=10000,docSize=large] p99",
+            "value": 0.19,
+            "range": "± 0.063",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.123ms max=1.22ms"
+          },
+          {
+            "name": "store/MemoryStore/store.patch[concurrency=10,dataset=10000,docSize=large] p99",
+            "value": 0.315,
+            "range": "± 0.136",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.191ms max=3.033ms"
+          },
+          {
+            "name": "store/MemoryStore/store.setAttribute[concurrency=10,dataset=10000,docSize=large] p99",
+            "value": 0.327,
+            "range": "± 0.135",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.187ms max=3.133ms"
+          },
+          {
+            "name": "store/MemoryStore/store.incrementAttribute[concurrency=10,dataset=10000,docSize=large] p99",
+            "value": 0.335,
+            "range": "± 0.127",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.21ms max=3.009ms"
+          },
+          {
+            "name": "store/MemoryStore/store.upsert[concurrency=10,dataset=10000,docSize=large] p99",
+            "value": 0.697,
+            "range": "± 0.346",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.446ms max=4.579ms"
+          },
+          {
+            "name": "store/MemoryStore/store.query.eq[concurrency=10,dataset=10000,docSize=large] p99",
+            "value": 24.838,
+            "range": "± 0.866",
+            "unit": "ms",
+            "extra": "ops=500 errors=0 p50=21.332ms max=24.838ms"
+          },
+          {
+            "name": "store/MemoryStore/store.query.range[concurrency=10,dataset=10000,docSize=large] p99",
+            "value": 84.607,
+            "range": "± 3.871",
+            "unit": "ms",
+            "extra": "ops=500 errors=0 p50=58.327ms max=84.607ms"
+          },
+          {
+            "name": "store/MemoryStore/store.query.in[concurrency=10,dataset=10000,docSize=large] p99",
+            "value": 20.103,
+            "range": "± 1.518",
+            "unit": "ms",
+            "extra": "ops=500 errors=0 p50=10.306ms max=20.103ms"
+          },
+          {
+            "name": "store/MemoryStore/store.query.orderBy[concurrency=10,dataset=10000,docSize=large] p99",
+            "value": 1657.799,
+            "range": "± 28.497",
+            "unit": "ms",
+            "extra": "ops=380 errors=0 p50=1586.495ms max=1657.799ms"
+          },
+          {
+            "name": "store/MemoryStore/store.create[concurrency=10,dataset=10000,docSize=large] p99",
+            "value": 0.943,
+            "range": "± 0.579",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.357ms max=12.96ms"
+          },
+          {
+            "name": "store/MemoryStore/store.delete[concurrency=10,dataset=10000,docSize=large] p99",
+            "value": 0.03,
+            "range": "± 0.008",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.009ms max=0.227ms"
+          },
+          {
+            "name": "store/MemoryStore/store.contention.increment[concurrency=10,dataset=10000,docSize=large] p99",
+            "value": 0.601,
+            "range": "± 0.039",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.394ms max=0.907ms"
+          },
+          {
+            "name": "store/MemoryStore/store.get[concurrency=50,dataset=10000,docSize=large] p99",
+            "value": 0.567,
+            "range": "± 0.059",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.395ms max=0.888ms"
+          },
+          {
+            "name": "store/MemoryStore/store.exists[concurrency=50,dataset=10000,docSize=large] p99",
+            "value": 0.129,
+            "range": "± 0.028",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.097ms max=0.495ms"
+          },
+          {
+            "name": "store/MemoryStore/store.update[concurrency=50,dataset=10000,docSize=large] p99",
+            "value": 1.487,
+            "range": "± 0.139",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.603ms max=1.699ms"
+          },
+          {
+            "name": "store/MemoryStore/store.patch[concurrency=50,dataset=10000,docSize=large] p99",
+            "value": 1.961,
+            "range": "± 0.236",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.935ms max=3.156ms"
+          },
+          {
+            "name": "store/MemoryStore/store.setAttribute[concurrency=50,dataset=10000,docSize=large] p99",
+            "value": 1.114,
+            "range": "± 0.217",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.89ms max=3.062ms"
+          },
+          {
+            "name": "store/MemoryStore/store.incrementAttribute[concurrency=50,dataset=10000,docSize=large] p99",
+            "value": 2.812,
+            "range": "± 0.26",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.997ms max=3.119ms"
+          },
+          {
+            "name": "store/MemoryStore/store.upsert[concurrency=50,dataset=10000,docSize=large] p99",
+            "value": 5.603,
+            "range": "± 0.682",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=2.322ms max=6.021ms"
+          },
+          {
+            "name": "store/MemoryStore/store.query.eq[concurrency=50,dataset=10000,docSize=large] p99",
+            "value": 112.132,
+            "range": "± 2.389",
+            "unit": "ms",
+            "extra": "ops=500 errors=0 p50=110.559ms max=112.132ms"
+          },
+          {
+            "name": "store/MemoryStore/store.query.range[concurrency=50,dataset=10000,docSize=large] p99",
+            "value": 303.301,
+            "range": "± 6.085",
+            "unit": "ms",
+            "extra": "ops=500 errors=0 p50=288.358ms max=303.301ms"
+          },
+          {
+            "name": "store/MemoryStore/store.query.in[concurrency=50,dataset=10000,docSize=large] p99",
+            "value": 61.342,
+            "range": "± 1.39",
+            "unit": "ms",
+            "extra": "ops=500 errors=0 p50=59.507ms max=61.342ms"
+          },
+          {
+            "name": "store/MemoryStore/store.query.orderBy[concurrency=50,dataset=10000,docSize=large] p99",
+            "value": 10687.087,
+            "range": "± 173.455",
+            "unit": "ms",
+            "extra": "ops=300 errors=0 p50=10225.713ms max=10687.087ms"
+          },
+          {
+            "name": "store/MemoryStore/store.create[concurrency=50,dataset=10000,docSize=large] p99",
+            "value": 7.07,
+            "range": "± 0.902",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=1.809ms max=7.705ms"
+          },
+          {
+            "name": "store/MemoryStore/store.delete[concurrency=50,dataset=10000,docSize=large] p99",
+            "value": 0.12,
+            "range": "± 0.024",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.051ms max=0.335ms"
+          },
+          {
+            "name": "store/MemoryStore/store.contention.increment[concurrency=50,dataset=10000,docSize=large] p99",
+            "value": 3.058,
+            "range": "± 0.204",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=2.03ms max=3.5ms"
+          },
+          {
+            "name": "store/MemoryStore/store.query.paginate[dataset=10000,docSize=large,pageSize=100] p99",
+            "value": 362.807,
+            "range": "± 14.731",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=333.709ms max=362.807ms"
+          },
+          {
+            "name": "store/MemoryStore/store.iterate[dataset=10000,docSize=large,pageSize=100] p99",
+            "value": 352.322,
+            "range": "± 11.264",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=326.107ms max=352.322ms"
+          },
+          {
+            "name": "store/MemoryStore/store.updateMany[dataset=10000,docSize=large,pageSize=100] p99",
+            "value": 343.933,
+            "range": "± 11.301",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=333.447ms max=343.933ms"
+          },
+          {
+            "name": "store/MemoryStore/store.deleteMany[bulkSize=100,docSize=large] p99",
+            "value": 248.119,
+            "range": "± 7.272",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=230.162ms max=248.119ms"
+          },
+          {
+            "name": "pubsub/SocketPubSub/pubsub.publish[concurrency=1,subscribers=0] p99",
+            "value": 0.011,
+            "range": "± 0.017",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.004ms max=1.718ms"
+          },
+          {
+            "name": "pubsub/SocketPubSub/pubsub.publish[concurrency=10,subscribers=0] p99",
+            "value": 0.083,
+            "range": "± 0.076",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.029ms max=2.404ms"
+          },
+          {
+            "name": "pubsub/SocketPubSub/pubsub.publish[concurrency=50,subscribers=0] p99",
+            "value": 0.214,
+            "range": "± 0.023",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.118ms max=0.241ms"
+          },
+          {
+            "name": "pubsub/SocketPubSub/pubsub.e2e.latency[ratePerSec=100,subscribers=1] p99",
+            "value": 0.165,
+            "range": "± 0.03",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.096ms max=0.686ms"
+          },
+          {
+            "name": "pubsub/SocketPubSub/pubsub.e2e.latency[ratePerSec=1000,subscribers=1] p99",
+            "value": 0.052,
+            "range": "± 0.015",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.016ms max=1.007ms"
+          },
+          {
+            "name": "pubsub/SocketPubSub/pubsub.e2e.throughput[messages=10000,publishConcurrency=10,subscribers=1] p99",
+            "value": 26.182,
+            "range": "± 0.919",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=24.134ms max=26.411ms"
+          },
+          {
+            "name": "pubsub/SocketPubSub/pubsub.fanout[messages=10000,subscribers=1] p99",
+            "value": 25.395,
+            "range": "± 2.108",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=20.775ms max=25.706ms"
+          },
+          {
+            "name": "pubsub/SocketPubSub/pubsub.fanout[messages=2000,subscribers=5] p99",
+            "value": 20.382,
+            "range": "± 4.364",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=14.459ms max=20.513ms"
+          },
+          {
+            "name": "pubsub/SocketPubSub/pubsub.fanout[messages=500,subscribers=20] p99",
+            "value": 20.84,
+            "range": "± 4.812",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=12.755ms max=21.168ms"
+          },
+          {
+            "name": "pubsub/SocketPubSub/pubsub.payload[payloadBytes=100,subscribers=1] p99",
+            "value": 0.169,
+            "range": "± 0.044",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.084ms max=0.6ms"
+          },
+          {
+            "name": "pubsub/SocketPubSub/pubsub.payload[payloadBytes=10240,subscribers=1] p99",
+            "value": 0.621,
+            "range": "± 0.157",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.283ms max=0.878ms"
+          },
+          {
+            "name": "pubsub/SocketPubSub/pubsub.payload[payloadBytes=262144,subscribers=1] p99",
+            "value": 24.347,
+            "range": "± 6.749",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=13.926ms max=28.869ms"
+          },
+          {
+            "name": "queue/FileQueue/queue.send[concurrency=1,payloadBytes=100] p99",
+            "value": 0.031,
+            "range": "± 0.022",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.012ms max=2.064ms"
+          },
+          {
+            "name": "queue/FileQueue/queue.send[concurrency=10,payloadBytes=100] p99",
+            "value": 0.182,
+            "range": "± 0.057",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.118ms max=1.859ms"
+          },
+          {
+            "name": "queue/FileQueue/queue.send[concurrency=50,payloadBytes=100] p99",
+            "value": 0.794,
+            "range": "± 0.071",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.588ms max=1.341ms"
+          },
+          {
+            "name": "queue/FileQueue/queue.e2e.latency[maxConsumers=10,ratePerSec=100] p99",
+            "value": 1.268,
+            "range": "± 0.098",
+            "unit": "ms",
+            "extra": "ops=1000 errors=0 p50=0.859ms max=1.66ms"
+          },
+          {
+            "name": "queue/FileQueue/queue.e2e.latency[maxConsumers=10,ratePerSec=1000] p99",
+            "value": 1.637,
+            "range": "± 0.172",
+            "unit": "ms",
+            "extra": "ops=10000 errors=0 p50=0.679ms max=4.313ms"
+          },
+          {
+            "name": "queue/FileQueue/queue.redelivery[failureRate=0.05,messages=100] p99",
+            "value": 1030.75,
+            "range": "± 8.606",
+            "unit": "ms",
+            "extra": "ops=5 errors=0 p50=1013.973ms max=1030.75ms"
           }
         ]
       }

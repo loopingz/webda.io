@@ -46,6 +46,10 @@ export type CoreEvents = {
    */
   "Webda.UpdateContextRoute": {
     context: IWebContext;
+    /**
+     * Template of the matched route, without its query part (`/tasks/{uuid}`)
+     */
+    route?: string;
   };
   "Webda.OperationSuccess": {
     context: OperationContext;

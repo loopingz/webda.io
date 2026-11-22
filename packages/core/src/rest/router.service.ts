@@ -812,6 +812,21 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
    * @returns the result
    */
   public getRouteFromUrl(ctx: IWebContext, method: HttpMethodType, url: string) {
+    return this.matchRoute(ctx, method, url)?.config;
+  }
+
+  /**
+   * Find the route of a method / url, with its url template
+   * @param ctx - the operation context
+   * @param method - the HTTP method
+   * @param url - the URL
+   * @returns the url template and the route, undefined when none matches
+   */
+  protected matchRoute(
+    ctx: IWebContext,
+    method: HttpMethodType,
+    url: string
+  ): { url: string; config: RouteInfo } | undefined {
     this.ensureMapped();
     const finalUrl = this.getFinalUrl(url);
     // Search for the route
@@ -829,7 +844,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
         if (map._uriTemplateParse !== undefined && routeUrl !== this.getMatchTarget(routeUrl, finalUrl)) {
           ctx.setParameters(params);
         }
-        return map;
+        return this.pathMap[i];
       }
     }
   }
@@ -1143,11 +1158,14 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
       targetUrl = resolved.url;
     }
 
-    const info = this.getRouteFromUrl(ctx, method, targetUrl);
-    if (!info) {
+    const match = this.matchRoute(ctx, method, targetUrl);
+    if (!match) {
       this.writeNotFound(ctx, method, targetUrl);
       return;
     }
+    const info = match.config;
+    // Report the route template, without its query part: `/tasks/{uuid}` for `/tasks/1234` (e.g. a span name)
+    emitCoreEvent("Webda.UpdateContextRoute", { context: ctx, route: match.url.replace(/\{\?[^}]*\}$/, "") });
 
     // Check request filters (authentication, etc.)
     if (!(await this.checkRequest(ctx))) {

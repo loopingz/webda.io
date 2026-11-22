@@ -244,6 +244,7 @@ export class OtelService<T extends OtelServiceParameters = OtelServiceParameters
     if (this.requestTracer && useRequestTracer() === this.requestTracer) {
       registerRequestTracer(undefined);
     }
+    this.requestTracer?.close();
     this.unpatch();
     // The SDK shutdown leaves the instrumentations enabled
     this.instrumentations?.forEach(instrumentation => instrumentation.disable());
@@ -333,6 +334,7 @@ export class OtelService<T extends OtelServiceParameters = OtelServiceParameters
     });
 
     this.sdk.start();
+    this.requestTracer?.close();
     this.requestTracer = new OtelRequestTracer(this);
     registerRequestTracer(this.requestTracer);
     useRouter()?.addCorsAllowedHeaders("traceparent", "tracestate", "baggage", "X-Webda-Trace");

@@ -251,8 +251,8 @@ class RequestTracerTest extends WebdaApplicationTest {
    * @param name - the span name
    * @returns the span
    */
-  span(spans: tracing.ReadableSpan[], name: string): tracing.ReadableSpan {
-    const span = spans.find(s => s.name === name);
+  span(spans: tracing.ReadableSpan[], name: string, path?: string): tracing.ReadableSpan {
+    const span = spans.find(s => s.name === name && (path === undefined || s.attributes["url.path"] === path));
     assert.ok(span, `span ${name} not found in ${spans.map(s => s.name).join(", ")}`);
     return span;
   }
@@ -284,7 +284,7 @@ class RequestTracerTest extends WebdaApplicationTest {
       sid: "s1"
     });
     const { outgoing, spans } = await this.run(request);
-    const root = this.span(spans, "POST /path");
+    const root = this.span(spans, "POST");
     assert.strictEqual(root.spanContext().traceId, TRACE_ID);
     assert.strictEqual(root.parentSpanContext?.spanId, SPAN_ID);
     assert.strictEqual(root.kind, SpanKind.SERVER);
@@ -310,7 +310,7 @@ class RequestTracerTest extends WebdaApplicationTest {
       headers: { traceparent: SAMPLED, "x-webda-trace": [await this.token("s1")] }
     });
     assert.strictEqual(outgoing.baggage, "session.id=s1");
-    assert.strictEqual(this.span(spans, "POST /path").attributes["session.id"], "s1");
+    assert.strictEqual(this.span(spans, "POST").attributes["session.id"], "s1");
   }
 
   @test
@@ -337,7 +337,7 @@ class RequestTracerTest extends WebdaApplicationTest {
     this.createOtel({ trustedTraceSources: ["10.0.0.0/8"] });
     const headers = { traceparent: SAMPLED, baggage: "session.id=s2" };
     let { outgoing, spans } = await this.run({ headers, clientIp: "10.1.2.3" });
-    const root = this.span(spans, "POST /path");
+    const root = this.span(spans, "POST");
     assert.strictEqual(root.spanContext().traceId, TRACE_ID);
     assert.strictEqual(root.attributes["session.id"], "s2");
     assert.strictEqual(outgoing.baggage, "session.id=s2");
@@ -382,7 +382,7 @@ class RequestTracerTest extends WebdaApplicationTest {
     this.createOtel();
     const headers = { traceparent: SAMPLED, "x-webda-trace": await this.token() };
     let { spans } = await this.run({ headers }, 503);
-    assert.strictEqual(this.span(spans, "POST /path").status.code, SpanStatusCode.ERROR);
+    assert.strictEqual(this.span(spans, "POST").status.code, SpanStatusCode.ERROR);
     TestOtelService.exporter.reset();
     ({ spans } = await this.run({ protocol: "grpc", path: "/pkg.Svc/Method", headers }, 13));
     assert.strictEqual(this.span(spans, "pkg.Svc/Method").status.code, SpanStatusCode.ERROR);
@@ -394,7 +394,7 @@ class RequestTracerTest extends WebdaApplicationTest {
         }),
       /boom/
     );
-    const boom = this.span(await TestOtelService.finishedSpans(), "GET /boom");
+    const boom = this.span(await TestOtelService.finishedSpans(), "GET");
     assert.strictEqual(boom.status.code, SpanStatusCode.ERROR);
     assert.strictEqual(boom.events[0]?.name, "exception");
   }
@@ -446,7 +446,7 @@ class RequestTracerTest extends WebdaApplicationTest {
     this.createOtel();
     const token = await this.token("s1");
     const { outgoing, spans } = await this.run({ headers: { traceparent: "garbage", "x-webda-trace": token } });
-    const root = this.span(spans, "POST /path");
+    const root = this.span(spans, "POST");
     assert.notStrictEqual(root.spanContext().traceId, TRACE_ID);
     assert.strictEqual(root.parentSpanContext, undefined);
     assert.strictEqual(root.attributes["session.id"], "s1");
@@ -467,7 +467,7 @@ class RequestTracerTest extends WebdaApplicationTest {
       headers: { traceparent: unsampled, "x-webda-trace": await this.token("s1") }
     });
     // A valid token always records: same trace and parent, sampled downstream
-    const root = this.span(spans, "POST /path");
+    const root = this.span(spans, "POST");
     assert.strictEqual(root.spanContext().traceId, TRACE_ID);
     assert.strictEqual(root.parentSpanContext?.spanId, SPAN_ID);
     assert.strictEqual(root.attributes["session.id"], "s1");
@@ -488,7 +488,7 @@ class RequestTracerTest extends WebdaApplicationTest {
     const { spans, outgoing } = await this.run({
       headers: { traceparent: SAMPLED, baggage, "x-webda-trace": await this.token("s1") }
     });
-    assert.strictEqual(this.span(spans, "POST /path").attributes["session.id"], "s1");
+    assert.strictEqual(this.span(spans, "POST").attributes["session.id"], "s1");
     assert.ok(String(outgoing.baggage).includes("session.id=s1"));
     // Trusted and untrusted sources are served too (run() checks the result)
     await this.run({ headers: { traceparent: SAMPLED, baggage }, clientIp: "10.0.0.1" });
@@ -674,11 +674,11 @@ class RequestTracerTest extends WebdaApplicationTest {
     this.createOtel();
     const headers = { traceparent: SAMPLED, "x-webda-trace": await this.token() };
     let { spans } = await this.run({ headers, method: undefined, path: "" });
-    let root = this.span(spans, "_OTHER /");
+    let root = this.span(spans, "_OTHER", "");
     assert.strictEqual(root.attributes["http.request.method"], "_OTHER");
     TestOtelService.exporter.reset();
     ({ spans } = await this.run({ headers, method: "brew" }));
-    root = this.span(spans, "_OTHER /path");
+    root = this.span(spans, "_OTHER", "/path");
     assert.strictEqual(root.attributes["http.request.method"], "_OTHER");
   }
 
@@ -704,7 +704,7 @@ class RequestTracerTest extends WebdaApplicationTest {
       await useRequestTracer()!.trace({ protocol: "http", method: "GET", path: "/silent", headers }, async () => 1),
       1
     );
-    const root = this.span(await TestOtelService.finishedSpans(), "GET /silent");
+    const root = this.span(await TestOtelService.finishedSpans(), "GET");
     assert.strictEqual(root.attributes["http.response.status_code"], undefined);
     assert.strictEqual(root.attributes["error.type"], undefined);
     assert.strictEqual(root.status.code, SpanStatusCode.UNSET);
@@ -730,15 +730,15 @@ class RequestTracerTest extends WebdaApplicationTest {
       );
     }
     const spans = await TestOtelService.finishedSpans();
-    const str = this.span(spans, "GET /string");
+    const str = this.span(spans, "GET", "/string");
     assert.strictEqual(str.attributes["error.type"], "String");
     assert.strictEqual(str.status.code, SpanStatusCode.ERROR);
     assert.strictEqual(str.status.message, undefined);
     assert.strictEqual(str.events[0]?.attributes?.["exception.message"], "plain failure");
     // No constructor name: the semantic conventions fallback
-    assert.strictEqual(this.span(spans, "GET /anonymous").attributes["error.type"], "_OTHER");
+    assert.strictEqual(this.span(spans, "GET", "/anonymous").attributes["error.type"], "_OTHER");
     // A thrown undefined is still an error
-    const undef = this.span(spans, "GET /undefined");
+    const undef = this.span(spans, "GET", "/undefined");
     assert.strictEqual(undef.attributes["error.type"], "Error");
     assert.strictEqual(undef.status.message, "Unknown error");
   }
@@ -847,11 +847,51 @@ class RequestTracerTest extends WebdaApplicationTest {
       req.on("error", reject);
       req.end();
     });
-    const root = this.span(await TestOtelService.finishedSpans(), "GET /nothing");
+    const root = this.span(await TestOtelService.finishedSpans(), "GET", "/nothing");
     assert.strictEqual(root.spanContext().traceId, TRACE_ID);
     assert.strictEqual(root.attributes["session.id"], "e2e");
     assert.strictEqual(root.attributes["http.response.status_code"], status);
     assert.strictEqual(root.attributes["network.protocol.version"], "1.1");
+  }
+
+  @test
+  @timeout(30000)
+  async serverSpanNamedAfterRoute() {
+    this.createOtel();
+    useRouter().addRouteToRouter("/tasks/{uuid}/complete{?force}", {
+      methods: ["PUT"],
+      executor: "Router",
+      _method: async (ctx: any) => ctx.write({ ok: true })
+    } as any);
+    useRouter().remapRoutes();
+    const port = await this.startHttpServer();
+    const token = await this.token("e2e");
+    await new Promise<void>((resolve, reject) => {
+      const req = http.request(
+        {
+          hostname: "127.0.0.1",
+          port,
+          path: "/tasks/9f1c42/complete?force=true",
+          method: "PUT",
+          headers: { traceparent: SAMPLED, "X-Webda-Trace": token },
+          createConnection: createInProcessConnection(this.httpServer!.server) as any
+        },
+        res => {
+          res.resume();
+          res.on("end", () => resolve());
+        }
+      );
+      req.on("error", reject);
+      req.end();
+    });
+    // The route template names the span, the concrete path stays in url.path
+    const root = this.span(await TestOtelService.finishedSpans(), "PUT /tasks/{uuid}/complete");
+    assert.strictEqual(root.attributes["http.route"], "/tasks/{uuid}/complete");
+    assert.strictEqual(root.attributes["url.path"], "/tasks/9f1c42/complete");
+    const httpMetric = (await TestOtelService.reader.collect()).resourceMetrics.scopeMetrics
+      .flatMap(s => s.metrics)
+      .find(m => m.descriptor.name === "http.server.request.duration") as HistogramMetricData;
+    assert.ok(httpMetric.dataPoints.some(p => p.attributes["http.route"] === "/tasks/{uuid}/complete"));
   }
 
   @test
@@ -878,7 +918,7 @@ class RequestTracerTest extends WebdaApplicationTest {
         req.resume();
         req.end();
       });
-      const root = this.span(await TestOtelService.finishedSpans(), "GET /nothing");
+      const root = this.span(await TestOtelService.finishedSpans(), "GET", "/nothing");
       assert.strictEqual(root.spanContext().traceId, TRACE_ID);
       assert.strictEqual(root.attributes["session.id"], "e2e");
       assert.strictEqual(root.attributes["http.response.status_code"], status);

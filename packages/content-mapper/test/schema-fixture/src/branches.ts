@@ -110,6 +110,26 @@ export class Branded {
   }
 }
 
+/** A reference serialising to its key. */
+export class Reference {
+  /** The referenced key, kept out of the JSON form. */
+  protected key: string = "";
+
+  /**
+   * Serialise.
+   * @returns the key
+   */
+  toJSON(): string {
+    return this.key;
+  }
+}
+
+/** A key with behaviour only, like a primary key type. */
+export type Key = { uuid: string } & { toString(): string };
+
+/** A reference with data, serialising to its key and the data: the last `toJSON` overrides the reference's. */
+export type ReferenceWithData = Reference & { role: string } & { toJSON(): Key & { role: string } };
+
 /** An object accepting extra keys. */
 export interface Open {
   /** A known key. */
@@ -168,6 +188,10 @@ export interface Shapes {
   lenient: Lenient & { other?: number };
   /** An intersection with a callable member. */
   callable: Lenient & (() => void);
+  /** An intersection overriding the serialised form of a member. */
+  withData: ReferenceWithData;
+  /** An intersection with a member declaring only methods. */
+  keyed: Key;
   /** A readonly tuple that is not a constant. */
   readonlyPair: readonly [string, number];
   /** An empty tuple. */

@@ -691,6 +691,26 @@ describe("less travelled conversions", () => {
     expect(Object.keys(properties.callable.properties!)).toEqual(["maybe"]);
   });
 
+  it("writes an intersection as the last toJSON its members declare", () => {
+    expect(properties.withData.allOf).toBeUndefined();
+    expect(properties.withData).toMatchObject({
+      type: "object",
+      properties: { uuid: { type: "string" }, role: { type: "string" } },
+      required: ["role", "uuid"],
+      additionalProperties: false
+    });
+  });
+
+  it("drops a constituent declaring only methods from an intersection", () => {
+    expect(properties.keyed.allOf).toBeUndefined();
+    expect(properties.keyed).toMatchObject({
+      type: "object",
+      properties: { uuid: { type: "string" } },
+      required: ["uuid"],
+      additionalProperties: false
+    });
+  });
+
   it("leaves a readonly tuple without constants as a bare array", () => {
     expect(properties.readonlyPair).toEqual({ type: "array", description: "A readonly tuple that is not a constant." });
   });

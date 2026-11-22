@@ -352,7 +352,7 @@ export class SchemaConverter {
       return this.objectLike(type, definition, path, typeName, node, depth);
     }
     if (type.isUnionType()) return this.union(type, definition, path, node, depth);
-    if (type.isIntersectionType()) return this.intersection(type, definition, path, depth);
+    if (type.isIntersectionType()) return this.intersection(type, definition, path, node, depth);
     // ModelLinksAny has a numeric accessor for runtime references. Its JSON form contains writable identity
     // fields instead: following the index signature would lose readonly model/key from input schemas.
     if (type.getSymbol()?.name === "ModelLinksAny")
@@ -1050,9 +1050,13 @@ export class SchemaConverter {
    * A merge is only sound when every constituent is an object; anything else
    * falls back to `allOf`, which states the constraint without pretending to
    * flatten it.
+   *
+   * An intersection stating its serialised form (`ModelRef<T> & K & { toJSON(): JSONed<K> & PrimaryKey<T> }`)
+   * is written as that form instead.
    * @param type - the intersection type
    * @param definition - schema to populate
    * @param path - schema path
+   * @param node - declaration context
    * @param depth - recursion depth
    * @returns keep
    */
@@ -1060,19 +1064,42 @@ export class SchemaConverter {
     type: UnionOrIntersectionType,
     definition: JSONSchema7,
     path: string,
+    node: Node | undefined,
     depth: number
   ): PropertyOutcome {
+    const serialized = path !== "/" ? this.intersectionJSON(type, node ?? this.targetNode) : undefined;
+    if (serialized) {
+      this.property(this.simplifyIntersection(serialized), definition, path, node, depth + 1);
+      return KEEP;
+    }
     const properties: Record<string, JSONSchema7> = {};
     const required = new Set<string>();
     const parts: JSONSchema7[] = [];
     let closed = true;
     let mergeable = true;
 
+    // A constituent declaring only methods (`PrimaryKey`'s `{ toString(): string }`) adds no data: next to an object
+    // constituent with data, its closed empty object would refuse every property of the others
+    const methodsOnly = (member: Type): boolean => {
+      const members = this.checker.getPropertiesOfType(member);
+      return (
+        members.length > 0 &&
+        members.every(property => {
+          const declaration = this.declarationOf(property);
+          return declaration !== undefined && isMethodLike(declaration);
+        })
+      );
+    };
+    const withData = type
+      .getTypes()
+      .some(member => this.checker.getPropertiesOfType(member).length > 0 && !methodsOnly(member));
+
     let index = 0;
     for (const member of type.getTypes()) {
       index++;
       const partPath = `${path}&${index}`;
       const part: JSONSchema7 = {};
+      if (withData && methodsOnly(member)) continue;
 
       if (member.isClassOrInterface() || this.checker.getPropertiesOfType(member).length > 0) {
         Object.assign(part, this.objectShape(member, partPath));
@@ -1102,6 +1129,29 @@ export class SchemaConverter {
       definition.allOf = parts;
     }
     return KEEP;
+  }
+
+  /**
+   * The `toJSON` return type of an intersection whose constituents declare more than one.
+   *
+   * The constituents' methods overload each other, and like `JSONed<T>` (`ReturnType` of the overloads) the
+   * last declared one states the serialised form: `ModelRefCustomProperties` overrides `ModelRef`'s
+   * primary key with the key plus its custom data.
+   * @param type - the intersection type
+   * @param location - declaration context
+   * @returns the serialised type, or undefined when the intersection is written as its merged shape
+   */
+  private intersectionJSON(type: UnionOrIntersectionType, location: Node | undefined): Type | undefined {
+    const symbol = this.checker.getPropertyOfType(type, "toJSON");
+    if (!symbol || !location) return undefined;
+    const signatures = this.checker.getSignaturesOfType(
+      this.checker.getTypeOfSymbolAtLocation(symbol, location),
+      SignatureKind.Call
+    );
+    if (signatures.length < 2) return undefined;
+    const returned = this.checker.getReturnTypeOfSignature(signatures[signatures.length - 1]);
+    if (returned.flags & TypeFlags.Any || this.mentionsTypeParameter(returned)) return undefined;
+    return returned;
   }
 
   // --------------------------------------------------------------- arrays --

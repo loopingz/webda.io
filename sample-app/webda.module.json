@@ -2586,32 +2586,26 @@
             "students": {
               "description": "Students",
               "items": {
-                "allOf": [
-                  {
-                    "additionalProperties": false,
-                    "type": "object"
+                "additionalProperties": false,
+                "description": "A ModelRef augmented with custom properties K, exposing them both at runtime and in JSON.",
+                "properties": {
+                  "firstName": {
+                    "type": "string"
                   },
-                  {
-                    "additionalProperties": false,
-                    "properties": {
-                      "firstName": {
-                        "type": "string"
-                      },
-                      "lastName": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "firstName"
-                    ],
-                    "type": "object"
+                  "lastName": {
+                    "type": "string"
                   },
-                  {
-                    "additionalProperties": false,
-                    "type": "object"
+                  "uuid": {
+                    "description": "UUID of the model",
+                    "format": "uuid",
+                    "type": "string"
                   }
+                },
+                "required": [
+                  "firstName",
+                  "uuid"
                 ],
-                "description": "A ModelRef augmented with custom properties K, exposing them both at runtime and in JSON."
+                "type": "object"
               },
               "type": "array"
             },
@@ -2650,32 +2644,26 @@
             "students": {
               "description": "Students",
               "items": {
-                "allOf": [
-                  {
-                    "additionalProperties": false,
-                    "type": "object"
+                "additionalProperties": false,
+                "description": "A ModelRef augmented with custom properties K, exposing them both at runtime and in JSON.",
+                "properties": {
+                  "firstName": {
+                    "type": "string"
                   },
-                  {
-                    "additionalProperties": false,
-                    "properties": {
-                      "firstName": {
-                        "type": "string"
-                      },
-                      "lastName": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "firstName"
-                    ],
-                    "type": "object"
+                  "lastName": {
+                    "type": "string"
                   },
-                  {
-                    "additionalProperties": false,
-                    "type": "object"
+                  "uuid": {
+                    "description": "UUID of the model",
+                    "format": "uuid",
+                    "type": "string"
                   }
+                },
+                "required": [
+                  "firstName",
+                  "uuid"
                 ],
-                "description": "A ModelRef augmented with custom properties K, exposing them both at runtime and in JSON."
+                "type": "object"
               },
               "type": "array"
             },
@@ -2714,32 +2702,26 @@
             "students": {
               "description": "Students",
               "items": {
-                "allOf": [
-                  {
-                    "additionalProperties": false,
-                    "type": "object"
+                "additionalProperties": false,
+                "description": "A ModelRef augmented with custom properties K, exposing them both at runtime and in JSON.",
+                "properties": {
+                  "firstName": {
+                    "type": "string"
                   },
-                  {
-                    "additionalProperties": false,
-                    "properties": {
-                      "firstName": {
-                        "type": "string"
-                      },
-                      "lastName": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "firstName"
-                    ],
-                    "type": "object"
+                  "lastName": {
+                    "type": "string"
                   },
-                  {
-                    "additionalProperties": false,
-                    "type": "object"
+                  "uuid": {
+                    "description": "UUID of the model",
+                    "format": "uuid",
+                    "type": "string"
                   }
+                },
+                "required": [
+                  "firstName",
+                  "uuid"
                 ],
-                "description": "A ModelRef augmented with custom properties K, exposing them both at runtime and in JSON."
+                "type": "object"
               },
               "type": "array"
             },
@@ -3861,37 +3843,31 @@
             "friends": {
               "description": "Friends",
               "items": {
-                "allOf": [
-                  {
-                    "additionalProperties": false,
-                    "type": "object"
+                "additionalProperties": false,
+                "description": "A ModelRef augmented with custom properties K, exposing them both at runtime and in JSON.",
+                "properties": {
+                  "email": {
+                    "type": "string"
                   },
-                  {
-                    "additionalProperties": false,
-                    "properties": {
-                      "email": {
-                        "type": "string"
-                      },
-                      "firstName": {
-                        "type": "string"
-                      },
-                      "lastName": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "email",
-                      "firstName",
-                      "lastName"
-                    ],
-                    "type": "object"
+                  "firstName": {
+                    "type": "string"
                   },
-                  {
-                    "additionalProperties": false,
-                    "type": "object"
+                  "lastName": {
+                    "type": "string"
+                  },
+                  "uuid": {
+                    "description": "UUID of the model",
+                    "format": "uuid",
+                    "type": "string"
                   }
+                },
+                "required": [
+                  "email",
+                  "firstName",
+                  "lastName",
+                  "uuid"
                 ],
-                "description": "A ModelRef augmented with custom properties K, exposing them both at runtime and in JSON."
+                "type": "object"
               },
               "type": "array"
             },
@@ -3950,37 +3926,31 @@
             "friends": {
               "description": "Friends",
               "items": {
-                "allOf": [
-                  {
-                    "additionalProperties": false,
-                    "type": "object"
+                "additionalProperties": false,
+                "description": "A ModelRef augmented with custom properties K, exposing them both at runtime and in JSON.",
+                "properties": {
+                  "email": {
+                    "type": "string"
                   },
-                  {
-                    "additionalProperties": false,
-                    "properties": {
-                      "email": {
-                        "type": "string"
-                      },
-                      "firstName": {
-                        "type": "string"
-                      },
-                      "lastName": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "email",
-                      "firstName",
-                      "lastName"
-                    ],
-                    "type": "object"
+                  "firstName": {
+                    "type": "string"
                   },
-                  {
-                    "additionalProperties": false,
-                    "type": "object"
+                  "lastName": {
+                    "type": "string"
+                  },
+                  "uuid": {
+                    "description": "UUID of the model",
+                    "format": "uuid",
+                    "type": "string"
                   }
+                },
+                "required": [
+                  "email",
+                  "firstName",
+                  "lastName",
+                  "uuid"
                 ],
-                "description": "A ModelRef augmented with custom properties K, exposing them both at runtime and in JSON."
+                "type": "object"
               },
               "type": "array"
             },
@@ -4039,37 +4009,31 @@
             "friends": {
               "description": "Friends",
               "items": {
-                "allOf": [
-                  {
-                    "additionalProperties": false,
-                    "type": "object"
+                "additionalProperties": false,
+                "description": "A ModelRef augmented with custom properties K, exposing them both at runtime and in JSON.",
+                "properties": {
+                  "email": {
+                    "type": "string"
                   },
-                  {
-                    "additionalProperties": false,
-                    "properties": {
-                      "email": {
-                        "type": "string"
-                      },
-                      "firstName": {
-                        "type": "string"
-                      },
-                      "lastName": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "email",
-                      "firstName",
-                      "lastName"
-                    ],
-                    "type": "object"
+                  "firstName": {
+                    "type": "string"
                   },
-                  {
-                    "additionalProperties": false,
-                    "type": "object"
+                  "lastName": {
+                    "type": "string"
+                  },
+                  "uuid": {
+                    "description": "UUID of the model",
+                    "format": "uuid",
+                    "type": "string"
                   }
+                },
+                "required": [
+                  "email",
+                  "firstName",
+                  "lastName",
+                  "uuid"
                 ],
-                "description": "A ModelRef augmented with custom properties K, exposing them both at runtime and in JSON."
+                "type": "object"
               },
               "type": "array"
             },

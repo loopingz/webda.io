@@ -966,6 +966,11 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
       () => this.routerHttp({ method: "PUT", url: "/qb/companies/c1/users", body: "123" }),
       (err: any) => err instanceof WebdaError.BadRequest
     );
+    // A misnamed field is refused instead of being ignored (which would query everything)
+    await assert.rejects(
+      () => this.routerHttp({ method: "PUT", url: "/qb/companies/c1/users", body: { query: 'name = "other"' } }),
+      (err: any) => err instanceof WebdaError.BadRequest && /Unknown query body field query/.test(err.message)
+    );
     // No body at all queries everything, like {"q": ""}
     const all = await this.routerHttp<{ results: any[] }>({ method: "PUT", url: "/qb/companies/c1/users" });
     assert.deepStrictEqual(

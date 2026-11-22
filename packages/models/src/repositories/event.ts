@@ -414,6 +414,10 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
   }
   /**
    * Patch with event emission (emits Patch before and Patched after)
+   *
+   * `Patch` carries the patch data as `object`. `Patched` carries the patched object,
+   * read back once the patch is applied, as `object` and the patch data as `patch`.
+   * The read is skipped when nothing listens to `Patched`.
    * @override
    */
   async patch<K extends PropertyPaths<InstanceType<T>>>(
@@ -424,7 +428,11 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
   ): Promise<void> {
     await this.emit("Patch", { object_id: primaryKey, object: data } as any);
     await this.repository.patch(primaryKey, data, _conditionField, _condition);
-    await this.emit("Patched", { object_id: primaryKey, object: data } as any);
+    if (!this.events.get("Patched")?.size) {
+      return;
+    }
+    const object = await this.repository.get(primaryKey);
+    await this.emit("Patched", { object_id: primaryKey, object, patch: data } as any);
   }
   /**
    * Update with event emission (emits Update before and Updated after)

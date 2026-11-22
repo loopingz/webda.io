@@ -907,6 +907,118 @@ class CompilerTest {
     }
   }
 
+  /**
+   * Configured services are typed with the class of their `type`, from the
+   * application or from a Webda module it depends on (#1117).
+   */
+  @test
+  async typescriptLibraryTypesConfiguredServices() {
+    const dir = mkdtempSync(path.join(tmpdir(), "webdac-services-"));
+    try {
+      writeFileSync(
+        path.join(dir, "package.json"),
+        JSON.stringify({
+          name: "@acme/app",
+          version: "1.0.0",
+          webda: { namespace: "Acme" },
+          dependencies: {
+            "@test/core": "1.0.0",
+            "@test/sealed": "1.0.0",
+            "@test/plain": "1.0.0",
+            "@test/gone": "1.0.0"
+          },
+          devDependencies: { "@test/broken": "1.0.0" }
+        })
+      );
+      writeFileSync(
+        path.join(dir, "tsconfig.json"),
+        JSON.stringify({ compilerOptions: { outDir: "./dist", rootDir: "./sources" } })
+      );
+      writeFileSync(
+        path.join(dir, "webda.config.json"),
+        JSON.stringify({
+          version: 3,
+          services: {
+            Store: { type: "Webda/MemoryStore" },
+            Router: { type: "Router" },
+            Local: { type: "LocalService" },
+            Sealed: { type: "Test/SealedService" },
+            Unknown: { type: "Missing" },
+            MemoryStore: {},
+            ABean: {}
+          }
+        })
+      );
+      const mkPackage = (name: string, pkg: any, mod?: any) => {
+        const folder = path.join(dir, "node_modules", ...name.split("/"));
+        mkdirSync(folder, { recursive: true });
+        writeFileSync(path.join(folder, "package.json"), JSON.stringify({ name, version: "1.0.0", ...pkg }));
+        if (mod !== undefined) {
+          writeFileSync(path.join(folder, "webda.module.json"), typeof mod === "string" ? mod : JSON.stringify(mod));
+        }
+      };
+      mkPackage(
+        "@test/core",
+        {},
+        {
+          moddas: {
+            "Webda/MemoryStore": { Import: "lib/stores/memory:MemoryStore" },
+            "Webda/Router": { Import: "lib/router:Router" },
+            "Webda/NoImport": {}
+          },
+          beans: { "Webda/CoreBean": { Import: "lib/bean:CoreBean" } }
+        }
+      );
+      mkPackage(
+        "@test/sealed",
+        { exports: { ".": "./lib/index.js" } },
+        {
+          moddas: {
+            "Test/SealedService": { Import: "lib/sealed:SealedService" },
+            // The application's own declaration wins
+            "Acme/LocalService": { Import: "lib/other:Other" }
+          }
+        }
+      );
+      mkPackage("@test/plain", {});
+      mkPackage("@test/broken", {}, "{ not json");
+      const mod: any = {
+        moddas: { "Acme/LocalService": { Import: "dist/services/local:LocalService" }, "Acme/Skipped": {} },
+        beans: {
+          "Acme/ABean": { Import: "dist/a:ABean" },
+          "Acme/ZBean": { Import: "lib/z:ZBean" }
+        },
+        models: {}
+      };
+      generateTypescriptLibrary(new Compiler(new WebdaProject(dir)), mod);
+      const dts = readFileSync(path.join(dir, ".webda", "module.d.ts"), "utf-8");
+      const entries = Object.fromEntries(
+        [...dts.matchAll(/^ {4}(\w+): (.+);$/gm)].map(([, name, type]) => [name, type])
+      );
+      assert.deepStrictEqual(entries, {
+        ABean: 'import("../sources/a.js").ABean',
+        Local: 'import("../sources/services/local.js").LocalService',
+        MemoryStore: 'import("@test/core/lib/stores/memory.js").MemoryStore',
+        Router: 'import("@test/core/lib/router.js").Router',
+        Sealed: 'import("@test/sealed").SealedService',
+        Store: 'import("@test/core/lib/stores/memory.js").MemoryStore',
+        Unknown: "never",
+        ZBean: 'import("../lib/z.js").ZBean'
+      });
+
+      // Without tsconfig the default lib/ → src/ layout applies
+      rmSync(path.join(dir, "tsconfig.json"));
+      generateTypescriptLibrary(new Compiler(new WebdaProject(dir)), {
+        beans: { "Acme/ZBean": { Import: "lib/z:ZBean" } }
+      } as any);
+      assert.ok(
+        readFileSync(path.join(dir, ".webda", "module.d.ts"), "utf-8").includes('ZBean: import("../src/z.js").ZBean;')
+      );
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
   @test
   async moduleNamingViolationsAndTypescriptLibraryBranches() {
     const dir = mkdtempSync(path.join(tmpdir(), "webdac-mod-"));

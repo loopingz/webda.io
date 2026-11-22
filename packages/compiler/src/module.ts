@@ -9,8 +9,8 @@
  * guard, writing the file, and the application's `.webda/module.d.ts`.
  */
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
-import { dirname, join, relative } from "node:path";
-import { FileUtils } from "@webda/utils";
+import { dirname, join, normalize, relative } from "node:path";
+import { FileUtils, parseImportDescriptor } from "@webda/utils";
 import { useLog } from "@webda/workout";
 import type { Compiler } from "./compiler.js";
 import type { WebdaModule } from "./definition.js";
@@ -176,34 +176,139 @@ export function writeModule(compiler: Compiler, generated: GeneratedModule): Web
   }
 }
 
+/** Sections of a `package.json` whose packages the application's types can come from. */
+export const DEPENDENCY_SECTIONS = ["dependencies", "devDependencies", "peerDependencies", "optionalDependencies"];
+
+/**
+ * Locate an installed package the way Node does: `node_modules/<name>` in the
+ * application root, then in each parent folder.
+ *
+ * Not `require.resolve`, as not every package exports `./package.json`.
+ * @param name - package name
+ * @param appRoot - application root
+ * @returns the package folder, or undefined when it is not installed
+ */
+export function findPackage(name: string, appRoot: string): string | undefined {
+  let dir = appRoot;
+  while (true) {
+    const candidate = join(dir, "node_modules", name);
+    if (existsSync(join(candidate, "package.json"))) {
+      return candidate;
+    }
+    if (dirname(dir) === dir) {
+      return undefined;
+    }
+    dir = dirname(dir);
+  }
+}
+
+/**
+ * Type of the class an `Import` descriptor of the application's own module names
+ *
+ * The descriptor points at the emitted file (`lib/services/x:X`); the type is
+ * read from its source (`src/services/x.ts`) so it exists before the first
+ * emit, through the tsconfig `outDir` and `rootDir`.
+ * @param appRoot - application root
+ * @param descriptor - the `Import` descriptor
+ * @returns the type expression
+ */
+function localImportType(appRoot: string, descriptor: string): string {
+  const { file, exportName } = parseImportDescriptor(descriptor);
+  let options: { outDir?: string; rootDir?: string } = {};
+  try {
+    options = FileUtils.load(join(appRoot, "tsconfig.json")).compilerOptions ?? {};
+  } catch {
+    // No tsconfig: the default layout
+  }
+  const outDir = normalize(options.outDir ?? "lib").replace(/\\/g, "/");
+  const rootDir = normalize(options.rootDir ?? "src").replace(/\\/g, "/");
+  let path = normalize(file).replace(/\\/g, "/");
+  if (path.startsWith(`${outDir}/`)) {
+    path = `${rootDir}/${path.substring(outDir.length + 1)}`;
+  }
+  return `import("../${path}.js").${exportName}`;
+}
+
+/**
+ * Type of each service type (`Webda/HttpServer`) the application can configure
+ *
+ * Read from the application's own module, then from the Webda modules among
+ * its direct dependencies: their `Import` names a file of the package, or the
+ * package itself when its `exports` map hides the other files.
+ * @param compiler - the compiler whose project is being built
+ * @param mod - the Webda module metadata
+ * @returns the type expression of each service type
+ */
+function serviceTypes(compiler: Compiler, mod: WebdaModule): Map<string, string> {
+  const appRoot = compiler.project.getAppPath();
+  const types = new Map<string, string>();
+  for (const section of ["moddas", "beans"] as const) {
+    for (const [type, info] of Object.entries<any>(mod[section] ?? {})) {
+      if (typeof info?.Import === "string") {
+        types.set(type, localImportType(appRoot, info.Import));
+      }
+    }
+  }
+  const pkg: Record<string, any> = compiler.project.packageDescription ?? {};
+  const names = new Set<string>(DEPENDENCY_SECTIONS.flatMap(section => Object.keys(pkg[section] ?? {})));
+  for (const name of [...names].sort()) {
+    const folder = findPackage(name, appRoot);
+    if (!folder || !existsSync(join(folder, "webda.module.json"))) {
+      continue;
+    }
+    let depMod: Record<string, any>;
+    let depPkg: Record<string, any>;
+    try {
+      depMod = FileUtils.load(join(folder, "webda.module.json"), "json");
+      depPkg = FileUtils.load(join(folder, "package.json"), "json");
+    } catch {
+      continue;
+    }
+    for (const section of ["moddas", "beans"]) {
+      for (const [type, info] of Object.entries<any>(depMod[section] ?? {})) {
+        if (types.has(type) || typeof info?.Import !== "string") {
+          continue;
+        }
+        const { file, exportName } = parseImportDescriptor(info.Import);
+        const specifier = depPkg.exports ? name : `${name}/${normalize(file).replace(/\\/g, "/")}.js`;
+        types.set(type, `import("${specifier}").${exportName}`);
+      }
+    }
+  }
+  return types;
+}
+
 /**
  * Generate TypeScript library for the module
+ *
+ * `ServicesMap` lists every configured service with the class of its `type`
+ * (`never` when no module declares the type) and every bean of the module.
  * @param compiler - the compiler whose project is being built
  * @param mod - the Webda module metadata
  */
 export function generateTypescriptLibrary(compiler: Compiler, mod: WebdaModule) {
-  // Should generate typescript library file: .webda/webda.module.ts
-  // Read the webda.module.json and generate a type for ServiceName
-  // And for ModelName
-  // So we can have type safe access to services and models
   const config = FileUtils.loadConfigurationFile(compiler.project.getAppPath("webda.config"));
+  const namespace = compiler.project.namespace || "Webda";
+  const types = serviceTypes(compiler, mod);
+  const services = new Map<string, string>();
+  Object.entries<any>(config.services || {}).forEach(([name, service]) => {
+    const type: string = typeof service?.type === "string" ? service.type : name;
+    const candidates = type.includes("/") ? [type] : [`${namespace}/${type}`, `Webda/${type}`];
+    const found = candidates.find(candidate => types.has(candidate));
+    services.set(name, found ? types.get(found)! : "never");
+  });
+  Object.entries(mod.beans || {}).forEach(([name, bean]) => {
+    const shortName = name.split("/").pop()!;
+    if (!services.has(shortName)) {
+      services.set(shortName, localImportType(compiler.project.getAppPath(), bean.Import));
+    }
+  });
   let content = `import "@webda/core";\ndeclare module "@webda/core" {\n`;
   // Services Map
   content += `  interface ServicesMap {\n`;
-  Object.keys(config.services || {})
-    .sort()
-    .forEach(name => {
-      content += `    ${name}: never;\n`;
-    });
-  Object.entries(mod.beans || {})
-    .sort(([a], [b]) => a.localeCompare(b))
-    .forEach(([name, bean]) => {
-      const [file, importName] = bean.Import.split(":");
-      // Add import at the top
-      content = `import { ${importName} } from "${file}";\n` + content;
-      // Add to services map
-      content += `    ${name.split("/").pop()}: ${importName};\n`;
-    });
+  [...services.keys()].sort().forEach(name => {
+    content += `    ${name}: ${services.get(name)};\n`;
+  });
   content += `  }\n\n`;
   // Models Map
   content += `}`;

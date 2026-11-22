@@ -22,8 +22,6 @@ Your `tsconfig.json` must **not** set `experimentalDecorators: true` — Webda u
 import { createMethodDecorator, getMetadata } from "@webda/decorators";
 import { useLog } from "@webda/workout";
 
-const log = useLog("Trace");
-
 export interface TraceOptions {
   /** Label shown in the log line. Defaults to the method name. */
   label?: string;
@@ -49,16 +47,16 @@ export const Trace = createMethodDecorator(
     return function (this: any, ...methodArgs: any[]) {
       const start = Date.now();
       if (options.args) {
-        log.info(`→ ${label}`, { args: methodArgs });
+        useLog("INFO", `→ ${label}`, methodArgs);
       } else {
-        log.info(`→ ${label}`);
+        useLog("INFO", `→ ${label}`);
       }
 
       let result: any;
       try {
         result = method.apply(this, methodArgs);
       } catch (err) {
-        log.error(`✗ ${label} threw after ${Date.now() - start}ms`, { error: err });
+        useLog("ERROR", `✗ ${label} threw after ${Date.now() - start}ms`, err);
         throw err;
       }
 
@@ -66,16 +64,16 @@ export const Trace = createMethodDecorator(
       if (result instanceof Promise) {
         return result
           .then(v => {
-            log.info(`← ${label} resolved in ${Date.now() - start}ms`);
+            useLog("INFO", `← ${label} resolved in ${Date.now() - start}ms`);
             return v;
           })
           .catch(err => {
-            log.error(`✗ ${label} rejected after ${Date.now() - start}ms`, { error: err });
+            useLog("ERROR", `✗ ${label} rejected after ${Date.now() - start}ms`, err);
             throw err;
           });
       }
 
-      log.info(`← ${label} returned in ${Date.now() - start}ms`);
+      useLog("INFO", `← ${label} returned in ${Date.now() - start}ms`);
       return result;
     };
   }
@@ -91,7 +89,7 @@ import { Trace } from "./decorators/trace";
 class PostService {
   @Trace
   async getBySlug(slug: string): Promise<Post | null> {
-    return this.store.get(slug);
+    return Post.ref(slug).get();
   }
 
   @Trace({ label: "publish-post", args: true })
@@ -105,15 +103,15 @@ class PostService {
 When `getBySlug("hello-world")` is called the log output looks like:
 
 ```
-[Trace] INFO  → getBySlug
-[Trace] INFO  ← getBySlug resolved in 3ms
+[INFO] → getBySlug
+[INFO] ← getBySlug resolved in 3ms
 ```
 
 And when `publish("hello-world", "twitter")` is called:
 
 ```
-[Trace] INFO  → publish-post { args: ["hello-world", "twitter"] }
-[Trace] INFO  ← publish-post resolved in 12ms
+[INFO] → publish-post [ 'hello-world', 'twitter' ]
+[INFO] ← publish-post resolved in 12ms
 ```
 
 ## Step 3 — Inspect metadata at runtime
@@ -218,5 +216,5 @@ npx vitest run packages/decorators/src/decorator.spec.ts
 
 - [Decorator Catalog](./Catalog.md) — all public exports from `@webda/decorators`
 - [@webda/core README](../core/README.md) — `@Bean`, `@Inject`, `@Route`, `@Operation` decorators
-- [@webda/models README](../models/README.md) — `@Expose`, relationship decorators
+- [@webda/models README](../models/README.md) — relationship types
 - [useLog from @webda/workout](../workout/README.md) — recommended logging helper

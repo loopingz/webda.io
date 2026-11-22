@@ -46,9 +46,9 @@ This is the general process if the ConfigurationProvider can trigger, it will be
 
 ## Existing Configuration Provider
 
-- Every \{@link Store} as it is designed in the parent class
 - \{@link FileConfiguration} to simply use a file as configuration
 - \{@link KubernetesConfiguration} to simply use Kubernetes Secrets or ConfigMap
+- AWS Secrets Manager (`@webda/aws`) and Azure Key Vault (`@webda/azure`)
 
 ## Encrypted values
 

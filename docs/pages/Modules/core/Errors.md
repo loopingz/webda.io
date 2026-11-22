@@ -10,10 +10,10 @@ sidebar_label: Errors
 ## Import
 
 ```typescript
-import * as WebdaError from "@webda/core";
+import { WebdaError } from "@webda/core";
 
-// Or import individual classes:
-import { Forbidden, NotFound, BadRequest } from "@webda/core";
+// The classes are members of the WebdaError namespace:
+throw new WebdaError.NotFound("Not found");
 ```
 
 ## Error hierarchy
@@ -57,7 +57,7 @@ Error
 ### Throwing standard errors
 
 ```typescript
-import * as WebdaError from "@webda/core";
+import { WebdaError } from "@webda/core";
 
 // Not found
 const post = await Post.ref(slug).get();
@@ -101,18 +101,18 @@ throw new WebdaError.Redirect("Login required", "https://example.com/login");
 ### Custom error with code
 
 ```typescript
-import { CodeError } from "@webda/core";
+import { WebdaError } from "@webda/core";
 
-throw new CodeError("PAYMENT_REQUIRED", "Please upgrade your plan to access this feature");
+throw new WebdaError.CodeError("PAYMENT_REQUIRED", "Please upgrade your plan to access this feature");
 // Returns HTTP 500 by default — subclass HttpError for a different status code
 ```
 
 ### Custom HTTP error
 
 ```typescript
-import { HttpError } from "@webda/core";
+import { WebdaError } from "@webda/core";
 
-class PaymentRequired extends HttpError {
+class PaymentRequired extends WebdaError.HttpError {
   constructor(message: string) {
     super(message, 402);
   }
@@ -148,18 +148,7 @@ The Store layer has additional typed errors:
 | `StoreNotFoundError` | `store.get()` returns undefined on a required record |
 | `UpdateConditionFailError` | Optimistic locking condition failed during `update()` |
 
-```typescript
-import { StoreNotFoundError } from "@webda/core";
-
-try {
-  const post = await store.get(uuid);
-} catch (err) {
-  if (err instanceof StoreNotFoundError) {
-    throw new WebdaError.NotFound(`Post "${uuid}" not found`);
-  }
-  throw err;
-}
-```
+Both are exported from `@webda/core`.
 
 ## Verify
 
@@ -176,6 +165,6 @@ npx vitest run src/errors/errors.spec.ts
 ## See also
 
 - [Services](./Services.md) — throwing errors from service methods
-- [Context](./Context.md) — calling `context.statusCode()` for manual status codes
+- [Context](./Context.md) — calling `context.status()` for manual status codes
 - [Routing](./Routing.md) — the Router's error handling middleware
 - [Models Permissions](../models/Permissions.md) — `canAct` returns false (403 Forbidden)

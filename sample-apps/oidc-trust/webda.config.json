@@ -1,6 +1,6 @@
 {
   "$schema": ".webda/config.schema.json",
-  "version": 3,
+  "version": 4,
   "services": {
     "HttpServer": {
       "type": "Webda/HttpServer"

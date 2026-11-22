@@ -269,6 +269,6 @@ Knative starts and stops replicas at any time: every replica must be disposable.
 - No in-memory locks or caches holding state between requests: use a store, a queue or a shared cache.
 - No local files beyond the request: use a `Binary` store.
 - Long-running jobs do not belong in a request: a revision times out at `timeoutSeconds`.
-- Pull-based queue consumers (`webda worker`, `AsyncJobService` with a queue) belong on a Deployment scaled with
+- Pull-based queue consumers (a service consuming a queue, `webda async worker` with a queue) belong on a Deployment scaled with
   [KEDA](https://keda.sh/), not on a Knative Service: Knative scales on HTTP traffic and stops idle
   replicas, a consumer polling a queue is never idle from its point of view.

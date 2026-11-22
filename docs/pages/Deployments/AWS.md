@@ -25,7 +25,7 @@ This can be restrict more and should, need to update the documentation
 
 ## Package
 
-The package is a zip of your folder, we dont have advanced cleaning feature nor ignore files, so the package can be big if you forget to clean your folder before.
+The package is a zip of the application files, its production dependencies and the deployed configuration. Use `package.ignores` (top-level entries) and `package.excludePatterns` (regular expressions on the file paths) to leave files out, and `package.modules.includes` / `package.modules.excludes` to adjust the dependencies.
 
 ## Lambda
 

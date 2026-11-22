@@ -20,7 +20,7 @@ import { Operation } from "@webda/core";
 ## Instance operation example
 
 ```typescript
-// From sample-apps/blog-system/src/models/Post.ts
+// From sample-apps/blog-system/src/models/Post.model.ts
 import { Operation } from "@webda/core";
 import { Model, WEBDA_PRIMARY_KEY } from "@webda/models";
 
@@ -49,7 +49,7 @@ Response: `"linkedin_hello-world_1714045200000"`
 ## Static operation example
 
 ```typescript
-// From sample-apps/blog-system/src/models/User.ts
+// From sample-apps/blog-system/src/models/User.model.ts
 import { Operation, useContext, WebdaError } from "@webda/core";
 import { UuidModel } from "@webda/models";
 

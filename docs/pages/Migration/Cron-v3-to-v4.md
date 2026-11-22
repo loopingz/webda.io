@@ -40,7 +40,7 @@ A third argument that is not a plain object is an error.
 - The Kubernetes templates lose `cron.args`, `cron.argsLine`, `cron.argsLineSingleQuote`, `cron.argsArray` and
   `${...cron.args}`; they gain `cron.operationId`, `cron.operationName`, `cron.inputJson` and `cron.inputb64`. The
   default CronJob and file names use the operation id.
-- `webda cron` and the async scheduler run the ticks on the cluster leader only. Configure a cluster service
+- `CronService.run()` and the async scheduler run the ticks on the cluster leader only. Configure a cluster service
   (`Webda/StoreClusterService` or `Webda/KubernetesClusterService`) when the application has several replicas; a
   single instance is always the leader.
 - A tick runs as the system: `useContext().getCurrentUserId()` is `"system"` inside the operation. The input is

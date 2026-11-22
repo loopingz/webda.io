@@ -35,13 +35,14 @@ pnpm add @webda/fs
   "services": {
     "postStore": {
       "type": "FileStore",
-      "model": "MyApp/Post",
+      "models": ["MyApp/Post"],
       "folder": "./data/posts"
     },
     "uploads": {
       "type": "FileBinary",
       "folder": "./data/uploads",
-      "maxSize": 10485760
+      "maxSize": 10485760,
+      "models": { "MyApp/Post": ["cover"] }
     },
     "fileQueue": {
       "type": "FileQueue",
@@ -69,17 +70,12 @@ pnpm add @webda/fs
 ## Usage
 
 ```typescript
-import { CoreModel, Model, Expose, BinaryFile, BinaryMap } from "@webda/core";
-import { Bean, Inject } from "@webda/core";
-import { Store } from "@webda/core";
+import { Bean, Binary, CoreModel, Service } from "@webda/core";
 
-@Model()
 export class Post extends CoreModel {
-  @Expose()
   title: string;
 
-  @BinaryMap({ cardinality: "ONE" })
-  cover: BinaryFile;
+  cover: Binary;
 }
 
 // In webda.config.json: configure FileStore (model storage) and FileBinary (uploads)
@@ -88,13 +84,8 @@ export class Post extends CoreModel {
 // Programmatic usage
 @Bean
 export class PostService extends Service {
-  @Inject("postStore")
-  store: Store<Post>;
-
   async createPost(title: string): Promise<Post> {
-    const post = new Post();
-    post.title = title;
-    return post.save();
+    return Post.create({ title });
   }
 
   async listPosts(): Promise<Post[]> {
@@ -107,7 +98,7 @@ export class PostService extends Service {
 
 - API reference: see the auto-generated typedoc at `docs/pages/Modules/fs/`.
 - Source: [`packages/fs`](https://github.com/loopingz/webda.io/tree/main/packages/fs)
-- Related: [`@webda/aws`](../aws) for `DynamoStore` and `S3Binary` as cloud-native replacements; [`@webda/mongodb`](../mongodb) for a MongoDB-backed store; [`@webda/core`](../core) for the `Store`, `Binary`, and `Queue` base classes.
+- Related: [`@webda/aws`](../aws) for `DynamoStore` and `S3Binary` as cloud-native replacements; [`@webda/mongo`](../mongodb) for a MongoDB-backed store; [`@webda/core`](../core) for the `Store`, `Binary`, and `Queue` base classes.
 
 <!-- README_FOOTER -->
 

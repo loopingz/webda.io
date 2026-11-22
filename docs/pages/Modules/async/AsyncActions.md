@@ -119,11 +119,10 @@ This runner launch a Job in a Kubernetes
 You can define a Kubernetes Job configuration that run your webda image
 
 ```
-webda launch AsyncService runAsyncOperationAction
+webda async run
 ```
 
-Where AsyncService is the name of your AsyncService instance.
-It will pick up automatically the job info from the environment variables, run the target operation and post its status
+It will pick up automatically the job info from the `JOB_*` environment variables (`JOB_ORCHESTRATOR` names the AsyncJobService instance), run the target operation and post its status
 
 ### Python
 
@@ -161,82 +160,7 @@ def send_status(data=None):
     """
     ts = str(round(time.time() * 1000))
     # https://docs.python.org/3/library/http.client.html
-    r = requests.post(
-        environ.get("JOB_HOOK") + "/status", json=data, headers=job_headers()
-    )
+    # JOB_HOOK is the full status hook url ({apiUrl}/async/status)
+    r = requests.post(environ.get("JOB_HOOK"), json=data, headers=job_headers())
     return r.json()
-
-
-def download_from(
-    store: string, uuid: string, property: string, index: int, dirpath: string
-):
-    """
-    Download a file related to the Job
-    """
-    # Get the download link from the service
-    r = requests.get(
-        "{hook}/download/{store}/{uuid}/{property}/{index}".format(
-            hook=environ.get("JOB_HOOK"),
-            store=store,
-            uuid=uuid,
-            property=property,
-            index=index,
-        ),
-        headers=job_headers(),
-    )
-    if r.status_code != 200:
-        raise Exception("Cannot download")
-    res = r.json()
-    filename = path.join(dirpath, res["Map"]["hash"])
-    if path.exists(filename):
-        print("Already downloaded")
-        return
-    dwl = requests.get(res["Location"])
-    if r.status_code != 200:
-        raise Exception("Cannot download from redirect")
-    with open(path.join(dirpath, res["Map"]["hash"]), "wb") as f:
-        f.write(dwl.content)
-    return filename
-
-
-def upload_to(
-    store: string, uuid: string, property: string, filepath: string, metadata={}
-):
-    """
-    Upload a file related to the Job
-    """
-    file_hash = hashlib.md5()
-    challenge = hashlib.md5()
-    challenge.update("WEBDA".encode())
-    with open(filepath, "rb") as f:
-        while chunk := f.read(8192):
-            file_hash.update(chunk)
-            challenge.update(chunk)
-    # Get the upload link from the service
-    r = requests.put(
-        "{hook}/upload/{store}/{uuid}/{property}".format(
-            hook=environ.get("JOB_HOOK"),
-            store=store,
-            uuid=uuid,
-            property=property,
-        ),
-        json={
-            "hash": file_hash.hexdigest(),
-            "challenge": challenge.hexdigest(),
-            "metadata": metadata,
-        },
-        headers=job_headers(),
-    )
-    if r.status_code != 200:
-        raise Exception("Upload failed")
-    res = r.json()
-    # If file is already known to the system
-    if res["done"]:
-        print("Already uploaded")
-        return
-    with open(filepath, "rb") as f:
-        res = requests.request(res["method"], res["url"], data=f)
-        if res.status_code >= 300:
-            raise Exception("Upload failed")
-
 ```

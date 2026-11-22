@@ -237,7 +237,6 @@ export class PostService extends Service {
 ## Reference
 
 - Source: [`packages/mcp`](https://github.com/loopingz/webda.io/tree/main/packages/mcp)
-- Design: `docs/superpowers/specs/2026-10-03-webda-mcp-design.md`
 
 <!-- README_FOOTER -->
 

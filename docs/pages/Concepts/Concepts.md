@@ -11,10 +11,10 @@ Most business logic should be implemented in your models — directly as `@Actio
 
 Then Services exists to implement generic features:
 
-- Store your models: Store, DynamoDB, MongoDB, Postgresql, Firebase, Memory, File
+- Store your models: Store, DynamoDB, MongoDB, Postgresql, Firestore, Memory, File
 - Store your binaries: BinaryService, FileBinary, S3Binary, GCPStorage
-- Expose your models: RESTDomainService, GraphQLService
-- Authenticate: AuthenticationService, OAuthService
+- Expose your models: DomainService (REST through RESTOperationsTransport), GraphQLService
+- Authenticate: Authentication and its providers (`@webda/auth`), OAuthServer (`@webda/oauth`)
 - Secure: Hawk, built-in sanitizer
 
 You usually have needs for a few additional services that are unrelated to business models like integration with third parties.
@@ -65,28 +65,29 @@ If the Service is not designed to be extend of reused the `@Route` annotation is
 If you plan to reuse your component, it might be a good idea to make its routes configurable to avoid any conflicts.
 
 ```js title="src/myservice.ts"
-class MyServiceParameter extends ServiceParameter {
-    constructor(params) {
-        super(params);
+class MyServiceParameters extends ServiceParameters {
+    url: string;
+
+    load(params: any = {}): this {
+        super.load(params);
         // Define your default params here
+        this.url ??= "/myroute";
+        return this;
     }
 }
 
-class MyService<T extends MyServiceParameter> extends Service<T> {
-    resolve() {
+class MyService<T extends MyServiceParameters = MyServiceParameters> extends Service<T> {
+    resolve(): this {
         super.resolve();
-        this._addRoute(...)
-    }
-
-    loadParameters(params: any) {
-        return new MyServiceParameter(params);
+        this.addRoute(this.parameters.url, ["GET"], this.myHandler);
+        return this;
     }
 }
 ```
 
 ### Retrieve parameters
 
-Within a service, you retrieve its parameter by calling the `this.parameter` property.
+Within a service, you retrieve its parameters by calling the `this.parameters` property.
 
 ## Deployment
 
@@ -104,6 +105,6 @@ You can create a module to share some behavior between different application by 
 
 Webda on startup scan the node_modules for `webda.module.json`, it build its map of available ServicesType according to theses modules.
 
-### Shell module
+### Commands
 
-You add your custom command to the `webda` shell command by adding a `webda.shell.json`
+You add your custom command to the `webda` command by decorating a service method with `@Command`

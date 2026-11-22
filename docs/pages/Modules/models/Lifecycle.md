@@ -23,7 +23,7 @@ For each mutation operation, two events fire — one _before_ (allows intercepti
 ## Event type definitions
 
 ```typescript
-// From packages/models/src/model.ts
+// From packages/models/src/model.model.ts
 export type ModelEvents<T = any> = {
   Create: { object_id: string; object: T };
   PartialUpdate: any;
@@ -31,6 +31,7 @@ export type ModelEvents<T = any> = {
   Update: { object_id: string; object: T; previous: T };
   Patch: { object_id: string; object: T; previous: T };
   Query: { query: string };
+  Aggregate: { query: any };
 
   // After-events
   Created: { object_id: string; object: T };
@@ -39,6 +40,7 @@ export type ModelEvents<T = any> = {
   Patched: { object_id: string; object: T; previous: T };
   Updated: { object_id: string; object: T; previous: T };
   Queried: { query: string; results: T[]; continuationToken?: string };
+  Aggregated: { query: any; rows: any[]; native: boolean };
 };
 ```
 
@@ -84,45 +86,38 @@ export class Post extends Model {
 ## Listening to events on a repository
 
 ```typescript
-import { Post } from "./models/Post";
+import { Post } from "./models/Post.model";
 
 // Listen on the Post repository for any Created event
 Post.getRepository().on("Created", ({ object }) => {
   console.log(`Post created: ${object.slug}`);
 });
 
-// Listen to a specific object's events
-const post = await Post.ref("hello-world").get();
-post.on("Updated", ({ object, previous }) => {
+Post.getRepository().on("Updated", ({ object, previous }) => {
   console.log(`Post updated: ${previous.title} → ${object.title}`);
 });
 ```
 
-## Listening to events in a service using `@On`
+## Listening to events in a service
 
-In Webda services, use the `@On` decorator to subscribe to store events:
+In Webda services, subscribe on the model repository with `useRepository(Model).on(...)`, for example in `init()`:
 
 ```typescript
-import { Bean } from "@webda/core";
-import { On } from "@webda/core";
-import { Service } from "@webda/core";
-import { useLog } from "@webda/workout";
+import { Bean, Service, useRepository } from "@webda/core";
+import { Post } from "../models/Post.model";
 
 @Bean
 export class NotificationService extends Service {
-  protected log = useLog("NotificationService");
-
-  @On("Store.Save:WebdaSample/Post")
-  async onPostSaved(event: any): Promise<void> {
-    const post = event.object;
-    this.log.info(`Post saved: ${post.slug}`);
-    // Send notification, update search index, etc.
-  }
-
-  @On("Store.Delete:WebdaSample/Post")
-  async onPostDeleted(event: any): Promise<void> {
-    const { object_id } = event;
-    this.log.info(`Post deleted: ${object_id}`);
+  async init(): Promise<this> {
+    await super.init();
+    useRepository(Post).on("Created", ({ object }) => {
+      this.log("INFO", `Post created: ${object.slug}`);
+      // Send notification, update search index, etc.
+    });
+    useRepository(Post).on("Deleted", ({ object_id }) => {
+      this.log("INFO", `Post deleted: ${object_id}`);
+    });
+    return this;
   }
 }
 ```
@@ -206,5 +201,5 @@ pnpm test
 
 - [Defining Models](./Defining-Models.md) — model base classes and field declarations
 - [Actions](./Actions.md) — `@Operation` decorator
-- [Core Events](../core/Events.md) — `Core.on`, store events, `@On` decorator
+- [Core Events](../core/Events.md) — core events and repository events
 - [@webda/core Services](../core/Services.md) — services that listen to model events

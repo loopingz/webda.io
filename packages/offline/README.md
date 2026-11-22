@@ -42,7 +42,7 @@ pnpm add @webda/offline
 ```ts
 import type { Syncable } from "@webda/offline";
 
-/** @WebdaModel */
+// src/task.model.ts
 export class Task extends CoreModel implements Syncable {
   title: string;
   owner: string;

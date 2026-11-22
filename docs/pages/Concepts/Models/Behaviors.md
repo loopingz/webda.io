@@ -61,7 +61,6 @@ If you write your own `toJSON`, yours wins. The core behaviors (`EncryptedField`
 ## Attaching a behavior to a model
 
 ```typescript
-@Model()
 export class User extends CoreModel {
   mfa: MFA;          // single Behavior attribute
   audit: AuditLog;   // multiple Behaviors per model are allowed
@@ -119,12 +118,12 @@ What the model author writes in `canAct` is exactly what the URL and operation I
 Inside a Behavior method, use the standard webda hooks:
 
 ```typescript
-import { useService, useLog } from "@webda/core";
+import { useDynamicService, useLog } from "@webda/core";
 
 @Action({ rest: { method: "POST" } })
 async verify(totp: string) {
   const log = useLog("MFA");
-  const verifier = useService<TOTPVerifier>("totp");
+  const verifier = useDynamicService<TOTPVerifier>("totp");
   // ...
 }
 ```

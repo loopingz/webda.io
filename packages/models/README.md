@@ -16,7 +16,7 @@ This module is part of Webda Application Framework that allows you to quickly de
 
 ## @webda/models
 
-The domain model layer for Webda applications. Provides the base `Model` and `UuidModel` classes, relationship types (`BelongTo`, `Contains`, `OneToMany`, `ManyToMany`), primary key definitions, lifecycle events, and the `@Operation` decorator.
+The domain model layer for Webda applications. Provides the base `Model` and `UuidModel` classes, relationship types (`BelongTo`, `Contains`, `OneToMany`, `ManyToMany`), primary key definitions and lifecycle events.
 
 ### When to use it
 

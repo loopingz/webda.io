@@ -160,7 +160,7 @@ Slow query detection is configured per-store in `webda.config`:
 
 ```json
 {
-  "stores": {
+  "services": {
     "default": {
       "type": "MemoryStore",
       "slowQueryThreshold": 5000,

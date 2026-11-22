@@ -9,15 +9,15 @@ It load the right files based on a predefined cachedModule definition
 
 It also include some templating mechanism to allow dynamic object/string.
 
-## SourceApplication
+## UnpackedApplication
 
-The SourceApplication have all the module resolution enabled.
+The UnpackedApplication has all the module resolution enabled: it scans `node_modules` for `webda.module.json` files and loads the package descriptions, instead of reading them from the cachedModule.
 
-It can compile your typescript application, generate documentation, generate openapi, and generate the cachedModule needed for the `Application`
+Compiling your application and generating the `webda.module.json` is done by `webdac build` (`@webda/compiler`).
 
 ## TestApplication
 
-Similar to SourceApplication with additional test services prebuilt
+Similar to UnpackedApplication with additional test services prebuilt
 
 ## See also
 

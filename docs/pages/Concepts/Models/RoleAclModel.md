@@ -1,29 +1,25 @@
-# Role Acl Model
+# Role Model
 
-This implement a Acl Model system with one role per invidual or group.
-Each role have a numerical value.
+`RoleModel` (`@webda/core`) implements a role-based permission system: each action requires one role, and the action is allowed when the current user has that role.
 
-So if you have three roles
+Roles come from the current user (`user.getRoles()`) and are cached in the session.
 
-- Viewer (0)
-- Editor (1)
-- Owner (2)
+## Define the roles map
 
-Each action get a value defined, if the role is greater or equal to the action value, the action is allowed
+`getRolesMap()` maps an action to the role it requires. `isPermissive()` decides for actions without a mapping (refused by default).
 
-## Define model paremeters
+```typescript
+import { RoleModel } from "@webda/core";
 
-```
-const RoleMap = {
-  Viewer: ["get", "get_binary"],
-  Editor: ["update", "attach_binary", "detach_binary"],
-  Owner: ["*"]
-};
-
-export default class MyModel extends RoleAclModel<typeof RoleMap> {
-  getActionsRolesMap(): { Viewer: any[]; Editor: any[]; Owner: any[] } {
-    return RoleMap;
+export class MyModel extends RoleModel {
+  getRolesMap() {
+    return {
+      get: "viewer",
+      update: "editor",
+      delete: "owner"
+    };
   }
 }
-
 ```
+
+See [Model Permissions](../../Modules/models/Permissions.md#rolemodel).

@@ -2,12 +2,10 @@
 
 The framework use the EventEmitter for events.
 
-`emit()` this will not wait for any promise returned by listeners
+`emit()` returns a Promise resolved once all the promises returned by listeners are resolved: await it to wait for the listeners, or ignore it
 
-`emitSync()` this will wait for resolution on all promises returned by listeners
-
-We also have a mechanism to listen asynchronously to events. They will then be posted to a Queue for them
-to be consumed through a `AsyncEvent.worker()`
+We also have a mechanism to listen asynchronously to events (`AsyncEvents` service of `@webda/async`). They will then be posted to a Queue for them
+to be consumed through its `worker()`
 
 ```mermaid
 sequenceDiagram
@@ -34,46 +32,6 @@ sequenceDiagram
 
 ### Webda.Request
 
-### Store.Save
+### Models events
 
-### Store.Saved
-
-### Store.Update
-
-### Store.Updated
-
-### Store.PartialUpdate
-
-### Store.PArtialUpdated
-
-### Store.Delete
-
-### Store.Deleted
-
-### Store.Get
-
-### Store.Find
-
-### Store.Found
-
-### Store.WebCreate
-
-### Store.WebUpdate
-
-### Store.WebGet
-
-### Store.WebDelete
-
-### Store.Action
-
-### Store.Actionned
-
-## Runtime Events
-
-To implement some clients listeners we can allow listeners by uuid
-
-addModelListener(model: string, uuid: string) // fullUuid?
-removeModelListener(model: string, uuid: string) // fullUuid?
-
-Get the current map
-The Pub/Sub will then send all events for this uuid.
+Model persistence events are the typed Repository events (`Created`, `Updated`, `Patched`, `Deleted`, `PartialUpdated`...), see [Repositories](../Stores/Repositories.md#events). The aggregate `Store.*` events are internal.

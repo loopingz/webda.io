@@ -5,7 +5,7 @@ sidebar_label: Decorator Catalog
 
 # Built-in Decorator Catalog
 
-This page lists every public export from `@webda/decorators`, covering factory functions, helper utilities, and TypeScript types. For Webda's domain-specific decorators (`@Bean`, `@Inject`, `@Route`, `@Operation`, `@Expose`) see the `@webda/core` and `@webda/models` package documentation.
+This page lists every public export from `@webda/decorators`, covering factory functions, helper utilities, and TypeScript types. For Webda's domain-specific decorators (`@Bean`, `@Inject`, `@Route`, `@Operation`) see the `@webda/core` package documentation.
 
 ## Factory Functions
 
@@ -209,7 +209,7 @@ This ensures decorator metadata works correctly in Node.js 22+ even if the runti
 
 ```bash
 # Run the decorators test suite
-cd /Users/rcattiau/Git/loopingz/webda.io
+# from the repository root
 npx vitest run packages/decorators/src/decorator.spec.ts
 ```
 
@@ -219,4 +219,4 @@ Expected: all tests pass (the spec covers direct and factory usage for all three
 
 - [Writing Custom Decorators](./Custom.md) — build your own `@Trace` decorator end-to-end
 - [@webda/core README](../core/README.md) — `@Bean`, `@Inject`, `@Route`, `@Operation`
-- [@webda/models README](../models/README.md) — `@Expose`, `@BelongTo`, `@Contains`, `@ManyToMany`
+- [@webda/models README](../models/README.md) — relation types `BelongTo`, `Contains`, `ManyToMany`

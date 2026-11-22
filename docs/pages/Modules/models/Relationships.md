@@ -60,7 +60,7 @@ export class Post extends Model {
 ```
 
 REST implications:
-- `GET /posts/:slug/comments` — list all comments for this post
+- `PUT /posts/:slug/comments` — query the comments of this post (WQL in the body)
 - `POST /posts/:slug/comments` — create a comment on this post
 - Deleting the Post cascades to its Comments
 

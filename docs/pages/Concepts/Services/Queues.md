@@ -13,3 +13,5 @@ if you want to process them in parallel or serial
 - File
 - GCP PubSub
 - RabbitMQ
+- Azure Service Bus
+- PostgreSQL

@@ -12,23 +12,21 @@ sidebar_label: Context
 ```typescript
 interface WebContext {
   // Request
-  getHttpContext(): HttpContext;
-  getBody<T = any>(): T;
-  getHeader(name: string): string | undefined;
-  getParameters(): Record<string, string>;
-  getPathParameter(name: string): string | undefined;
-  getQueryString(): string;
+  getHttpContext(): HttpContext; // getHeader(name), getUniqueHeader(name), getUrl(), getMethod(), ...
+  getInput(): Promise<T>; // parsed and sanitized body
+  getParameters(): Record<string, any>; // path and query parameters
+  parameter(name: string, defaultValue?: any): any;
 
   // Response
-  write(data: any): void;
-  writeHead(statusCode: number, headers?: Record<string, string>): void;
-  statusCode(code: number): void;
+  write(data: any): boolean;
+  writeHead(statusCode: number, headers?: OutgoingHttpHeaders): this;
+  status(code: number): this; // sets the statusCode property
+  redirect(url: string): void;
 
   // Session
   getSession(): Session;
   getCurrentUserId(): string | undefined;
-  getCurrentUser<T = any>(): Promise<T | undefined>;
-  isAuthenticated(): boolean;
+  getCurrentUser(): Promise<User | undefined>;
 
   // Lifecycle
   init(): Promise<void>;
@@ -49,7 +47,7 @@ export class MyService extends Service {
   async getProfile(context: WebContext): Promise<void> {
     const user = await context.getCurrentUser();
     if (!user) {
-      context.statusCode(401);
+      context.status(401);
       context.write({ error: "Not authenticated" });
       return;
     }
@@ -87,9 +85,9 @@ interface CreatePostOutput {
 export class PostService extends Service {
   @Route("/posts", ["POST"])
   async createPost(ctx: OperationContext<CreatePostInput, {}, CreatePostOutput>): Promise<void> {
-    const body = ctx.getBody(); // typed as CreatePostInput
-    const post = await this.create(body);
-    ctx.statusCode(201);
+    const body = await ctx.getInput(); // typed as CreatePostInput
+    const post = await Post.create(body);
+    ctx.status(201);
     ctx.write(post); // typed as CreatePostOutput
   }
 }
@@ -104,7 +102,7 @@ Sessions are managed by `SessionManager`. By default, Webda uses JWT tokens stor
 ```typescript
 const session = context.getSession();
 const customData = session["myCustomKey"];
-const userId = session["userId"]; // set by AuthenticationService
+const userId = session.userId; // set by the authentication (`@webda/auth`)
 ```
 
 ### Writing session data
@@ -116,11 +114,11 @@ context.getSession()["myCustomKey"] = "myValue";
 
 ### Setting the authenticated user
 
-The `SessionManager` sets `userId` in the session. Authentication services (like `@webda/authentication`) populate this field.
+The session `userId` is set by `Session.login()`. The authentication services of `@webda/auth` call it.
 
 ```typescript
 // In an authentication service:
-context.getSession()["userId"] = user.uuid;
+context.getSession().login(user.getUUID(), identUuid);
 ```
 
 ## Request lifecycle
@@ -138,7 +136,7 @@ sequenceDiagram
     Router->>SessionManager: loadSession(context)
     SessionManager-->>Router: session loaded
     Router->>Service: handler(context)
-    Service->>Service: context.getBody()
+    Service->>Service: context.getInput()
     Service->>Service: context.getCurrentUser()
     Service-->>Router: context.write(response)
     Router->>SessionManager: saveSession(context)
@@ -214,4 +212,4 @@ curl -sk -o /dev/null -w "%{http_code}" https://localhost:18080/profile
 - [Routing](./Routing.md) — how routes are matched and context is created
 - [Events](./Events.md) — `Webda.Request` fires with the context for each request
 - [Errors](./Errors.md) — error types that affect the response status
-- `@webda/authentication` — sets the authenticated user in context via `SessionManager`
+- [Authentication](../../Security/Authentication.md) — `@webda/auth` sets the authenticated user in the session

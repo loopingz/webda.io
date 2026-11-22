@@ -29,7 +29,7 @@ pnpm add @webda/workflow
 ```
 
 ```ts
-useService<WorkflowService>("WorkflowService").registerFlow({
+useDynamicService<WorkflowService>("WorkflowService").registerFlow({
   id: "Orders.Process",
   version: "",
   params: ["uuid"],

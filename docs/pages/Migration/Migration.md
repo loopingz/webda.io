@@ -1,34 +1,18 @@
 # Migration
 
-Since version 1.0, we try to provide jscodeshift module to migrate from one version
-to another.
+`webdac code` (from `@webda/compiler`) migrates the application sources to the current Webda version: it moves
+imports to the packages that now own them and drops registrations the framework now does for you. It edits the files
+listed by your `tsconfig.json` in place, so commit first.
 
-This package provides helper to migrate from one version to another
-
-## Usage
-
-```
-yarn add --dev @webda/codemod
-# If typescript
-npx jscodeshift --parser ts -t node_modules/@webda/codemod/${script}.js src/**/*.ts
-# Or
-find . -name \*.ts | grep -v node_modules | grep -v \.d\.ts | xargs jscodeshift --parser ts -t node_modules/@webda/codemod/${script}.js
+```bash
+webdac code                            # run every migration module
+webdac code --module updateImports     # run only one module
 ```
 
-### webda-0.11-1.0
+See [`webdac code`](../Modules/compiler/CodeGen.md) for the migration modules.
 
-This script will move all imports `webda` or `webda-*` to `@webda/core` or `@webda/*`
+The v3 to v4 guides cover the changes `webdac code` does not rewrite:
 
-It will also update any reference of `Executor` from `webda` to `Service` from `@webda/core`
-
-It upgrade methods `checkCSRF` to `checkRequest`
-
-Rename all `_params` to `parameters`
-
-#### Warning
-
-MemoryQueue return now a stringified version of the message, you have to parse it
-
-# Recast issue
-
-If you see parenthesis with destructed assignement
+- [Stores](./Stores-v3-to-v4.md)
+- [Authentication](./Authentication-v3-to-v4.md)
+- [Cron](./Cron-v3-to-v4.md)

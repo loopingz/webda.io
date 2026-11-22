@@ -10,7 +10,7 @@ which calls the cron operation as the system with its input: the input is valida
 run.
 
 ```bash
-webda kubernetes cronExport [template] [target] [filenameTemplate] [image]
+webda kubernetes cronExport [--template file] [--target ./crons] [--filenameTemplate name] [--image image]
 ```
 
 - The default template names the CronJob `<operation id, dots as dashes, lower case>-<cronId>`, and the default
@@ -27,4 +27,4 @@ the positional cron arguments: use `cron.inputJson` or `cron.inputb64`.
 :::
 
 A CronJob fires once per schedule, so the exported jobs do not need a cluster leader. Inside the application,
-`webda cron` and the async scheduler only run the ticks on the [cluster leader](../../Modules/core/Cluster.md).
+`CronService.run()` and the async scheduler only run the ticks on the [cluster leader](../../Modules/core/Cluster.md).

@@ -30,11 +30,11 @@ pnpm add @webda/gcp
 
 ## What's inside
 
-- `FireStore` — Firestore-backed Store for any Webda model ([source](./src/services/firestore.ts))
-- `Storage` — Cloud Storage-backed Binary service for file uploads/downloads ([source](./src/services/storage.ts))
-- `GCPQueue` — Cloud Pub/Sub-backed Queue for reliable task delivery ([source](./src/services/queue.ts))
-- `GCPPubSubService` — Cloud Pub/Sub fan-out pub/sub messaging ([source](./src/services/pubsub.ts))
-- `GCPKMSService` — Cloud KMS-based encryption/decryption ([source](./src/services/kms.service.ts)); also registers the `gcp` encrypter for [configuration secrets](https://docs.webda.io/Security/ConfigurationSecrets) (`encrypt:gcp:<value>`, key from `WEBDA_GCP_KMS_KEY`)
+- `GoogleCloudFireStore` — Firestore-backed Store for any Webda model ([source](./src/services/firestore.service.ts))
+- `GoogleCloudStorage` — Cloud Storage-backed Binary service for file uploads/downloads ([source](./src/services/storage.service.ts))
+- `GoogleCloudQueue` — Cloud Pub/Sub-backed Queue for reliable task delivery ([source](./src/services/queue.service.ts))
+- `GoogleCloudPubSub` — Cloud Pub/Sub fan-out pub/sub messaging ([source](./src/services/pubsub.service.ts))
+- `GoogleCloudKMS` — Cloud KMS-based encryption/decryption ([source](./src/services/kms.service.ts)); also registers the `gcp` encrypter for [configuration secrets](https://docs.webda.io/Security/ConfigurationSecrets) (`encrypt:gcp:<value>`, key from `WEBDA_GCP_KMS_KEY`)
 
 ## Quick config example
 
@@ -42,17 +42,16 @@ pnpm add @webda/gcp
 {
   "services": {
     "userStore": {
-      "type": "FireStore",
-      "model": "MyApp/User",
-      "project": "my-gcp-project",
+      "type": "GoogleCloudFireStore",
+      "models": ["MyApp/User"],
       "collection": "users"
     },
     "uploads": {
-      "type": "Storage",
+      "type": "GoogleCloudStorage",
       "bucket": "my-app-uploads"
     },
     "taskQueue": {
-      "type": "GCPQueue",
+      "type": "GoogleCloudQueue",
       "topic": "my-app-tasks",
       "subscription": "my-app-tasks-sub"
     }

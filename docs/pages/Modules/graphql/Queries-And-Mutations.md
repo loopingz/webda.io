@@ -35,9 +35,9 @@ The argument name matches the primary key field. For composite keys (multiple `W
 }
 ```
 
-The list query returns a `PostList` type with:
+The list query returns a `PostQueryResult` type with:
 - `results` — the array of matching records
-- `continuationToken` — pass this back as `offset` for the next page
+- `continuationToken` — pass this back as the `OFFSET` of the query for the next page
 - `total { value relation }` — the total of the query, counted only when selected; `null` when the model does not allow it (see [Query totals](../../Concepts/Stores/Query-Total.md))
 
 ### Filtering with WQL
@@ -56,14 +56,14 @@ Pass a [WebdaQL](../ql/Syntax.md) filter string in the `query` argument:
 
 ```graphql
 {
-  Posts(limit: 10, offset: "eyJsYXN0S2V5IjoiYWJjIn0=") {
+  Posts(query: "LIMIT 10 OFFSET \"eyJsYXN0S2V5IjoiYWJjIn0=\"") {
     results { slug title }
     continuationToken
   }
 }
 ```
 
-Pass `limit` as a Long integer and `offset` as the `continuationToken` from the previous response.
+The list query only takes the `query` argument: put `LIMIT` and, as `OFFSET`, the `continuationToken` from the previous response in the WQL string.
 
 ## Auto-generated mutations
 
@@ -121,7 +121,7 @@ A mutation calls the model operation the REST route calls (`<Model>.Create`, `.U
 
 ## Custom operations
 
-When a model defines `@Operation()` methods, they become additional mutations:
+When a model defines `@Operation()` methods, they become additional mutations (queries for read-only operations), named after the operation id (`Post.Publish` → `postPublish`):
 
 ```typescript
 // Post model
@@ -133,7 +133,7 @@ async publish(destination: "linkedin" | "twitter"): Promise<string> {
 
 ```graphql
 mutation {
-  publishPost(slug: "hello-world", destination: "linkedin")
+  postPublish(slug: "hello-world", destination: "linkedin")
 }
 ```
 
@@ -141,17 +141,17 @@ Static `@Operation()` methods (class-level, e.g. `User.login`) become mutations 
 
 ```graphql
 mutation {
-  loginUser(email: "alice@example.com", password: "secret")
+  userLogin(email: "alice@example.com", password: "secret")
 }
 ```
 
 ## `me` query
 
-When `exposeMe: true` (the default), a `me` query exposes the current authenticated user:
+When `exposeMe: true` (the default), a `Me` query exposes the current authenticated user:
 
 ```graphql
 {
-  me {
+  Me {
     uuid
     username
     email

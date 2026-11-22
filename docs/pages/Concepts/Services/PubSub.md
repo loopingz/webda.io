@@ -1,15 +1,14 @@
-# Queues
+# PubSub
 
-Webda offer an abstraction to queue system.
+Webda offer an abstraction to publish/subscribe system: `PubSubService`.
 
-It has a `worker` mechanism that is a queue consumer.
-As queue systems like SQS can return multiple messages at once, you can define
-if you want to process them in parallel or serial
+A message sent is delivered to every subscriber. Queues are built on top of it, a queue message is consumed by one worker only, see [Queues](./Queues.md).
 
 ## Current implementation
 
-- SQS
-- Memory
-- File
 - GCP PubSub
 - RabbitMQ
+- Azure Service Bus
+- PostgreSQL
+- Knative Broker (CloudEvents)
+- Socket (`@webda/fs`)

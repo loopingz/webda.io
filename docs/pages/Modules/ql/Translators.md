@@ -5,7 +5,7 @@ sidebar_label: Store Translators
 
 # Store Translators
 
-Each Webda Store backend implements a `find(query: WebdaQL.Query)` method that translates the parsed WQL AST into its own native query format. This page documents how each backend translates common WQL constructs.
+Each Webda Store backend provides a repository whose `query()` method translates the parsed WQL AST into its own native query format. This page documents how each backend translates common WQL constructs.
 
 ## Translation overview
 
@@ -27,14 +27,13 @@ flowchart LR
 
 ## In-memory (MemoryStore)
 
-The in-memory store (`packages/core/src/stores/memory.ts`) does not translate WQL to a secondary language — it uses the `QueryValidator.eval(object)` method directly to filter JavaScript objects in memory.
+The in-memory repository (`packages/models/src/repositories/memory.ts`, used by `MemoryStore`) does not translate WQL to a secondary language — it calls `eval(object)` on the parsed filter expression directly to filter JavaScript objects in memory.
 
 **How it works:**
 
 ```typescript
-// Simplified from MemoryStore.find()
-const validator = new WebdaQL.QueryValidator(query.filter.toString());
-const results = Object.values(this.storage).filter(obj => validator.eval(obj));
+// Simplified from MemoryRepository.query()
+const results = Object.values(this.storage).filter(obj => query.filter.eval(obj));
 ```
 
 **Characteristics:**
@@ -58,7 +57,7 @@ const results = Object.values(this.storage).filter(obj => validator.eval(obj));
 
 ## MongoDB (MongoStore)
 
-The MongoDB store (`packages/mongodb/src/mongodb.ts`) translates the WQL AST into a MongoDB filter document using the `mapExpression()` method.
+The MongoDB store (`packages/mongodb/src/mongodb.service.ts`) translates the WQL AST into a MongoDB filter document using the exported `mapExpression()` function.
 
 **Translation table:**
 
@@ -72,22 +71,22 @@ The MongoDB store (`packages/mongodb/src/mongodb.ts`) translates the WQL AST int
 | `field <= value` | `{ field: { $lte: value } }` |
 | `field IN [a, b]` | `{ field: { $in: [a, b] } }` |
 | `field LIKE "pattern"` | `{ field: /regex/ }` (via `ComparisonExpression.likeToRegex`) |
-| `field CONTAINS value` | `{ field: value }` (MongoDB natively checks array membership) |
+| `field CONTAINS value` | `{ field: { $elemMatch: { $eq: value } } }` (only an array holding the value) |
 | `field IS NULL` | `{ field: null }` (matches null and missing fields) |
 | `field IS NOT NULL` | `{ field: { $ne: null } }` |
-| `A AND B` | Merge both objects: `{ ...A, ...B }` |
+| `A AND B` | `{ $and: [A, B] }` (a single non-empty child is returned as is) |
 | `A OR B` | `{ $or: [A, B] }` |
 
 **Code reference (simplified):**
 
 ```typescript
-// From packages/mongodb/src/mongodb.ts
-mapExpression(expression: WebdaQL.Expression): any {
+// From packages/mongodb/src/mongodb.service.ts
+export function mapExpression(expression: WebdaQL.Expression): any {
   if (expression instanceof WebdaQL.AndExpression) {
-    return expression.children.reduce((q, e) => ({ ...q, ...this.mapExpression(e) }), {});
+    return { $and: expression.children.map(e => mapExpression(e)) };
   }
   if (expression instanceof WebdaQL.OrExpression) {
-    return { $or: expression.children.map(e => this.mapExpression(e)) };
+    return { $or: expression.children.map(e => mapExpression(e)) };
   }
   if (expression instanceof WebdaQL.ComparisonExpression) {
     // Examples:
@@ -103,7 +102,7 @@ mapExpression(expression: WebdaQL.Expression): any {
 
 ```
 WQL:   status = 'published' AND viewCount >= 100
-Mongo: { status: "published", viewCount: { $gte: 100 } }
+Mongo: { $and: [ { status: "published" }, { viewCount: { $gte: 100 } } ] }
 
 WQL:   status IN ['draft', 'published']
 Mongo: { status: { $in: ["draft", "published"] } }
@@ -128,7 +127,7 @@ MongoDB uses a numeric offset (parsed from the continuation token string).
 
 ## PostgreSQL / SQL (SQLStore + PostgresStore)
 
-The PostgreSQL store (`packages/postgres/src/`) uses a two-step approach:
+The PostgreSQL store uses the SQL repository shared with SQLite (`packages/sql/src/repository.ts`, `packages/sql/src/comparison.ts`), with a two-step approach:
 
 1. **`duplicateExpression()`** walks the AST and converts it to `SQLComparisonExpression` nodes (which know how to emit SQL-safe strings).
 2. **`toString()`** on the resulting AST emits a SQL WHERE clause fragment.
@@ -138,20 +137,20 @@ The PostgreSQL store (`packages/postgres/src/`) uses a two-step approach:
 | WQL operator | SQL equivalent |
 |-------------|---------------|
 | `field = 'value'` | `field = 'value'` |
-| `field != value` | `field != value` |
+| `field != value` | `field IS DISTINCT FROM value` (null-safe) |
 | `field > value` | `field > value` |
 | `field >= value` | `field >= value` |
 | `field < value` | `field < value` |
 | `field <= value` | `field <= value` |
 | `field IN [a, b]` | `field = 'a' OR field = 'b'` (expanded to OR) |
-| `field CONTAINS value` | `(field)::jsonb ? 'value'` (JSONB array membership) |
+| `field CONTAINS value` | `(CASE WHEN jsonb_typeof(field) = 'array' THEN field END) @> '["value"]'::jsonb` (JSONB array membership) |
 | `field LIKE "Intro%"` | `field LIKE 'Intro%'` |
 | `field IS NULL` | `data#>>'{field}' IS NULL` (missing key or JSON null) |
 | `field IS NOT NULL` | `data#>>'{field}' IS NOT NULL` |
 | `A AND B` | `A AND B` |
 | `A OR B` | `A OR B` |
 
-Note: `IN` is expanded to an OR chain of equality comparisons. `CONTAINS` uses PostgreSQL's `?` JSONB operator to check array membership.
+Note: `IN` is expanded to an OR chain of equality comparisons. `CONTAINS` uses PostgreSQL's `@>` JSONB operator, on arrays only, to check array membership.
 
 **Example translations:**
 
@@ -163,7 +162,7 @@ WQL:  status IN ['draft', 'published']
 SQL:  SELECT * FROM posts WHERE status = 'draft' OR status = 'published'
 
 WQL:  tags CONTAINS 'typescript'
-SQL:  SELECT * FROM posts WHERE (tags)::jsonb ? 'typescript'
+SQL:  SELECT * FROM posts WHERE (CASE WHEN jsonb_typeof(tags) = 'array' THEN tags END) @> '["typescript"]'::jsonb
 
 WQL:  status = 'published' ORDER BY createdAt DESC LIMIT 20
 SQL:  SELECT * FROM posts WHERE status = 'published' ORDER BY createdAt DESC LIMIT 20
@@ -175,7 +174,7 @@ SQL:  SELECT * FROM posts WHERE status = 'published' ORDER BY createdAt DESC LIM
 
 DynamoDB's filter expressions are more restricted than SQL or MongoDB (no full table scans; queries are against a primary key or GSI). The DynamoStore translates WQL to DynamoDB `FilterExpression` objects for the filter portion and uses `KeyConditionExpression` for key-based lookups.
 
-> The exact translation logic is in `packages/aws/src/services/dynamostore.ts`. Consult the source for the current implementation.
+> The exact translation logic is in `packages/aws/src/services/dynamodb.service.ts`. Consult the source for the current implementation.
 
 **Key differences:**
 - Queries on non-key attributes require a scan, which is costly

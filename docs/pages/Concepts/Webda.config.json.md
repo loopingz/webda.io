@@ -12,7 +12,7 @@ It has 2 main sections:
   "services": {
     // Define each Service and its own parameters
   },
-  "version": "2"
+  "version": 4
 }
 ```
 

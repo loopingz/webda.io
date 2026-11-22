@@ -43,11 +43,11 @@ TypeScript / JSON Schema types are mapped to GraphQL scalar types:
 | `boolean` | `Boolean` |
 | `T[]` | `[T]` (GraphQL List) |
 | `object` with properties | Anonymous `GraphQLObjectType` |
-| `object` without properties | `Any` (custom scalar — JSON map) |
+| `object` without properties | `Object` (custom scalar — JSON map) |
 
 ## Blog-system model → GraphQL types
 
-The `Post` model from `sample-apps/blog-system/src/models/Post.ts`:
+The `Post` model from `sample-apps/blog-system/src/models/Post.model.ts`:
 
 ```typescript
 export class Post extends Model {
@@ -59,7 +59,7 @@ export class Post extends Model {
   status!: "draft" | "published" | "archived";  // → String (enum collapsed)
   viewCount!: number;      // → Long
   createdAt!: Date;        // → Date
-  author!: BelongTo<User>; // → User (resolved through relation)
+  author!: ManyToOne<User>; // → User (resolved through relation)
   comments!: Contains<Comment>; // → [Comment]
   tags!: ManyToMany<Tag>;  // → [Tag]
 }
@@ -91,19 +91,20 @@ input PostInput {
 
 type Query {
   Post(slug: String): Post
-  Posts(query: String, limit: Long, offset: String): PostList
+  Posts(query: String = ""): PostQueryResult
   # ... other models
 }
 
-type PostList {
+type PostQueryResult {
   results: [Post]
   continuationToken: String
+  total: QueryTotal
 }
 
-type Mutation {
+type Mutations {
   createPost(Post: PostInput): Post
-  updatePost(uuid: String, Post: PostInput): Post
-  deletePost(uuid: String): DeleteResult
+  updatePost(Post: PostInput, uuid: String): Post
+  deletePost(uuid: String): deletePost # { success: Boolean }
   # ... other models
 }
 ```
@@ -127,11 +128,11 @@ Or explore it interactively in GraphiQL at `/graphql` (when `exposeGraphiQL: tru
 
 ## GraphiQL explorer
 
-When `exposeGraphiQL: true` (the default), navigating to `https://localhost:18080/graphql` in a browser shows the GraphiQL IDE. It uses the standard GraphiQL HTML with CDN-loaded assets.
+When `exposeGraphiQL: true` (it is off by default), navigating to `https://localhost:18080/graphql` in a browser shows the GraphiQL IDE. It uses the standard GraphiQL HTML with CDN-loaded assets.
 
 ## Custom `@Operation` methods
 
-When a model defines a method with `@Operation()`, the GraphQL service detects it and adds a corresponding mutation (or query):
+When a model defines a method with `@Operation()`, the GraphQL service detects it and adds a corresponding mutation (or query, for a read-only operation), named after the operation id (`Post.Publish` → `postPublish`):
 
 ```typescript
 // From Post model
@@ -144,7 +145,7 @@ async publish(destination: "linkedin" | "twitter"): Promise<string> {
 This becomes:
 ```graphql
 mutation {
-  publishPost(slug: "my-post", destination: "linkedin")
+  postPublish(slug: "my-post", destination: "linkedin")
 }
 ```
 
@@ -181,7 +182,7 @@ Expected response:
   "data": {
     "__schema": {
       "queryType": { "name": "Query" },
-      "mutationType": { "name": "Mutation" },
+      "mutationType": { "name": "Mutations" },
       "subscriptionType": { "name": "Subscription" }
     }
   }

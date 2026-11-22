@@ -14,7 +14,7 @@ This module is part of Webda Application Framework that allows you to quickly de
 
 <!-- README_HEADER -->
 
-> CloudEvents v1.0 producer and consumer utilities for Webda — receive CloudEvents over HTTP (`CloudEventsReceiver`), publish and consume through a Knative Eventing Broker (`KnativeBrokerPubSub`), validate, emit and subscribe with a store-backed subscription model.
+> CloudEvents v1.0 producer and consumer utilities for Webda — receive CloudEvents over HTTP (`CloudEventsReceiver`), publish and consume through a Knative Eventing Broker (`KnativeBrokerPubSub`), validate, emit and subscribe with the `Subscription` filters.
 
 ## When to use it
 
@@ -80,7 +80,7 @@ import {
   CloudEventsReceiver,
   isCloudEvent,
   KnativeBrokerPubSub,
-  Subscription
+  SubscriptionMixIn
 } from "@webda/cloudevents";
 import { CloudEvent, emitterFor, httpTransport } from "cloudevents";
 
@@ -93,13 +93,13 @@ class Orders extends Service {
 }
 
 // Or register at runtime, by type or predicate; the returned function unsubscribes
-useService<CloudEventsReceiver>("CloudEventsReceiver").subscribe(
+useDynamicService<CloudEventsReceiver>("CloudEventsReceiver").subscribe(
   event => event.type.startsWith("com.acme."),
   async event => {}
 );
 
 // Publish to the Knative Broker
-await useService<KnativeBrokerPubSub>("Events").sendMessage(
+await useDynamicService<KnativeBrokerPubSub>("Events").sendMessage(
   new CloudEvent({ type: "com.acme.order.created", source: "/orders", data: { id } })
 );
 
@@ -118,11 +118,12 @@ const event = new CloudEvent({
 const emit = emitterFor(httpTransport("https://sink.example.com/events"));
 await emit(event);
 
-// Use a Subscription model to persist a subscriber's endpoint
-const sub = new Subscription();
+// Add the Subscription behavior (filters, emit to its sink) to a class
+class WebhookSubscription extends SubscriptionMixIn(Object) {}
+const sub = new WebhookSubscription();
 sub.sink = "https://receiver.example.com/hook";
 sub.types = ["com.myapp.order.created"];
-await sub.save();
+await sub.emit(event); // sent only when the event matches types and filters
 ```
 
 ## Reference

@@ -29,7 +29,7 @@ Currently, `MongoDB`, `Postgres`, `File` and `Memory` have a full ORDER BY capab
 
 `DynamoDB` have some hard limitation, only the sortKey can be ordered and every other ORDER BY clause will be ignored
 
-`FireBase` have also limitations, only the defined index with their direction will be able to be used, every other ORDER BY clause will be ignored
+`Firestore` have also limitations, only the defined index with their direction will be able to be used, every other ORDER BY clause will be ignored
 
 ## Limit and Offset
 

@@ -14,7 +14,7 @@ As of Webda 4.x, there is **no public plugin API** for adding custom morpher mod
 However, the source is open and the internal structure is designed for extension:
 
 - `WebdaMorpher` in `packages/compiler/src/morpher/morpher.ts` is a class whose `modules` map can be extended by subclassing.
-- `generateWebdaModule` in `@webda/content-mapper` handles model/service discovery and schema generation; `packages/compiler/src/module.ts` only adds `sourceDigest` and writes the file.
+- `generateWebdaModule` in `@webda/content-mapper` handles model/service discovery and schema generation; `packages/compiler/src/module.ts` only checks the result and writes the file (`writeModule`).
 
 If you need custom code generation, file an issue at [github.com/loopingz/webda.io](https://github.com/loopingz/webda.io) or contribute a new morpher module.
 
@@ -41,11 +41,13 @@ Each module is a function `(sourceFile: SourceFile) => void` that receives a ts-
 If you are building a custom tool on top of `@webda/compiler`:
 
 ```typescript
-import { WebdaMorpher } from "@webda/compiler";
+// WebdaMorpher is not exported from the package index
+import { WebdaMorpher } from "@webda/compiler/lib/morpher/morpher.js";
 
 class MyMorpher extends WebdaMorpher {
   constructor() {
-    super({ project: { tsConfigFilePath: "./tsconfig.json" } });
+    // `modules` selects the modules to run, default: the built-in ones
+    super({ project: { tsConfigFilePath: "./tsconfig.json" }, modules: ["myTransform"] });
 
     // Add a custom module
     this.modules["myTransform"] = (sourceFile) => {
@@ -58,18 +60,12 @@ class MyMorpher extends WebdaMorpher {
 }
 
 const morpher = new MyMorpher();
-await morpher.run(["myTransform"]);
+await morpher.check(); // updates and saves the changed files
 ```
 
-> **Note**: `WebdaMorpher` does not export `run()` as a public method in the current release. Consult the source at `packages/compiler/src/morpher/morpher.ts` for the current API.
+## Module generation
 
-## Internal `ModuleGenerator`
-
-`ModuleGenerator` (`packages/compiler/src/module.ts`) is the class that walks the TypeScript program to discover models, services, and deployers. It is instantiated by `webdac build` and is not intended to be used directly.
-
-Key methods:
-- `generateModelSchemas(node)` — produces input/output/stored JSON Schemas for a model
-- `generateModule()` — main entry point; writes `webda.module.json`
+`generateWebdaModule` (`packages/content-mapper/src/module.ts`) walks the TypeScript program to discover models, services, and deployers and produces their schemas. `webdac build` runs it in the content mapper worker and writes the result with `writeModule` (`packages/compiler/src/module.ts`). It is not intended to be used directly.
 
 ## Code generation — `@webda/content-mapper`
 
@@ -114,27 +110,25 @@ See `docs/contribute/TypeScript 7 Content Mappers.md` for how this works and why
 
 ## Build hooks
 
-`webdac build` supports pre/post-build hooks configured in `package.json`:
+Build-time hooks are service methods decorated with `@BuildCommand` (`@webda/core`, sugar for `@Command("build", { phase: "resolved" })`). After generating the module, `webdac build` runs `webda build` when a configured service declares a `build` command; the hook runs after `Core.resolve()`, without `init()`.
 
-```json
-{
-  "webda": {
-    "hooks": {
-      "prebuild": "pnpm run generate-types",
-      "postbuild": "pnpm run validate"
-    }
+```typescript
+import { BuildCommand, Service } from "@webda/core";
+
+export class ProtoService extends Service {
+  @BuildCommand({ description: "Generate proto" })
+  async build() {
+    // ...
   }
 }
 ```
-
-Hooks run as shell commands in the project directory.
 
 ## Verify
 
 ```bash
 # Confirm the compiler's morpher module list
 node -e "
-import('@webda/compiler').then(m => {
+import('@webda/compiler/lib/morpher/morpher.js').then(m => {
   const morpher = new m.WebdaMorpher({ pretend: true });
   console.log('modules:', Object.keys(morpher.modules));
 }).catch(e => console.error(e.message));

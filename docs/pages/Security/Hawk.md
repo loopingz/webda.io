@@ -6,7 +6,7 @@ By doing so, you have to sign each request with an api key and the server will a
 
 If you implement other `RequestFilter`, you can override the need to sign request.
 
-The service requires a `Store` to store the authorized ApiKeys
+The authorized Api Keys are models of the `keyModel` parameter (like the `ApiKey` model of `@webda/hawk`), persisted by the store of that model
 
 ## Api Keys
 

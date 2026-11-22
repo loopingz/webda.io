@@ -144,7 +144,7 @@ console.log(v.eval({ tags: ["typescript", "webda"] })); // true
 console.log(v.eval({ tags: ["javascript"] })); // false
 ```
 
-In MongoDB, CONTAINS translates to the same syntax as `=` on an array field (MongoDB checks if the array contains the value).
+In MongoDB, CONTAINS translates to `$elemMatch`, so it only matches an array holding the value.
 
 ## IS NULL / IS NOT NULL operators
 

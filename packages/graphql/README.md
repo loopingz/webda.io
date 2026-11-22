@@ -52,7 +52,7 @@ For every exposed model (e.g. `Post`) the service generates:
 | Operation | Type | Description |
 |-----------|------|-------------|
 | `Post(uuid)` | Query | Fetch one by primary key |
-| `Posts(query, limit, offset)` | Query | List / filter all |
+| `Posts(query)` | Query | List / filter with a WebdaQL query (`LIMIT`, `OFFSET` included) |
 | `createPost(Post: PostInput)` | Mutation | Create new instance |
 | `updatePost(uuid, Post: PostInput)` | Mutation | Replace by primary key |
 | `deletePost(uuid)` | Mutation | Delete by primary key |

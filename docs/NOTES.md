@@ -12,7 +12,7 @@ Core -> White icon
 - Stores are now pure raw data
 - Services parameters now are auto created by the framework
 - @webda/core and @webda/shell were split into more modules
-- codemod to migrate from v3 to v4 is provided
+- `webdac code` migrates the application sources from v3 to v4
 - AsyncLocalStorage is used to provide execution context
 - @webda/test replace @testdeck/mocha
 

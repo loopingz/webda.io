@@ -11,7 +11,7 @@ We have an `OperationContext`. This is the main context that is used to execute 
 You can extend it by adding your own ContextProvider:
 
 ```js title="src/myservice.ts"
-import { ContextProvider, Bean, Service, ContextProviderInfo, OperationContext } from "@webda/core";
+import { ContextProvider, Bean, Service, ContextProviderInfo, Context, useDynamicService } from "@webda/core";
 
 @Bean
 class MyService extends Service implements ContextProvider {
@@ -20,16 +20,18 @@ class MyService extends Service implements ContextProvider {
    */
   resolve(): this {
     super.resolve();
-    this.log("INFO", "Registering ArizeContext");
-    this.getWebda().registerContextProvider(this);
+    this.log("INFO", "Registering MyContext");
+    // Context providers are registered on the HttpServer service
+    useDynamicService<any>("HttpServer").registerContextProvider(this);
+    return this;
   }
   /**
    * Return a custom Context
    * @param info
    * @returns
    */
-  getContext(info: ContextProviderInfo): OperationContext<any, any> {
-    return new MyContext(this.getWebda(), info.http, info.stream);
+  getContext(info: ContextProviderInfo): Context {
+    return new MyContext(info.http, info.stream);
   }
 }
 ```

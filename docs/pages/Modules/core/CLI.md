@@ -48,7 +48,7 @@ webda serve --watch   # restart on file changes (requires @webda/compiler)
 
 ## `webda debug`
 
-Starts the application in development mode with the debug dashboard enabled. The debug dashboard provides a web UI for inspecting running services, requests, logs, and metrics.
+Starts the application in development mode with the debug dashboard enabled. The command is declared by the `DebugService` of `@webda/debug`. The debug dashboard provides a web UI for inspecting running services, requests, logs, and metrics.
 
 ```bash
 webda debug
@@ -78,7 +78,7 @@ webda openapi --includeHidden --output ./openapi-full.json
 
 ## `webda build`
 
-Generates protobuf definitions from model operations (for gRPC transport):
+`build` is the command of the `@BuildCommand` services. In the blog-system, `@webda/grpc` uses it to generate protobuf definitions from model operations (for gRPC transport):
 
 ```bash
 webda build

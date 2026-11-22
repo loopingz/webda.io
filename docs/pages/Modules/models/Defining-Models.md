@@ -26,7 +26,7 @@ export class Tag extends UuidModel {
 
 This alone gives you:
 
-- `GET /tags` — list all tags
+- `PUT /tags` — query tags (WQL in the body; `GET /tags?q=` when the REST transport `queryMethod` is `GET`)
 - `POST /tags` — create a tag
 - `GET /tags/:uuid` — get one tag
 - `PUT /tags/:uuid` — replace a tag
@@ -252,7 +252,7 @@ export class Category extends Model {
 }
 
 // Routes become:
-// GET /categories
+// PUT /categories (query)
 // GET /categories/:slug
 ```
 
@@ -291,7 +291,7 @@ Anything but `true` (`false`, a reason string, an error) is a refusal: HTTP 404,
 ## Full example — Post model (blog-system)
 
 ```typescript
-// sample-apps/blog-system/src/models/Post.ts
+// sample-apps/blog-system/src/models/Post.model.ts
 import { BelongTo, Contains, ManyToMany, Model, WEBDA_PRIMARY_KEY, WEBDA_EVENTS, ModelEvents } from "@webda/models";
 import { Operation } from "@webda/core";
 import type { User } from "./User";

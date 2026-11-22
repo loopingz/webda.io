@@ -32,7 +32,7 @@ Subscriptions are enabled by default. Control them via:
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `globalSubscription` | `true` | Expose `AggregateSubscriptions` — a single subscription combining all model events |
+| `globalSubscription` | `true` | Expose `Aggregate` (type `AggregateSubscriptions`) — a single subscription combining all the others |
 
 ## Auto-generated subscriptions
 
@@ -40,42 +40,29 @@ For each model (e.g. `Post`), the service generates:
 
 | Subscription | Description |
 |-------------|-------------|
-| `PostEvents` | All events for all Post instances |
-| `PostEvent(slug: String)` | Events for a specific Post by primary key |
+| `Post(slug: String)` | The Post, sent again when it changes |
+| `Posts(query: String)` | The results of a WQL query, refreshed when Posts change |
+| `PostsEvents` | Events for all Post instances |
+| `PostEvents(slug: String)` | Events for a specific Post by primary key |
 
 And with `globalSubscription: true`:
 
 | Subscription | Description |
 |-------------|-------------|
-| `AggregateSubscriptions` | Combined stream of all model events across all models |
+| `Aggregate` | Combined stream of the other subscriptions, selected as its fields |
 
 ## Event types
 
-Each model subscription emits a union of model lifecycle events:
-
-```graphql
-type PostSubscriptionPayload {
-  Create      { object_id: String, object: Post }
-  Created     { object_id: String, object: Post }
-  Update      { object_id: String, object: Post, previous: Post }
-  Updated     { object_id: String, object: Post, previous: Post }
-  Delete      { object_id: String }
-  Deleted     { object_id: String }
-  Patch       { object_id: String, object: Post, previous: Post }
-  Patched     { object_id: String, object: Post, previous: Post }
-  Query       { query: String }
-  Queried     { query: String, results: [Post] }
-}
-```
+An events subscription has one field per event of the model (its `WEBDA_EVENTS`: `Created`, `Updated`, `Patched`, `Deleted`, …), plus `latestEventTime: Long`. Each event field is the `Object` JSON scalar carrying the event payload (`{ object_id, object }` for `Created`, `{ object_id }` for `Deleted`, …), so it has no sub-selection.
 
 Select the events you want in your subscription query:
 
 ```graphql
 subscription {
-  PostEvents {
-    Created { object { slug title } }
-    Updated { object { slug title } }
-    Deleted { object_id }
+  PostsEvents {
+    Created
+    Updated
+    Deleted
   }
 }
 ```
@@ -84,8 +71,8 @@ subscription {
 
 ```graphql
 subscription {
-  PostEvent(slug: "hello-world") {
-    Updated { object { slug title status viewCount } }
+  Post(slug: "hello-world") {
+    slug title status viewCount
   }
 }
 ```
@@ -96,13 +83,9 @@ With `globalSubscription: true`, a single subscription delivers events from all 
 
 ```graphql
 subscription {
-  AggregateSubscriptions {
-    Post {
-      Created { object { slug title } }
-    }
-    User {
-      Created { object { uuid username } }
-    }
+  Aggregate {
+    PostsEvents { Created }
+    Users(query: "") { results { uuid username } }
   }
 }
 ```
@@ -148,10 +131,10 @@ const unsubscribe = client.subscribe(
   {
     query: `
       subscription {
-        PostEvents {
-          Created { object { slug title } }
-          Updated { object { slug title } }
-          Deleted { object_id }
+        PostsEvents {
+          Created
+          Updated
+          Deleted
         }
       }
     `
@@ -191,7 +174,7 @@ wscat --connect wss://localhost:18080/graphql --no-check \
 # {"type":"connection_init","payload":{}}
 
 # Subscribe:
-# {"id":"1","type":"subscribe","payload":{"query":"subscription { PostEvents { Created { object { slug } } } }"}}
+# {"id":"1","type":"subscribe","payload":{"query":"subscription { PostsEvents { Created } }"}}
 ```
 
 > **Note**: The verify command requires the blog-system server to be running. The `--no-check` flag bypasses self-signed TLS certificate validation in development. The server responds with `{"type":"connection_ack"}` on successful connection.

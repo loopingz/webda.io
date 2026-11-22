@@ -78,7 +78,7 @@ const edited = await openInEditor(withMarkers);
 const resolved = fromGitMarkers(edited, mergeResult);
 
 // CoreModel adapter (optional)
-import { CoreModelAdapter } from "@webda/versioning/adapters/coremodel";
+import { CoreModelAdapter } from "@webda/versioning/coremodel";
 
 const r = CoreModelAdapter.merge3(baseModel, oursModel, theirsModel);
 ```

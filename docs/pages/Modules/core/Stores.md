@@ -5,81 +5,60 @@ sidebar_label: Stores
 
 # Stores
 
-`Store<T>` is the abstract data access layer in `@webda/core`. It provides a unified CRUD + query interface backed by any storage technology (in-memory, MongoDB, PostgreSQL, DynamoDB, etc.). Stores emit typed events on every mutation.
+A `Store` is the service that owns a storage backend (in-memory, MongoDB, PostgreSQL, DynamoDB, etc.) and produces the `Repository` of each model it is configured with. Stores are internal (`@internal`): app code never references a Store, it goes through the model (`Model.ref/create/query`) or `useRepository(Model)`.
 
-## Store contract
+## Query result
 
-```typescript
-abstract class Store<T extends CoreModel> extends Service {
-  // CRUD
-  abstract get(uid: string): Promise<T | undefined>;
-  abstract save(object: T): Promise<T>;
-  abstract update(partial: Partial<T>, uid?: string): Promise<T>;
-  abstract delete(uid: string): Promise<void>;
-  abstract exists(uid: string): Promise<boolean>;
-
-  // Query
-  abstract find(query: WebdaQL.Query): Promise<StoreFindResult<T>>;
-  query(wql: string, options?: QueryOptions): Promise<StoreFindResult<T>>;
-
-  // Events
-  on(event: "Store.Created" | "Store.Updated" | "Store.Deleted" | ..., handler): this;
-  emit(event: string, payload: any): void;
-}
-```
-
-## `StoreFindResult`
+`Repository.query()` (and `Model.query()`) resolve to:
 
 ```typescript
-interface StoreFindResult<T> {
+{
   results: T[];
-  continuationToken?: string;  // for pagination
-  filter?: Expression;          // remaining in-memory filter (for backends that partially support WQL)
+  continuationToken?: string; // for pagination
 }
 ```
 
 ## WQL queries
 
-All stores accept [WebdaQL](../ql/Syntax.md) strings:
+All repositories accept [WebdaQL](../ql/Syntax.md) strings:
 
 ```typescript
-// Get the store for the Post model
-const store = useModelStore("WebdaSample/Post");
+import { useRepository } from "@webda/core";
+
+const posts = useRepository(Post);
 
 // Simple filter
-const { results } = await store.query(`status = 'published' LIMIT 10`);
+const { results } = await posts.query(`status = 'published' LIMIT 10`);
 
 // Filter + order + pagination
-const page1 = await store.query(
+const page1 = await posts.query(
   `status = 'published' ORDER BY createdAt DESC LIMIT 20`
 );
-const page2 = await store.query(
+const page2 = await posts.query(
   `status = 'published' ORDER BY createdAt DESC LIMIT 20 OFFSET "${page1.continuationToken}"`
 );
 ```
 
-## Store events
+## Repository events
 
-Stores emit events before and after each mutation:
+Repositories emit events before and after each mutation (`ModelEvents` in `@webda/models`):
 
 | Event | When |
 |-------|------|
-| `Store.Created` | After a new record is saved |
-| `Store.Updated` | After a full replace |
-| `Store.Deleted` | After a record is deleted |
-| `Store.Patched` | After a partial update |
-| `Store.Queried` | After a query completes |
+| `Created` | After a new record is saved |
+| `Updated` | After a full replace |
+| `Deleted` | After a record is deleted |
+| `Patched` | After a partial update |
+| `Queried` | After a query completes |
 
 Subscribe to events:
 
 ```typescript
-const postStore = useModelStore("WebdaSample/Post");
-
-postStore.on("Store.Created", ({ object }) => {
+useRepository(Post).on("Created", ({ object }) => {
   console.log("New post:", object.slug);
 });
 
-postStore.on("Store.Deleted", ({ object_id }) => {
+useRepository(Post).on("Deleted", ({ object_id }) => {
   console.log("Deleted:", object_id);
 });
 ```
@@ -95,7 +74,7 @@ Configuration:
   "services": {
     "postStore": {
       "type": "Webda/MemoryStore",
-      "model": "WebdaSample/Post"
+      "models": ["WebdaSample/Post"]
     }
   }
 }
@@ -108,34 +87,30 @@ Optional file persistence:
   "services": {
     "postStore": {
       "type": "Webda/MemoryStore",
-      "model": "WebdaSample/Post",
-      "folder": "./.webda/data"
+      "models": ["WebdaSample/Post"],
+      "persistence": {
+        "path": "./.webda/data/posts.json"
+      }
     }
   }
 }
 ```
 
-## Using a store in a service
+## Using a model in a service
 
 ```typescript
-import { Service, Inject, Store } from "@webda/core";
-import { Bean } from "@webda/core";
+import { Service, Bean } from "@webda/core";
 import { Post } from "../models/Post";
 
 @Bean
 export class PostService extends Service {
-  @Inject("postStore")
-  store: Store<Post>;
-
   async getPublished(): Promise<Post[]> {
-    const { results } = await this.store.query(`status = 'published' ORDER BY createdAt DESC LIMIT 20`);
+    const { results } = await Post.query(`status = 'published' ORDER BY createdAt DESC LIMIT 20`);
     return results;
   }
 
   async createPost(data: Partial<Post>): Promise<Post> {
-    const post = new Post();
-    post.load(data);
-    return this.store.save(post);
+    return Post.create(data);
   }
 }
 ```
@@ -169,7 +144,6 @@ await post.save();
 | `@webda/postgres` | `PostgresStore` | PostgreSQL (JSONB, on `@webda/sql`) |
 | `@webda/sqlite` | `SQLiteStore` | SQLite on `node:sqlite`, in memory or a file (on `@webda/sql`) |
 | `@webda/aws` | `DynamoStore` | Amazon DynamoDB |
-| `@webda/elasticsearch` | `ElasticSearchStore` | Elasticsearch |
 | `@webda/fs` | `FileStore` | Local filesystem |
 
 ## Verify
@@ -179,7 +153,7 @@ await post.save();
 cd sample-apps/blog-system
 # (server running)
 
-curl -sk https://localhost:18080/users | jq '.results | length'
+curl -sk -X PUT https://localhost:18080/users | jq '.results | length'
 ```
 
 Or run the in-memory store tests:
@@ -195,7 +169,7 @@ npx vitest run src/stores/memory.spec.ts
 
 ## See also
 
-- [WQL Syntax](../ql/Syntax.md) — the query language used with `store.query()`
+- [WQL Syntax](../ql/Syntax.md) — the query language used with `query()`
 - [WQL Translators](../ql/Translators.md) — how each backend translates WQL
-- [Events](./Events.md) — subscribing to `Store.Created`, `Store.Updated`, etc.
+- [Events](./Events.md) — subscribing to `Created`, `Updated`, etc.
 - [Models Lifecycle](../models/Lifecycle.md) — events emitted by the model layer

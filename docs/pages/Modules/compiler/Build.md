@@ -14,11 +14,11 @@ flowchart TD
     TS["TypeScript source\nsrc/**/*.ts"]
     TSC["@webda/content-mapper build\n(TypeScript 7.1 → ES modules)"]
     LIB["lib/**/*.js\n(compiled output)"]
-    Module["ModuleGenerator\n(analyze compiled program)"]
+    Module["@webda/content-mapper module\n(analyze the program)"]
     Models["Model schemas\n(input/output/stored)"]
     Services["Service schemas\n(parameters)"]
     Manifest["webda.module.json"]
-    ConfigSchema[".webda-config-schema.json"]
+    ConfigSchema[".webda/config.schema.json"]
     DepModules["node_modules/**/webda.module.json\n(dependency manifests)"]
 
     TS --> TSC
@@ -28,22 +28,22 @@ flowchart TD
     Module --> Services
     Models --> Manifest
     Services --> Manifest
-    DepModules --> Manifest
     Manifest --> ConfigSchema
+    DepModules --> ConfigSchema
 ```
 
 **Step-by-step:**
 
 1. **Incremental check** — computes a digest of the source tree; if nothing changed since the last build (and `webda.module.json` is intact), skips recompilation.
 2. **TypeScript compilation** — runs the `@webda/content-mapper` two-pass build on TypeScript 7.1 (`"module": "nodenext"`) to emit ES module JavaScript into `lib/`, generated accessors, behaviours and WebdaQL rewrites included.
-3. **Module analysis** — `ModuleGenerator` walks the compiled TypeScript program to discover:
+3. **Module analysis** — `@webda/content-mapper` walks the TypeScript 7.1 program (in the same worker as the emit) to discover:
    - Models (`Model`, `UuidModel`, or any subclass)
    - Services (beans, moddas)
    - Deployers
    - Operations (`@Operation()` methods)
-4. **Schema generation** — `@webda/content-mapper`'s `SchemaGenerator` produces JSON Schemas for each model (input, output, stored views) and each service's parameters.
-5. **Module merge** — walks `node_modules` for `webda.module.json` files from Webda dependencies and merges their `moddas`, `deployers`, and `schemas` sections into the local manifest.
-6. **Write outputs** — writes `webda.module.json` and `.webda-config-schema.json`.
+4. **Schema generation** — `@webda/content-mapper` produces JSON Schemas for each model (input, output, stored views) and each service's parameters.
+5. **Module merge** — for an application, walks `node_modules` for `webda.module.json` files from Webda dependencies and merges their `moddas`, `deployers`, and `schemas` sections in memory to generate the configuration schemas.
+6. **Write outputs** — writes `webda.module.json`, `.webda/config.schema.json` and `.webda/deployment.schema.json`.
 
 ## Usage
 
@@ -156,7 +156,7 @@ ls -la sample-apps/blog-system/webda.module.json
 
 ## See also
 
-- [Code Generation](./CodeGen.md) — `webdac code` for boilerplate method generation
+- [Code Generation](./CodeGen.md) — `webdac code` for source migration
 - [Module Manifest](./ModuleManifest.md) — the structure and purpose of `webda.module.json`
-- [Plugins](./Plugins.md) — extending the compiler with custom morpher modules
+- [Plugins](./Plugins.md) — code generated during `webdac build`
 - [@webda/content-mapper JSON Schema](../content-mapper/README.md) — schema generation details

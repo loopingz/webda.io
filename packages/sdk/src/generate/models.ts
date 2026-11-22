@@ -1,7 +1,7 @@
 import type { JSONSchema7 } from "json-schema";
 import type { SdkManifest, SdkManifestModel, SdkManifestOperation } from "../manifest.js";
 import { docComment, propertyKey, quote } from "./naming.js";
-import { actionBodyType, outputType, type GeneratorNames } from "./operations.js";
+import { actionBodyRequired, actionBodyType, outputType, type GeneratorNames } from "./operations.js";
 
 /**
  * Return the PascalCase action name of the operation id
@@ -118,7 +118,10 @@ function clientMethods(manifest: SdkManifest, model: SdkManifestModel, names: Ge
       [op.summary, op.description].filter(Boolean).join("\n") || `${capitalize(op.action.name)} action`,
       "  "
     );
-    const input = body ? `input: ${body}` : "input: Record<string, unknown> = {}";
+    // Without a required field the body defaults to `{}`: `api.Task.complete(uuid)`
+    const input = body
+      ? `input: ${body}${actionBodyRequired(manifest, op) ? "" : " = {}"}`
+      : "input: Record<string, unknown> = {}";
     if (op.action.global) {
       methods.push(
         `${doc}  ${name}(${input}, options?: CallOptions): Promise<${output}> {\n    return this.action<${output}>(${quote(op.action.name)}, undefined, input, options);\n  }`

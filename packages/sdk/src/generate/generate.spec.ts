@@ -37,6 +37,12 @@ async function run(client: SubSubProjectClient) {
   const created = await api.Company.create({ name: "Acme" });
   await api.SubSubProject.action("p1", { param: "x" }, { parents: [created.uuid] });
   await client.action("p1", { param: "x" });
+  // Actions without required parameters need no body
+  await api.Hardware.globalAction();
+  await api.Classroom.test("c1");
+  // @ts-expect-error missing required body
+  await api.Classroom.rename("c1");
+  await api.Classroom.rename("c1", { name: "n" });
   const page = await api.Company.query("name = 'a' LIMIT 1");
   const typed: Types.Company["name"] = company.name;
   void typed;
@@ -122,7 +128,13 @@ class GenerateSdkTest extends SampleAppTest {
       files["models.ts"],
       /action2\(pk: PrimaryKeyInput, input: T\.SubSubProjectAction2Input, options\?: CallOptions\)/
     );
-    assert.match(files["models.ts"], /globalAction\(input: T\.HardwareGlobalActionInput, options\?: CallOptions\)/);
+    // An action without required parameters defaults its body to `{}`
+    assert.match(
+      files["models.ts"],
+      /globalAction\(input: T\.HardwareGlobalActionInput = \{\}, options\?: CallOptions\)/
+    );
+    assert.match(files["models.ts"], /test\(pk: PrimaryKeyInput, input: T\.ClassroomTestInput = \{\}, options/);
+    assert.match(files["models.ts"], /rename\(pk: PrimaryKeyInput, input: T\.ClassroomRenameInput, options/);
     assert.match(files["models.ts"], /readonly images = \{/);
     assert.match(files["models.ts"], /readonly password = \{/);
     // Index

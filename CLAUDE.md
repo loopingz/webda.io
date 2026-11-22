@@ -273,7 +273,7 @@ class MyServiceTest extends WebdaApplicationTest {
 - **Target**: ES2022
 - **Module**: ESNext with `"type": "module"` in package.json
 - **Decorators**: Use modern decorators (`experimentalDecorators: false`)
-- **Strict Mode**: Enabled at file level with `"use strict"`
+- **Strict Mode**: Implicit in ES modules — do not add `"use strict"` (ESLint `strict` reports it as unnecessary)
 - **Output**: `lib/` directory
 - **Source Maps**: Enabled
 
@@ -283,7 +283,7 @@ class MyServiceTest extends WebdaApplicationTest {
 - **Methods/Variables**: camelCase (e.g., `getUserById`, `taskList`)
 - **Constants**: UPPER_SNAKE_CASE (e.g., `MAX_RETRIES`)
 - **Interfaces**: PascalCase with descriptive names (e.g., `ServiceParameters`)
-- **Files**: Match class names (e.g., `my-service.ts` for `MyService`)
+- **Files**: Models live in `*.model.ts`, services, beans and deployers in `*.service.ts`, flows in `*.flow.ts` — the content mapper only processes those files and reports a naming violation otherwise (e.g. `task.model.ts`, `my.service.ts`)
 
 ### Code Style Rules
 
@@ -293,8 +293,7 @@ const myFunc = function myFunc() {  // ✅ Named
   // ...
 };
 
-// 2. Use strict mode at file level
-"use strict";  // At top of file
+// 2. No "use strict": ES modules are strict already, and ESLint rejects the directive
 
 // 3. Prefer ESM imports
 import { Service } from "@webda/core";  // ✅
@@ -339,7 +338,7 @@ import { myService } from "./my-service";  // ❌ Don't import service instances
 - `no-explicit-any`: OFF (TypeScript any is allowed)
 - `no-unused-vars`: OFF (handled by unused-imports plugin)
 - `func-names`: ERROR (must name functions)
-- `strict`: ERROR (global strict mode required)
+- `strict`: ERROR (flags a redundant `"use strict"` in ES modules)
 
 ## Service Development
 

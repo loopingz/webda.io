@@ -37,6 +37,10 @@ class BlogSystemAppTest extends WebdaApplicationTest {
     app.getCurrentConfiguration().services.Registry = {
       type: "Webda/MemoryStore"
     };
+    // The model stores of the config persist to ./data: keep the test in memory
+    for (const name of ["PostStore", "TagStore", "PostTagStore", "UserFollowStore"]) {
+      delete app.getCurrentConfiguration().services[name].persistence;
+    }
     // Add DomainService for operation registration and RESTOperationsTransport for route registration
     app.getCurrentConfiguration().services.DomainService = {
       type: "Webda/DomainService"
@@ -303,6 +307,10 @@ class BlogSystemHTTPTest extends WebdaApplicationTest {
     app.getCurrentConfiguration().services.Registry = {
       type: "Webda/MemoryStore"
     };
+    // The model stores of the config persist to ./data: keep the test in memory
+    for (const name of ["PostStore", "TagStore", "PostTagStore", "UserFollowStore"]) {
+      delete app.getCurrentConfiguration().services[name].persistence;
+    }
     app.getCurrentConfiguration().services.DomainService = {
       type: "Webda/DomainService"
     };

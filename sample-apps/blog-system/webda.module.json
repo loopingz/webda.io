@@ -24,8 +24,12 @@
               "Images",
               "MCP",
               "Mailer",
+              "PostStore",
+              "PostTagStore",
               "Publisher",
               "RESTService",
+              "TagStore",
+              "UserFollowStore",
               "WebUI",
               "TestBean"
             ],

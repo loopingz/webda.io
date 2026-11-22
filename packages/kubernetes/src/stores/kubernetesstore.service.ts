@@ -159,6 +159,16 @@ export class KubernetesStore<K extends KubernetesStoreParameters = KubernetesSto
   }
 
   /**
+   * Each root model has its own custom resources: the keyspace is the root model
+   * @param model - the model
+   * @returns the identifier of the root model
+   * @override
+   */
+  getKeyspace(model: ModelClass): string {
+    return useModelId(this.getRootModel(model))!;
+  }
+
+  /**
    * Model whose resources hold the objects of a model: itself when listed in `models`, else its listed ancestor
    * @param model - the model
    * @returns the root model

@@ -12,7 +12,7 @@ import { UuidModel, registerRepository, useRepository } from "@webda/models";
 import { checkAggregation, checkCount } from "../test/index.js";
 import { useCore } from "../core/hooks.js";
 import { queryModelWithPermissions } from "../models/permissions.js";
-import { useApplication, useParameters } from "../application/hooks.js";
+import { useApplication, useModelId, useParameters } from "../application/hooks.js";
 import { MemoryLogger, useWorkerOutput } from "@webda/workout";
 import { Counter, useMetric } from "../metrics/metrics.js";
 
@@ -857,6 +857,76 @@ class StoreFieldsMigrationTest extends WebdaApplicationTest {
       assert.deepStrictEqual((store as any)._modelsHierarchy, {});
     } finally {
       for (const id of ["BareSub", "LeafSub", "NullSub", "HierarchyParent"]) delete models[`WebdaTest/${id}`];
+      Store.computeStores();
+    }
+  }
+
+  @test
+  async warnsWhenUnrelatedNaturalKeysShareAKeyspace() {
+    const models = useApplication().getModels() as any;
+    class Article extends UuidModel {
+      static Metadata: any = { Identifier: "WebdaTest/KeyArticle", PrimaryKey: ["slug"], Ancestors: [] };
+    }
+    class Label extends UuidModel {
+      static Metadata: any = { Identifier: "WebdaTest/KeyLabel", PrimaryKey: ["slug"], Ancestors: [] };
+    }
+    class Featured extends UuidModel {
+      static Metadata: any = {
+        Identifier: "WebdaTest/KeyFeatured",
+        PrimaryKey: ["slug"],
+        Ancestors: ["WebdaTest/KeyArticle"]
+      };
+    }
+    models["WebdaTest/KeyArticle"] = Article;
+    models["WebdaTest/KeyLabel"] = Label;
+    models["WebdaTest/KeyFeatured"] = Featured;
+    const collisionWarnings = () => {
+      const logger = new MemoryLogger(useWorkerOutput());
+      try {
+        Store.computeStores();
+      } finally {
+        logger.close();
+      }
+      return logger
+        .getLogs()
+        .map(l => l.log)
+        .filter(l => l?.level === "WARN")
+        .map(l => (l?.args ?? []).join(" "))
+        .filter(w => w.includes("natural primary"));
+    };
+    try {
+      // No store claims them: all three fall back to the Registry, whose storage is one keyspace
+      const warnings = collisionWarnings();
+      assert.strictEqual(warnings.length, 1);
+      assert.match(warnings[0], /^Store Registry: .* share the keyspace "Registry" with natural primary keys/);
+      // Unrelated models are reported; a subclass shares its parent's keys on purpose
+      assert.ok(warnings[0].includes("WebdaTest/KeyArticle, ") && warnings[0].includes("WebdaTest/KeyLabel"));
+      assert.ok(!warnings[0].includes("WebdaTest/KeyFeatured"));
+      // Framework models key on values nobody picks and are not reported
+      assert.ok(!warnings[0].includes("Webda/"));
+      // computeStores runs on every store init: the warning is only logged once
+      assert.deepStrictEqual(collisionWarnings(), []);
+
+      // A store giving each model its own keyspace has nothing to report
+      const store = new MemoryStore("split", { models: ["WebdaTest/KeyArticle", "WebdaTest/KeyLabel"] });
+      store.resolve();
+      assert.strictEqual(store.checkKeys().length, 1);
+      store.getKeyspace = model => useModelId(model)!;
+      assert.deepStrictEqual(store.checkKeys(), []);
+
+      // Models without a key list are skipped; missing ancestors read as none
+      class NoKey extends UuidModel {
+        static Metadata: any = { Identifier: "WebdaTest/KeyNone" };
+      }
+      class NoAncestors extends UuidModel {
+        static Metadata: any = { Identifier: "WebdaTest/KeyBare", PrimaryKey: ["slug"] };
+      }
+      const shared = new MemoryStore("shared", {});
+      assert.deepStrictEqual(shared.checkKeys([NoKey, NoAncestors, Article] as any), [
+        { keyspace: "shared", models: ["WebdaTest/KeyArticle", "WebdaTest/KeyBare"] }
+      ]);
+    } finally {
+      for (const id of ["KeyArticle", "KeyLabel", "KeyFeatured"]) delete models[`WebdaTest/${id}`];
       Store.computeStores();
     }
   }

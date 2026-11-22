@@ -54,6 +54,7 @@ export type {
   TypeResolutionStatus
 } from "@webda/models";
 export * from "./stores/store.js";
+export * from "./stores/keyspace-check.js";
 export * from "./stores/migration.js";
 export * from "./stores/migrationstore.service.js";
 export * from "./stores/capability.js";

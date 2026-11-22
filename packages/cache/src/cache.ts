@@ -1,6 +1,5 @@
 /* c8 ignore next */
 import { createMethodDecorator, getMetadata } from "@webda/decorators";
-import type { MethodDecorator } from "@webda/decorators";
 import { createHash } from "node:crypto";
 
 /**
@@ -107,7 +106,7 @@ export interface CacheOptions {
  * Keys are method-level cache keys produced by `methodKeyGenerator`.
  * Supports LRU eviction when maxSize is configured.
  */
-export class CacheStorage extends Map<string, { value: any; timestamp: number }> {
+export class CacheStorage extends Map<string, { value: any; timestamp: number; ttl?: number }> {
   /**
    * Stats
    */
@@ -130,12 +129,13 @@ export class CacheStorage extends Map<string, { value: any; timestamp: number }>
   hasCachedMethod(key: string) {
     const exists = this.has(key);
 
-    // Implement TTL check if needed
-    if (this.options?.ttl && exists) {
-      const cached = this.get(key);
-      if (cached && Date.now() - cached.timestamp > this.options.ttl) {
+    // Implement TTL check if needed: the entry's own ttl wins over the storage one
+    if (exists) {
+      const cached = this.get(key)!;
+      const ttl = cached.ttl ?? this.options?.ttl;
+      if (ttl && Date.now() - cached.timestamp > ttl) {
         this.delete(key);
-        if (this.options.enableStats) {
+        if (this.options?.enableStats) {
           this.stats.evictions++;
         }
         return false;
@@ -154,8 +154,9 @@ export class CacheStorage extends Map<string, { value: any; timestamp: number }>
    * @param key - the method cache key
    * @param _args - original method arguments (reserved)
    * @param value - the value to cache
+   * @param ttl - time-to-live of this entry, overriding the storage `ttl`
    */
-  setCachedMethod(key: string, _args: any[], value: any) {
+  setCachedMethod(key: string, _args: any[], value: any, ttl?: number) {
     // LRU: if key exists, delete it so we can re-add it at the end (most recent)
     if (this.has(key)) {
       this.delete(key);
@@ -173,7 +174,7 @@ export class CacheStorage extends Map<string, { value: any; timestamp: number }>
       }
     }
 
-    this.set(key, { value, timestamp: Date.now() });
+    this.set(key, { value, timestamp: Date.now(), ttl });
     if (this.options?.enableStats) {
       this.stats.sets++;
     }
@@ -213,18 +214,16 @@ export class CacheStorage extends Map<string, { value: any; timestamp: number }>
    * Remove all expired entries based on TTL.
    */
   garbageCollect() {
-    if (this.options?.ttl) {
-      const now = Date.now();
-      let evicted = 0;
-      for (const [key, { timestamp }] of this.entries()) {
-        if (now - timestamp > this.options.ttl) {
-          this.delete(key);
-          evicted++;
-        }
+    const now = Date.now();
+    let evicted = 0;
+    for (const [key, { timestamp, ttl = this.options?.ttl }] of this.entries()) {
+      if (ttl && now - timestamp > ttl) {
+        this.delete(key);
+        evicted++;
       }
-      if (this.options.enableStats && evicted > 0) {
-        this.stats.evictions += evicted;
-      }
+    }
+    if (this.options?.enableStats && evicted > 0) {
+      this.stats.evictions += evicted;
     }
   }
 
@@ -309,14 +308,15 @@ export class CacheMap<T extends object = object> extends Map<T, CacheStorage> {
    * @param key - the method cache key
    * @param _args - original method arguments (reserved)
    * @param value - the value to cache
+   * @param ttl - time-to-live of this entry, overriding the storage `ttl`
    */
-  setCachedMethod(target: T, key: string, _args: any[], value: any) {
+  setCachedMethod(target: T, key: string, _args: any[], value: any, ttl?: number) {
     if (!this.has(target)) {
       this.set(target, new (this.options?.cacheStorage ?? CacheStorage)(this.options));
     }
     const cache = this.get(target)!;
     const isNewEntry = !cache.has(key);
-    cache.setCachedMethod(key, _args, value);
+    cache.setCachedMethod(key, _args, value, ttl);
     // Track miss only for new entries (not updates)
     if (this.options?.enableStats && isNewEntry) {
       cache.stats.misses++;
@@ -507,6 +507,53 @@ export function registerCacheLogger(logger: (...args: any[]) => void) {
 }
 
 /**
+ * Method that a cache annotation decorates.
+ */
+export type CacheableMethod = (...args: any[]) => any;
+
+/**
+ * Method decorator returned by `createCacheAnnotation`, with its cache utilities.
+ *
+ * Declared here so that an exported annotation is typed `CacheAnnotation`
+ * without a reference to `@webda/decorators`.
+ */
+export interface CacheAnnotation {
+  /**
+   * Decorate a method with the annotation options
+   */
+  (value: CacheableMethod, context: ClassMethodDecoratorContext<any, any>): CacheableMethod | void;
+  /**
+   * Decorate a method with per-method options
+   *
+   * `ttl`, `shouldCache`, `methodKeyGenerator` and `classKeyGenerator` apply to the decorated method;
+   * the other options belong to the storage and are taken from the annotation options.
+   */
+  (
+    options?: CacheOptions
+  ): (value: CacheableMethod, context: ClassMethodDecoratorContext<any, any>) => CacheableMethod | void;
+  /**
+   * Clear a specific cached entry for a target method and arguments
+   */
+  clear: (target: object, propertyKey: string, ...args: any[]) => void;
+  /**
+   * Clear all cached entries for a target, or only those of one method
+   */
+  clearAll: (target: object, propertyKey?: string) => void;
+  /**
+   * Run garbage collection on the underlying `CacheMap`
+   */
+  garbageCollect: () => void;
+  /**
+   * Get aggregated cache statistics
+   */
+  getStats: () => CacheStats;
+  /**
+   * Reset cache statistics
+   */
+  resetStats: () => void;
+}
+
+/**
  * Create a cache annotation (method decorator) bound to a given source provider.
  *
  * The returned decorator caches method results based on keys generated by
@@ -519,7 +566,10 @@ export function registerCacheLogger(logger: (...args: any[]) => void) {
  * @param options - cache configuration options
  * @returns the cache method decorator with utility methods
  */
-export function createCacheAnnotation(source: (target: object | null) => object | null, options: CacheOptions = {}) {
+export function createCacheAnnotation(
+  source: (target: object | null) => object | null,
+  options: CacheOptions = {}
+): CacheAnnotation {
   options.methodKeyGenerator ??= (property: string, args: any[]) => {
     if (options.hashStrategy === "simple") {
       const key = argumentsSimpleKey(args);
@@ -533,14 +583,7 @@ export function createCacheAnnotation(source: (target: object | null) => object 
   const globalOptions = options;
 
   const annotation = createMethodDecorator(
-    (
-      value: any,
-      context: ClassMethodDecoratorContext,
-      decoratorOptions?: {
-        methodKeyGenerator?: CacheOptions["methodKeyGenerator"];
-        classKeyGenerator?: CacheOptions["classKeyGenerator"];
-      }
-    ) => {
+    (value: any, context: ClassMethodDecoratorContext, decoratorOptions?: CacheOptions) => {
       const options: CacheOptions = { ...globalOptions, ...decoratorOptions };
       if (options.methodKeyGenerator && context.metadata) {
         (context.metadata as any)["webda.cache.methodKeyGenerator"] ??= {};
@@ -555,7 +598,7 @@ export function createCacheAnnotation(source: (target: object | null) => object 
 
       // eslint-disable-next-line func-names -- required to keep 'this' context
       return function (this: any, ...args: any[]) {
-        const cache = getSource(source, options, this);
+        const cache = getSource(source, globalOptions, this);
         const key = options.methodKeyGenerator!(value.name, args);
         const instanceKey = options.classKeyGenerator!(this);
 
@@ -570,7 +613,7 @@ export function createCacheAnnotation(source: (target: object | null) => object 
           // For async methods, cache the Promise itself to handle concurrent calls
           // but replace it with the resolved value once it resolves
           if (key && instanceKey && cache) {
-            cache.setCachedMethod(instanceKey, key, args, res);
+            cache.setCachedMethod(instanceKey, key, args, res, options.ttl);
           }
 
           return res
@@ -578,7 +621,7 @@ export function createCacheAnnotation(source: (target: object | null) => object 
               if (key && instanceKey && cache) {
                 if (!options.shouldCache || options.shouldCache(resolvedValue)) {
                   // Replace Promise with resolved value
-                  cache.setCachedMethod(instanceKey, key, args, resolvedValue);
+                  cache.setCachedMethod(instanceKey, key, args, resolvedValue, options.ttl);
                 } else {
                   // shouldCache returned false: remove the pending Promise entry
                   if (cache.has(instanceKey)) {
@@ -600,7 +643,7 @@ export function createCacheAnnotation(source: (target: object | null) => object 
         // Sync method
         if (key && instanceKey && cache) {
           if (!options.shouldCache || options.shouldCache(res)) {
-            cache.setCachedMethod(instanceKey, key, args, res);
+            cache.setCachedMethod(instanceKey, key, args, res, options.ttl);
           }
           // shouldCache returning false is intentional — no warning needed
         } else {
@@ -609,13 +652,7 @@ export function createCacheAnnotation(source: (target: object | null) => object 
         return res;
       };
     }
-  ) as MethodDecorator & {
-    clear: (target: object, propertyKey: string, ...args: any[]) => void;
-    clearAll: (target: object, propertyKey?: string) => void;
-    garbageCollect: () => void;
-    getStats: () => CacheStats;
-    resetStats: () => void;
-  };
+  ) as CacheAnnotation;
 
   /**
    * Clear a specific cached entry for a target method and arguments.

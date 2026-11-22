@@ -12,6 +12,8 @@ const docsBaseUrl = process.env.DOCS_BASE_URL || "/";
 const docsLane = docsBaseUrl === "/" ? "latest" : docsBaseUrl.replaceAll("/", "");
 /** @type {{label: string, path: string}[]} */
 const versions = require("./static/versions.json");
+// Managed `<!-- webda-video:<deck> -->` blocks: thumbnail links on GitHub/npm, embeds on the site
+const remarkVideoEmbeds = require("./src/plugins/video-embeds");
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
@@ -53,7 +55,8 @@ const config = {
         id: "contribute",
         path: "contribute",
         routeBasePath: "contribute",
-        sidebarPath: "./sidebarsContribute.js"
+        sidebarPath: "./sidebarsContribute.js",
+        remarkPlugins: [remarkVideoEmbeds]
         // ... other options
       }
     ],
@@ -63,7 +66,8 @@ const config = {
         id: "typedoc",
         path: "typedoc",
         routeBasePath: "typedoc",
-        sidebarPath: "./sidebarsTypedoc.js"
+        sidebarPath: "./sidebarsTypedoc.js",
+        remarkPlugins: [remarkVideoEmbeds]
         // ... other options
       }
     ],
@@ -82,6 +86,7 @@ const config = {
         docs: {
           sidebarPath: require.resolve("./sidebars.js"),
           path: "./pages",
+          remarkPlugins: [remarkVideoEmbeds],
           editUrl: "https://github.com/loopingz/webda.io/tree/docs/"
         },
         blog: {

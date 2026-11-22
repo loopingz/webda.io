@@ -45,6 +45,7 @@ import { MfaRequired, MfaStepUpRequired } from "../errors/mfa.js";
 import { scopeAuthorizer } from "../services/scopeauthorizer.js";
 import { runAsSystem, runWithContext, useContext } from "../contexts/execution.js";
 import { useSystem } from "../contexts/globaloperationcontext.js";
+import { InstanceCache } from "../cache/cache.js";
 
 /**
  * Fake operation context that allows setting custom input
@@ -98,6 +99,14 @@ class OperationTestService extends Service {
   async writeAndReturn(ctx: OperationContext) {
     ctx.write("written");
     return "returned";
+  }
+
+  computed: number = 0;
+
+  @InstanceCache()
+  async cachedVersion(...args: any[]) {
+    this.computed++;
+    return `computed with ${args.length} arguments`;
   }
 }
 
@@ -390,6 +399,26 @@ class RegisterOperationTest extends WebdaApplicationTest {
     const received: any[] = [];
     for await (const item of stream) received.push(item);
     assert.deepStrictEqual(received, [1, { anything: true }]);
+  }
+
+  @test
+  async operationWithoutParametersIsCalledWithoutArguments() {
+    useApplication<Application>().getSchemas()["Test.NoParameters"] = { type: "object", properties: {} } as any;
+    registerOperation("OpService.CachedVersion", {
+      service: "OpService",
+      method: "cachedVersion",
+      input: "Test.NoParameters",
+      output: "void"
+    });
+    const service = this.getService<OperationTestService>("OpService");
+    for (let i = 0; i < 2; i++) {
+      const ctx = new FakeOpContext();
+      await ctx.init();
+      await callOperation(ctx, "OpService.CachedVersion");
+      assert.strictEqual(ctx.getOutput(), "computed with 0 arguments");
+    }
+    // The context is not an argument: the second call hits the cache
+    assert.strictEqual(service.computed, 1);
   }
 
   @test

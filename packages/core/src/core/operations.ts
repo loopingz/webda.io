@@ -865,6 +865,18 @@ export async function resolveArguments(context: OperationContext, operation: Ope
 }
 
 /**
+ * Whether the operation input schema describes the method parameters, even when it lists none
+ * @param operation - the operation definition
+ * @returns true when the input schema has `properties`
+ */
+function describesParameters(operation: OperationDefinition): boolean {
+  if (!operation.input || operation.input === "void") {
+    return false;
+  }
+  return (useApplication().getSchema(operation.input) as any)?.properties !== undefined;
+}
+
+/**
  * Longest pattern accepted by pattern matching
  */
 const MAX_PATTERN_LENGTH = 1024;
@@ -1146,10 +1158,10 @@ async function executeOperation(
     // Resolve arguments from context using the operation's input schema
     const args = await resolveArguments(context, operations[operationId]);
 
-    // When resolveArguments returns no typed arguments (no input schema),
-    // fall back to passing the context for backward compatibility with
-    // methods that still use the context-based calling convention.
-    callArgs = args.length > 0 ? args : [context];
+    // Without an input schema describing the parameters, pass the context for backward compatibility with
+    // methods that still use the context-based calling convention. A method whose schema lists no parameter is
+    // called without arguments, so a cache keyed on its arguments can hit
+    callArgs = args.length > 0 || describesParameters(operations[operationId]) ? args : [context];
 
     const opDef = operations[operationId];
     const dryRunMode = opDef.dryRun ?? (isReadOnlyOperation(operationId, opDef) ? "execute" : "skip");

@@ -3,6 +3,7 @@ export * from "./cli-bin.js";
 export * from "./compiler.js";
 export * from "./configuration.js";
 export * from "./definition.js";
+export * from "./linter.js";
 export * from "./operations.js";
 
 // Refuse a second copy of the package, see registerWebdaPackage

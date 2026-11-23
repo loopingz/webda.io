@@ -8,81 +8,12 @@ import { useWorkerOutput, Fork, InteractiveConsoleLogger } from "@webda/workout"
 import { FileUtils, listConfiguredServiceTypes } from "@webda/utils";
 import { resolve, join } from "path";
 import { runWithCurrentDirectory } from "@webda/utils";
-import { existsSync, mkdirSync, readdirSync, lstatSync, realpathSync, writeFileSync } from "node:fs";
-import { bold, italic, yellow } from "yoctocolors";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { bold, italic, red, yellow } from "yoctocolors";
 import { WebdaMorpher } from "./morpher/morpher.js";
 import { shouldDispatchBuildHooks, spawnWebdaBuild, WEBDA_BUILD_DISPATCH_ENV } from "./shell-build-dispatch.js";
 import { writeCliBinForBuild } from "./cli-bin.js";
-
-/**
- * Scan a single node_modules directory for webda.module.json files
- * @param dir - the node_modules directory path
- * @param mod - the module object to merge into
- * @param seen - set of already-visited directories
- */
-function scanNodeModules(dir: string, mod: any, seen: Set<string>) {
-  if (!existsSync(dir)) return;
-  const scan = (current: string, depth: number = 0) => {
-    for (const entry of readdirSync(current, { withFileTypes: true })) {
-      if (entry.name.startsWith(".")) continue;
-      const full = join(current, entry.name);
-      if (entry.name.startsWith("@") && depth === 0) {
-        scan(full, depth + 1);
-        continue;
-      }
-      let target = full;
-      if (entry.isSymbolicLink()) {
-        try {
-          target = realpathSync(full);
-          if (!lstatSync(target).isDirectory()) continue;
-        } catch {
-          continue;
-        }
-      } else if (!entry.isDirectory()) {
-        continue;
-      }
-      if (seen.has(target)) continue;
-      seen.add(target);
-      const modFile = join(target, "webda.module.json");
-      if (!existsSync(modFile)) continue;
-      try {
-        const depMod = FileUtils.load(modFile, "json");
-        // Merge moddas, deployers, and schemas (beans are only from the app itself)
-        for (const section of ["moddas", "deployers", "schemas"] as const) {
-          if (depMod[section]) {
-            mod[section] = { ...mod[section], ...depMod[section] };
-          }
-        }
-        // Capabilities: project values override dependencies
-        if (depMod.capabilities) {
-          mod.capabilities = { ...depMod.capabilities, ...mod.capabilities };
-        }
-      } catch {
-        // Skip invalid modules
-      }
-    }
-  };
-  scan(dir);
-}
-
-/**
- * Scan node_modules for webda.module.json files and merge their
- * moddas, deployers, and schemas into the local module.
- * Walks up the directory tree to find hoisted packages (yarn workspaces).
- * @param projectPath - the project root path
- * @param mod - the module object to merge into
- */
-function mergeDependencyModules(projectPath: string, mod: any) {
-  const seen = new Set<string>();
-  let current = resolve(projectPath);
-  const root = resolve("/");
-  while (current !== root) {
-    scanNodeModules(join(current, "node_modules"), mod, seen);
-    const parent = resolve(join(current, ".."));
-    if (parent === current) break;
-    current = parent;
-  }
-}
+import { lintProject, mergeDependencyModules } from "./linter.js";
 
 /**
  * Arguments interface
@@ -139,6 +70,29 @@ function isCodeCommand(argv: Arguments): argv is CodeArguments {
   return argv._[0] === "code";
 }
 
+/**
+ * Lint arguments interface
+ */
+interface LintArguments extends Arguments {
+  /**
+   * Fail on warnings as well as errors
+   */
+  strict: boolean;
+  /**
+   * Output format
+   */
+  format: "text" | "json";
+}
+
+/**
+ * Type guard for the "lint" CLI command
+ * @param argv - the parsed CLI arguments
+ * @returns true if the command is "lint"
+ */
+function isLintCommand(argv: Arguments): argv is LintArguments {
+  return argv._[0] === "lint";
+}
+
 const argv: Arguments = yargs(process.argv.slice(2))
   .command("build", "Build an application", yargs => {
     yargs
@@ -161,6 +115,19 @@ const argv: Arguments = yargs(process.argv.slice(2))
       type: "array"
     });
   })
+  .command("lint", "Lint Webda project configuration, models, and operations", yargs => {
+    yargs
+      .option("strict", {
+        describe: "Treat warnings as errors",
+        type: "boolean",
+        default: false
+      })
+      .option("format", {
+        describe: "Output format (text or json)",
+        choices: ["text", "json"],
+        default: "text"
+      });
+  })
   .option("appPath", {
     describe: "Path to the application",
     type: "string",
@@ -176,7 +143,25 @@ const targetDir = resolve(appPath || ".");
 new InteractiveConsoleLogger(useWorkerOutput());
 Fork(
   async () => {
-    if (isCodeCommand(argv)) {
+    if (isLintCommand(argv)) {
+      const result = lintProject(targetDir);
+      if (argv.format === "json") {
+        process.stdout.write(JSON.stringify(result, undefined, 2) + "\n");
+      } else {
+        for (const issue of result.issues) {
+          const badge =
+            issue.severity === "error" ? red("error") : issue.severity === "warn" ? yellow("warn ") : italic("info ");
+          const loc = issue.file ? `${issue.file} ` : "";
+          process.stdout.write(`${badge} [${issue.rule}] ${loc}${issue.message}\n`);
+        }
+        process.stdout.write(
+          `\nSummary: ${result.errors} error(s), ${result.warnings} warning(s), ${result.infos} info(s)\n`
+        );
+      }
+      if (result.errors > 0 || (argv.strict && result.warnings > 0)) {
+        process.exit(1);
+      }
+    } else if (isCodeCommand(argv)) {
       const morpher = new WebdaMorpher({
         project: { tsConfigFilePath: join(targetDir, "tsconfig.json") },
         modules: argv.module?.map(String)

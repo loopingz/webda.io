@@ -120,8 +120,7 @@ function scanNodeModules(dir: string, mod: WebdaModule, seen: Set<string>): void
 export function mergeDependencyModules(projectPath: string, mod: WebdaModule): void {
   const seen = new Set<string>();
   let current = resolve(projectPath);
-  const root = resolve("/");
-  while (current !== root) {
+  while (true) {
     scanNodeModules(join(current, "node_modules"), mod, seen);
     const parent = resolve(join(current, ".."));
     if (parent === current) break;
@@ -136,12 +135,7 @@ export function mergeDependencyModules(projectPath: string, mod: WebdaModule): v
  * @param registry - map of known entries
  * @returns Matched full key or undefined
  */
-function resolveQualifiedName(
-  name: string,
-  namespace: string,
-  registry: Record<string, unknown> | undefined
-): string | undefined {
-  if (!registry) return undefined;
+function resolveQualifiedName(name: string, namespace: string, registry: Record<string, unknown>): string | undefined {
   if (name in registry) return name;
   if (!name.includes("/")) {
     const appKey = `${namespace}/${name}`;
@@ -260,7 +254,7 @@ export function lintModule(
       if (svc && Array.isArray(svc.models)) {
         for (const m of svc.models) {
           if (typeof m === "string") {
-            const resolved = resolveQualifiedName(m, namespace, mergedMod.models) || m;
+            const resolved = resolveQualifiedName(m, namespace, mergedMod.models || {}) || m;
             attachedModels.add(resolved);
           }
         }

@@ -1,5 +1,5 @@
 import type { Rule } from "eslint";
-import { findDecorator, getParameterTypeAnnotation } from "../utils.js";
+import { findDecorator, getDecoratorName, getParameterTypeAnnotation } from "../utils.js";
 
 /**
  * Rule: operation-typing
@@ -41,7 +41,7 @@ const rule: Rule.RuleModule = {
           return;
         }
         /* v8 ignore stop */
-        const params: any[] = fn.params || [];
+        const params: any[] = fn.params;
         for (const param of params) {
           const typeNode = getParameterTypeAnnotation(param);
           if (
@@ -49,7 +49,7 @@ const rule: Rule.RuleModule = {
             typeNode.typeName?.type === "Identifier" &&
             (typeNode.typeName.name === "OperationContext" || typeNode.typeName.name === "WebContext")
           ) {
-            const typeArgs = typeNode.typeArguments || typeNode.typeParameters;
+            const typeArgs = typeNode.typeArguments;
             if (typeNode.typeName.name === "OperationContext" && (!typeArgs || !typeArgs.params?.length)) {
               context.report({
                 node: typeNode,
@@ -61,9 +61,9 @@ const rule: Rule.RuleModule = {
         }
         // If no OperationContext parameter, check for explicit return type
         if (!fn.returnType) {
-          const decName = dec.expression?.callee?.name || dec.expression?.name || "Operation";
+          const decName = getDecoratorName(dec)!;
           context.report({
-            node: node.key || node,
+            node: node.key,
             messageId: "missingReturnType",
             data: { decorator: decName }
           });

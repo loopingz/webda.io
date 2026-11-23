@@ -267,9 +267,19 @@ describe("WebdaLinter", () => {
     it("covers module schema fallbacks and invalid dependency modules", () => {
       const dir = mkdtempSync(join(tmpdir(), "webda-lint-edge-"));
       try {
+        writeFileSync(join(dir, "package.json"), JSON.stringify({ name: "no-ns", version: "1.0.0" }));
+        writeFileSync(join(dir, "webda.module.json"), JSON.stringify({}));
         mkdirSync(join(dir, "node_modules", "empty-pkg"), { recursive: true });
+        mkdirSync(join(dir, "node_modules", "minimal-pkg"), { recursive: true });
+        writeFileSync(join(dir, "node_modules", "minimal-pkg", "webda.module.json"), JSON.stringify({}));
         mkdirSync(join(dir, "node_modules", "bad-pkg"), { recursive: true });
         writeFileSync(join(dir, "node_modules", "bad-pkg", "webda.module.json"), "{ not json");
+        writeFileSync(join(dir, "node_modules", "target.txt"), "hello");
+        try {
+          symlinkSync(join(dir, "node_modules", "target.txt"), join(dir, "node_modules", "file-link"));
+        } catch {
+          // Ignore on Windows without Developer Mode
+        }
         const mod: WebdaModule = {
           moddas: { "App/Svc": { label: "Svc", Schema: { type: "object" } } as any },
           beans: { "App/Bean": { label: "Bean" } as any },
@@ -278,7 +288,9 @@ describe("WebdaLinter", () => {
           schemas: { "App/Bean": { type: "object" } }
         };
         mergeDependencyModules(dir, mod);
-        expect(lintModule(mod, mod, { services: { s: { models: [123] } } })).toEqual([]);
+        expect(lintModule(mod, mod, { services: { s: { models: ["UnknownModel", 123] } } })).toEqual([]);
+        expect(lintConfiguration({} as WebdaModule, { services: { s: {} } })).toEqual([]);
+        expect(lintProject(dir).issues).toEqual([]);
       } finally {
         rmSync(dir, { recursive: true, force: true });
       }

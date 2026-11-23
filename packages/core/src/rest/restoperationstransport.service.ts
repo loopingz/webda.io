@@ -784,6 +784,14 @@ export class RESTOperationsTransport<
             }
           } else if (typeof input !== "object") {
             throw new WebdaError.BadRequest("Query body must be a JSON object");
+          } else {
+            // A misnamed field (e.g. `query`, the GraphQL and MCP name) would otherwise query everything
+            const unknown = Object.keys(input).filter(key => key !== "q" && key !== "count");
+            if (unknown.length > 0) {
+              throw new WebdaError.BadRequest(
+                `Unknown query body field ${unknown.join(", ")}: the WebdaQL query goes in "q"`
+              );
+            }
           }
           queryString = input?.q ?? "";
           count = input?.count;

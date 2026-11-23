@@ -51,6 +51,8 @@ curl -s -X PUT http://localhost:18080/posts -H "Content-Type: application/json" 
 ```
 
 - `{"q": ""}` returns everything the caller may read.
+- The body accepts only `q` and `count`: any other field (such as `query`, the GraphQL and MCP argument name) is
+  refused with 400 instead of being ignored.
 - When more results may follow, the response has a `continuationToken`. Send the same query with `OFFSET '<token>'` to get the next page: `"q": "status = 'published' ORDER BY title LIMIT 10 OFFSET 'eyJhbGciOi…'"`. The token is only accepted for the same query and the same caller.
 - The model's `getPermissionQuery` is added to the client query (page 03): anonymous callers only ever see published posts.
 - `"q": "SELECT title, status WHERE status = 'published'"` returns only those fields plus the primary key (`slug`), see [Field selection](../../Modules/ql/Statements.md#field-selection).

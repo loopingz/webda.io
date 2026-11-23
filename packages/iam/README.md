@@ -113,15 +113,10 @@ IAM is an operation authorizer: it governs **only** calls that go through `callO
 | gRPC (`@webda/grpc`)                                       | yes                                                                     |
 | MCP tools and resources (`@webda/mcp`)                     | yes (listings in probe mode, calls with their input)                    |
 | Async jobs (`@webda/async`)                                | at submission, as the caller; the job itself runs **anonymous** (below) |
-| GraphQL (`@webda/graphql`)                                 | **no**: model `canAct` only (IAM models are refused, below)             |
+| GraphQL (`@webda/graphql`)                                 | yes                                                                     |
 | Plain `@Route` / `addRoute` handlers, direct service calls | **no**                                                                  |
 
-- **GraphQL** resolves models through their `canAct`, not through operations, so IAM policies do not apply to your
-  models there. The IAM models themselves are safe: their `canAct` allows an action only inside an operation the
-  `IAMService` authorizer allowed (it records the allowed IAM operation on the context until that operation ends), so any path that bypasses the
-  operation authorizer, such as GraphQL CRUD, is refused for every caller. Excluding them from GraphQL is defense in
-  depth, not required: `"models": ["*", "!Webda/IAMPolicy", "!Webda/IAMPolicyAttachment"]` on the GraphQL service
-  (and any subclass you expose).
+- **GraphQL** enforces operation permissions on model CRUD (`enforceModelOperationPermission` / `callModelOperation`) and on `@Operation()` fields (`callOperation`), running every registered `OperationAuthorizer` including `IAMService`. An IAM deny on e.g. `Task.Delete` refuses `deleteTask` with `PERMISSION_DENIED`. You can still exclude IAM models from the GraphQL schema as defense in depth: `"models": ["*", "!Webda/IAMPolicy", "!Webda/IAMPolicyAttachment"]` on the GraphQL service (and any subclass you expose).
 - **Async jobs** execute through `callOperation` with a fresh context that carries no session: under IAM the job runs
   as `anonymous`. The submission is checked with the caller's identity; for the execution, either keep the job
   operations out of `scope`, or attach a policy allowing them to `anonymous` (which also opens them to anonymous

@@ -12,14 +12,16 @@ Every Webda service follows a strict lifecycle managed by `Core`. Understanding 
 ```mermaid
 stateDiagram-v2
     [*] --> initial : new Service(name, params)
-    initial --> loading : Core.loadServices()
-    loading --> resolving : resolve()
-    resolving --> initializing : init()
-    initializing --> ready : init() complete
-    ready --> stopping : Core.stop()
+    initial --> resolving : resolve()
+    resolving --> resolved : resolve() complete
+    resolved --> initializing : init()
+    initializing --> running : init() complete
+    running --> stopping : Core.stop()
     stopping --> stopped : stop() complete
     stopped --> [*]
 ```
+
+(`Core` itself transitions through `initial` → `resolving` → `resolved` → `initializing` → `ready` → `stopping` → `stopped`, plus `reinitializing` on config reload.)
 
 ## Lifecycle phases
 
@@ -40,9 +42,9 @@ export class MyService extends Service<MyServiceParameters> {
 
 ### 2. `resolve(): this`
 
-Called after all services are instantiated, before `init()`. **Synchronous** — `resolve()` returns `this`, not a Promise. Use it to:
-- Validate configuration
-- Read `@Inject` dependencies (already injected by the time `resolve()` runs)
+Called immediately when each service is instantiated on first use (dependencies first), before `init()`. **Synchronous** — `resolve()` returns `this`, not a Promise. Use it to:
+- Manually validate `this.parameters` (service parameters are not automatically validated against JSON Schema at startup; unknown keys are filtered, and you should check required values here)
+- Read `@Inject` dependencies (populated during the service's own `resolve()`, which resolves dependencies on demand)
 - Wire up cross-service references that don't require I/O
 
 If you need to do async work, defer it to `init()`.
@@ -86,7 +88,7 @@ The service is fully initialized. The application handles requests and the servi
 
 ### 5. `stop(): Promise<void>`
 
-Called during graceful shutdown (SIGINT, `Core.stop()`). Release resources in reverse order of acquisition:
+Called during graceful shutdown (SIGINT, `Core.stop()`). `Core.stop()` stops all services concurrently via `Promise.all(...)`. Inside a service, release its own resources before calling `await super.stop()`:
 
 ```typescript
 async stop(): Promise<void> {
@@ -168,27 +170,29 @@ sequenceDiagram
     participant ServiceB
 
     Launcher->>Core: new Core(application)
-    Core->>Core: loadServices()
-    Core->>ServiceA: new ServiceA("ServiceA", params)
-    Core->>ServiceB: new ServiceB("ServiceB", params)
-    Core->>ServiceA: resolve()
-    note right of ServiceA: @Inject populated, validate config
-    Core->>ServiceB: resolve()
+    Launcher->>Core: init()
+    Core->>Core: resolve()
+    Core->>ServiceA: new ServiceA() + resolve()
+    note right of ServiceA: @Inject dependencies resolved on demand
+    Core->>ServiceB: new ServiceB() + resolve()
+    note right of Core: initOrders: Stores first, then creation order
     Core->>ServiceA: init()
     note right of ServiceA: connect to DB, start timers
     Core->>ServiceB: init()
     Launcher->>Core: (running — handling requests)
     Launcher->>Core: stop()
-    Core->>ServiceA: stop()
-    note right of ServiceA: close connections
-    Core->>ServiceB: stop()
+    par Stop services in parallel
+        Core->>ServiceA: stop()
+    and
+        Core->>ServiceB: stop()
+    end
 ```
 
 ## Key rules
 
 1. **Always call `super.resolve()`** first in `resolve()` (synchronous).
 2. **Always call `await super.init()`** first in `init()`.
-3. **Call `await super.stop()` last** in `stop()` (reverse order).
+3. **Call `await super.stop()` last** in `stop()` after releasing the service's own resources (`Core.stop()` stops all services in parallel).
 4. **Never do async work in `resolve()`** — `resolve()` is sync. Defer async work to `init()`.
 5. **Never do async work in the constructor** — use `init()`.
 6. **Never access `@Inject` dependencies in the constructor** — they are not yet populated. Access them in `resolve()` or later.
@@ -208,4 +212,4 @@ pnpm test
 
 - [Architecture](./Architecture.md) — how `Core` orchestrates the lifecycle
 - [Services](./Services.md) — `Service` base class, `@Bean`, `@Inject`
-- [Events](./Events.md) — `Webda.Init` and other lifecycle events
+- [Events](./Events.md) — `Webda.Init.Services` and other lifecycle events

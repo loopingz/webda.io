@@ -19,7 +19,7 @@ flowchart TD
     subgraph L2["Core Runtime"]
         Core["Core\n(service lifecycle, DI graph)"]
         InstanceStorage["InstanceStorage\n(AsyncLocalStorage)"]
-        Events["Core Events\n(Webda.Init, Webda.Request, ...)"]
+        Events["Core Events\n(Webda.Init.Services, Webda.Request, ...)"]
     end
 
     subgraph L3["Services Layer"]
@@ -72,9 +72,9 @@ Responsible for **discovering modules** and **loading configuration** before any
 
 The central orchestrator.
 
-- **`Core`** — creates, resolves, and initializes all services. Tracks the lifecycle state machine: `initial → loading → resolving → resolved → initializing → ready → stopping → stopped` (plus `reinitializing`).
+- **`Core`** — creates, resolves, and initializes all services. Tracks the lifecycle state machine: `initial → resolving → resolved → initializing → ready → stopping → stopped` (plus `reinitializing`).
 - **`InstanceStorage`** — `AsyncLocalStorage`-based storage that holds the current `Core`, `Application`, `Router`, and request context. Powers the hooks pattern.
-- **Core Events** — `Webda.Init`, `Webda.Request`, `Webda.Result`, `Webda.404`, `Webda.OperationSuccess`, `Webda.Configuration.Applied`.
+- **Core Events** — `Webda.Init.Services`, `Webda.Request`, `Webda.Result`, `Webda.404`, `Webda.OperationSuccess`, `Webda.Configuration.Applied`.
 
 ### 3. Services Layer
 

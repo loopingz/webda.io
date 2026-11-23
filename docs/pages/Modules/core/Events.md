@@ -12,8 +12,8 @@ Webda has a two-tier event system: **Core lifecycle events** emitted by `Core` i
 ```typescript
 import { useCoreEvents } from "@webda/core";
 
-useCoreEvents("Webda.Init", () => {
-  console.log("Framework fully initialized");
+useCoreEvents("Webda.Init.Services", () => {
+  console.log("Framework services initialized");
 });
 
 useCoreEvents("Webda.Request", ({ context }) => {
@@ -29,7 +29,7 @@ Available Core events:
 
 | Event name | Payload | When |
 |-----------|---------|------|
-| `Webda.Init` | — | All services initialized |
+| `Webda.Init.Services` | `Record<string, Service>` | All services initialized |
 | `Webda.Request` | `{ context }` | Before each request handler |
 | `Webda.Result` | `{ context }` | After each request handler |
 | `Webda.404` | `{ context }` | No route matched |

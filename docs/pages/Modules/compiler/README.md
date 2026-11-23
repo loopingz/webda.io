@@ -40,7 +40,7 @@ What it does:
 3. Generates per-model JSON Schemas (input, output, stored)
 4. Writes `webda.module.json` at the project root
 5. Merges dependency modules from `node_modules`
-6. Writes `.webda-config-schema.json` and `.webda-deployment-schema.json`
+6. Writes `.webda/config.schema.json` and `.webda/deployment.schema.json`
 
 #### `webdac code`
 

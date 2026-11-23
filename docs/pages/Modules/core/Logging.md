@@ -105,7 +105,7 @@ class MyServiceTest extends WebdaApplicationTest {
 
 ## Do not use `console.log`
 
-Using `console.log` bypasses the logger services and the memory logger (breaking test failure log capture).
+Prefer `useLog` over `console.log`. Under the `webda` CLI, `console.log`, `console.info`, `console.warn`, `console.error`, `console.debug`, and `console.trace` are patched by default (unless `--no-console-patch` is passed) and routed to the logger at `INFO`/`WARN`/`ERROR`/`DEBUG`/`TRACE`. Outside the CLI — such as in `WebdaTest` or direct programmatic usage — `console.log` bypasses the logger services and the test memory logger (breaking test failure log capture).
 
 ## Verify
 

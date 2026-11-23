@@ -37,7 +37,7 @@ pnpm add @webda/runtime
 - `EchoService` — Serves a static result on a fixed route ([source](./src/services/echo.service.ts))
 - `InvitationService` — Token-based invitation/join-code system for model membership ([source](./src/services/invitationservice.service.ts))
 - `ProxyService` — HTTP reverse proxy that forwards requests matching a URL prefix to an upstream host ([source](./src/services/proxy.service.ts))
-- `VersionService` — Exposes a `/version` endpoint returning the application name and version ([source](./src/services/version.service.ts))
+- `VersionService` — Exposes a `/version` endpoint returning the application version as `text/plain` ([source](./src/services/version.service.ts))
 
 ### Utility models and services
 

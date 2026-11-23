@@ -34,7 +34,7 @@ pnpm add @webda/postgres
 {
   "services": {
     "postStore": {
-      "type": "PostgresStore",
+      "type": "Webda/PostgresStore",
       "models": ["MyApp/Post"],
       "postgresqlServer": {
         "host": "localhost",
@@ -54,7 +54,7 @@ Or rely on libpq environment variables (`PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSE
 {
   "services": {
     "postStore": {
-      "type": "PostgresStore",
+      "type": "Webda/PostgresStore",
       "models": ["MyApp/Post"],
       "autoCreateTable": true
     }
@@ -120,16 +120,16 @@ lifecycle, the compatibility rules and the limitations.
 ## Usage
 
 ```typescript
-import { CoreModel } from "@webda/core";
+import { UuidModel } from "@webda/models";
 
-export class Post extends CoreModel {
+export class Post extends UuidModel {
   title: string;
   content: string;
   publishedAt: Date;
 }
 
 // With PostgresStore configured, the standard Webda model API is backed by Postgres:
-const post = await Post.create({ title: "Hello Postgres" }); // INSERT INTO posts ...
+const post = await new Post().load({ title: "Hello Postgres" }).save(); // INSERT INTO posts ...
 
 const found = await Post.ref(post.uuid).get(); // SELECT ... WHERE uuid = ?
 const results = await Post.query("title CONTAINS 'Hello'"); // filtered query
@@ -152,7 +152,7 @@ when the operation succeeds, rolled back when it throws. An operation writing se
 {
   "services": {
     "postStore": {
-      "type": "PostgresStore",
+      "type": "Webda/PostgresStore",
       "usePool": true,
       "transaction": "operation",
       "transactionIsolation": "READ COMMITTED"

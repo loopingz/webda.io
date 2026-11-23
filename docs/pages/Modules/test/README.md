@@ -10,7 +10,7 @@ sidebar_label: "@webda/test"
 ## When to use it
 
 - You are writing unit or integration tests for Webda services and models and want a class-based, decorator-driven test structure.
-- You want automatic log capture: when a test fails the full log for that test run is written to `reports/<suite>/<test>.log` for debugging.
+- You want automatic log capture: when a test fails the full log for that test run is written to `.webda/tests/<suite>/<test>.log` for debugging.
 - You need async-context isolation between tests (uses Node `AsyncLocalStorage` under the hood).
 
 ## Install
@@ -26,34 +26,26 @@ No `webda.config.json` entry needed. Import and use decorators in your spec file
 ## Usage
 
 ```typescript
-import { suite, test, beforeAll, afterAll } from "@webda/test";
-import { assert } from "node:assert";
-import { Core } from "@webda/core";
+import { suite, test } from "@webda/test";
+import * as assert from "node:assert";
+import { useDynamicService } from "@webda/core";
+import { WebdaApplicationTest } from "@webda/core/lib/test/index.js";
 
 // Vitest / Mocha compatible — the harness auto-detects the runner
 @suite
-class PostServiceTest {
-  private service: PostService;
-
-  @beforeAll
-  async setup(): Promise<void> {
-    // Boot the Webda application using your test config
-    const app = new Core({ appPath: "." });
-    await app.init();
-    this.service = app.getService<PostService>("postService");
-  }
-
-  @afterAll
-  async teardown(): Promise<void> {
-    await Core.stop();
+class PostServiceTest extends WebdaApplicationTest {
+  // The application booted before the tests (default: test/config.json)
+  getTestConfiguration(): string {
+    return process.cwd();
   }
 
   @test
   async "create and retrieve a post"(): Promise<void> {
-    const post = await this.service.createPost({ title: "Hello" });
+    const service = useDynamicService<PostService>("postService");
+    const post = await service.createPost({ title: "Hello" });
     assert.strictEqual(post.title, "Hello");
 
-    const found = await this.service.getPost(post.uuid);
+    const found = await service.getPost(post.uuid);
     assert.deepStrictEqual(found.uuid, post.uuid);
   }
 
@@ -64,7 +56,7 @@ class PostServiceTest {
 }
 
 // Run with: pnpm test
-// On failure: reports/PostServiceTest/create and retrieve a post.log is written automatically
+// On failure: .webda/tests/PostServiceTest/create and retrieve a post.log is written automatically
 ```
 
 ## Reference

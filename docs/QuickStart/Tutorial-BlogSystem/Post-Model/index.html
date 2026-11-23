@@ -9,9 +9,9 @@
 
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.9a5d1f05.css">
-<script src="/assets/js/runtime~main.4cf5294f.js" defer="defer"></script>
-<script src="/assets/js/main.0f01faf0.js" defer="defer"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.209019ec.css">
+<script src="/assets/js/runtime~main.f66197bb.js" defer="defer"></script>
+<script src="/assets/js/main.e294ad8d.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -29,7 +29,7 @@
 <p>Related models are imported with <code>import type</code>: the compiler reads the types, and no circular import exists at runtime.</p>
 <h4 class="anchor anchorTargetStickyNavbar_JXEr" id="key-design-decisions">Key design decisions<a href="#key-design-decisions" class="hash-link" aria-label="Direct link to Key design decisions" title="Direct link to Key design decisions" translate="no">​</a></h4>
 <p><strong><code>[WEBDA_PRIMARY_KEY] = [&quot;slug&quot;] as const</code></strong> — <code>Post</code> extends <code>Model</code> (not <code>UuidModel</code>) and declares its own key. Routes use it (<code>GET /posts/hello-world</code>), <code>Post.ref(&quot;hello-world&quot;).get()</code> loads by it, and <code>getPrimaryKey()</code> is typed from it.</p>
-<p><strong><code>BelongTo&lt;User&gt;</code> / <code>OneToMany&lt;Post, User, &quot;author&quot;&gt;</code></strong> — the post stores the key of its author in <code>author</code> (the user&#x27;s uuid). The third type argument of <code>OneToMany</code> names the attribute of <code>Post</code> that points back to the user, so <code>user.posts.query(&quot;status = &#x27;published&#x27;&quot;)</code> returns that user&#x27;s posts.</p>
+<p><strong><code>BelongTo&lt;User&gt;</code> / <code>OneToMany&lt;Post, User, &quot;author&quot;&gt;</code></strong> — the post stores the key of its author in <code>author</code> (the user&#x27;s uuid). The third type argument of <code>OneToMany</code> names the attribute of <code>Post</code> that points back to the user, so <code>user.posts.query(&quot;status = &#x27;published&#x27;&quot;)</code> returns that user&#x27;s posts. (Note: <code>sample-apps/blog-system</code> uses <code>ManyToOne&lt;User&gt;</code> / <code>ModelLink</code> instead of <code>BelongTo&lt;User&gt;</code> / <code>ModelParent</code>, which omits cascade delete on the parent.)</p>
 <p><strong>The author is the caller.</strong> <code>getProtectedAttributes()</code> strips <code>author</code> from every client input, and <code>prepareCreate(context)</code> sets it from the session before the <code>create</code> permission check. A client cannot create a post in someone else&#x27;s name.</p>
 <p><strong><code>canAct</code> and <code>getPermissionQuery</code> go together.</strong> <code>canAct</code> decides for one object. For queries, <code>getPermissionQuery</code> adds a filter to the client&#x27;s query, so a list never scans the other authors&#x27; drafts. <code>partial: false</code> means the filter is the complete read rule.</p>
 <p><strong><code>@Operation()</code> on an instance method</strong> — becomes the operation <code>Post.Publish</code>, exposed as <code>PUT /posts/{slug}/publish</code>. The post is loaded from the key in the URL, <code>canAct(context, &quot;publish&quot;)</code> is asked, then the method runs on that post.</p>

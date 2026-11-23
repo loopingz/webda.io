@@ -1,0 +1,1 @@
+"use strict";(Array.isArray(globalThis.webpackChunk_webda_docs)?globalThis.webpackChunk_webda_docs:globalThis.webpackChunk_webda_docs=[]).push([[1910],{1910(a,e,c){c.d(e,{createArchitectureServices:()=>s.S});var s=c(18899);c(32026)}}]);

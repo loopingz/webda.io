@@ -1,0 +1,1 @@
+"use strict";(Array.isArray(globalThis.webpackChunk_webda_docs)?globalThis.webpackChunk_webda_docs:globalThis.webpackChunk_webda_docs=[]).push([[67472],{55513(s){s.exports=JSON.parse('{"title":"Recent posts","items":[]}')}}]);

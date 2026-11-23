@@ -9,9 +9,9 @@
 
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.9a5d1f05.css">
-<script src="/assets/js/runtime~main.4cf5294f.js" defer="defer"></script>
-<script src="/assets/js/main.0f01faf0.js" defer="defer"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.209019ec.css">
+<script src="/assets/js/runtime~main.f66197bb.js" defer="defer"></script>
+<script src="/assets/js/main.e294ad8d.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -41,7 +41,7 @@ export the Kubernetes CronJobs and the Azure jobs again.</li>
 <li class="">The Kubernetes templates lose <code>cron.args</code>, <code>cron.argsLine</code>, <code>cron.argsLineSingleQuote</code>, <code>cron.argsArray</code> and
 <code>${...cron.args}</code>; they gain <code>cron.operationId</code>, <code>cron.operationName</code>, <code>cron.inputJson</code> and <code>cron.inputb64</code>. The
 default CronJob and file names use the operation id.</li>
-<li class=""><code>webda cron</code> and the async scheduler run the ticks on the cluster leader only. Configure a cluster service
+<li class=""><code>CronService.run()</code> and the async scheduler run the ticks on the cluster leader only. Configure a cluster service
 (<code>Webda/StoreClusterService</code> or <code>Webda/KubernetesClusterService</code>) when the application has several replicas; a
 single instance is always the leader.</li>
 <li class="">A tick runs as the system: <code>useContext().getCurrentUserId()</code> is <code>&quot;system&quot;</code> inside the operation. The input is

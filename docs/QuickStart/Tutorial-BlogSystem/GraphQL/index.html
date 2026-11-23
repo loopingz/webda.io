@@ -9,9 +9,9 @@
 
 <link rel="preconnect" href="https://www.googletagmanager.com">
 <script>!function(){function a(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],window.gtag=a;var e=null;try{e=localStorage.getItem("webda.consent")}catch(a){}a("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"granted"===e?"granted":"denied",wait_for_update:500}),a("js",new Date),a("config","G-8QE1GS556P",{anonymize_ip:!0,page_location:location.origin+location.pathname,page_referrer:""})}()</script>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.9a5d1f05.css">
-<script src="/assets/js/runtime~main.4cf5294f.js" defer="defer"></script>
-<script src="/assets/js/main.0f01faf0.js" defer="defer"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8QE1GS556P"></script><link rel="stylesheet" href="/assets/css/styles.209019ec.css">
+<script src="/assets/js/runtime~main.f66197bb.js" defer="defer"></script>
+<script src="/assets/js/main.e294ad8d.js" defer="defer"></script>
 </head>
 <body>
 <svg style="display: none;"><defs>
@@ -38,7 +38,7 @@
 <li class=""><code>Posts(query:)</code> takes a WebdaQL query, like <code>PUT /posts</code>, and returns <code>results</code> and <code>continuationToken</code>.</li>
 <li class=""><code>Me</code> returns the logged-in user.</li>
 <li class="">The root types are named <code>Query</code>, <code>Mutations</code> and <code>Subscription</code>.</li>
-<li class="">Model and service <code>@Operation</code>s (<code>register</code>, <code>login</code>, <code>publish</code>, <code>Publisher.*</code>) are not part of the GraphQL schema: call them over REST or gRPC.</li>
+<li class="">Model and service <code>@Operation</code>s (<code>userRegister</code>, <code>userLogin</code>, <code>postPublish</code>, <code>publisherPublishPost</code>, …) are exposed in the GraphQL schema as mutations (or queries/subscriptions depending on the operation configuration).</li>
 </ul>
 <h2 class="anchor anchorTargetStickyNavbar_JXEr" id="verify">Verify<a href="#verify" class="hash-link" aria-label="Direct link to Verify" title="Direct link to Verify" translate="no">​</a></h2>
 <p><strong>Introspect the root types:</strong></p>

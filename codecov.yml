@@ -1,9 +1,13 @@
 coverage:
   status:
-    project: off
+    project:
+      default:
+        target: auto
+        threshold: 1%
     patch:
       default:
         target: 100%
 
-comment:
-  hide_project_coverage: true
+flag_management:
+  default_rules:
+    carryforward: true

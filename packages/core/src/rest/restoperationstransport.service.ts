@@ -23,7 +23,14 @@ import type { IncomingMessage, Server } from "node:http";
 import type { Duplex } from "node:stream";
 import { WebSocketServer, type WebSocket } from "ws";
 import { hasSchema } from "../schemas/hooks.js";
-import { QUERY_DESCRIPTION, QUERY_RESULTS_DESCRIPTION, QUERY_TOTAL_SCHEMA } from "../models/permissions.js";
+import {
+  getParentRelation,
+  loadModelForAction,
+  NOT_FOUND_MESSAGE,
+  QUERY_DESCRIPTION,
+  QUERY_RESULTS_DESCRIPTION,
+  QUERY_TOTAL_SCHEMA
+} from "../models/permissions.js";
 import type { ModelClass } from "@webda/models";
 import type { ModelAction } from "../models/types.js";
 import type { ModelGraphBehaviorDefinition, ModelMetadata } from "@webda/compiler";
@@ -207,6 +214,11 @@ export class RESTOperationsTransport<
    * Web socket events
    */
   private webSocketEvents = false;
+  /**
+   * Ancestors of the model whose routes {@link walkModel} is registering, outermost first: every route added
+   * meanwhile checks them before running ({@link checkParents})
+   */
+  private routeAncestors: ModelClass[] = [];
 
   /**
    * Transform name using configured casing
@@ -603,13 +615,41 @@ export class RESTOperationsTransport<
    * @param operations - filtered operations map
    * @param basePrefix - URL prefix from parent context
    * @param depth - nesting depth for parent id parameters
+   * @param ancestors - the models of the `{pid.N}` parameters of the prefix, outermost first
    */
   protected walkModel(
     model: ModelClass,
     metadata: ModelMetadata,
     operations: Record<string, OperationDefinition>,
     basePrefix: string,
-    depth: number
+    depth: number,
+    ancestors: ModelClass[] = []
+  ): void {
+    const previous = this.routeAncestors;
+    this.routeAncestors = ancestors;
+    try {
+      this.walkModelRoutes(model, metadata, operations, basePrefix, depth, ancestors);
+    } finally {
+      this.routeAncestors = previous;
+    }
+  }
+
+  /**
+   * Register the routes of a model and walk its children, see {@link walkModel}
+   * @param model - the model class
+   * @param metadata - model metadata
+   * @param operations - filtered operations map
+   * @param basePrefix - URL prefix from parent context
+   * @param depth - nesting depth for parent id parameters
+   * @param ancestors - the models of the `{pid.N}` parameters of the prefix, outermost first
+   */
+  private walkModelRoutes(
+    model: ModelClass,
+    metadata: ModelMetadata,
+    operations: Record<string, OperationDefinition>,
+    basePrefix: string,
+    depth: number,
+    ancestors: ModelClass[]
   ): void {
     const app = useApplication();
     const { Relations: relations, Identifier, Plural: plural, Actions: actions } = metadata;
@@ -668,7 +708,59 @@ export class RESTOperationsTransport<
       if (!childMetadata.Relations?.parent) continue;
       if (childMetadata.Relations.parent.model !== Identifier) continue;
 
-      this.walkModel(childModel, childMetadata, operations, childPrefix, depth + 1);
+      this.walkModel(childModel, childMetadata, operations, childPrefix, depth + 1, [...ancestors, model]);
+    }
+  }
+
+  /**
+   * Register a route; a route under a parent (`/{parents}/{pid.0}/{children}`) first checks its ancestors
+   * ({@link checkParents})
+   * @override
+   */
+  protected addRoute(
+    url: string,
+    methods: HttpMethodType[],
+    executer: Function,
+    openapi?: OpenAPIWebdaDefinition,
+    override?: boolean
+  ) {
+    const ancestors = this.routeAncestors;
+    if (ancestors.length === 0) {
+      return super.addRoute(url, methods, executer, openapi, override);
+    }
+    return super.addRoute(
+      url,
+      methods,
+      async (context: WebContext, ...args: any[]) => {
+        await this.checkParents(context, ancestors);
+        return executer.call(this, context, ...args);
+      },
+      openapi,
+      override
+    );
+  }
+
+  /**
+   * Check the parents of a nested route as the caller, before the child operation runs
+   *
+   * Each `{pid.N}` must name an object of its model the caller may read (`canAct(ctx, "get")`), and the chain must
+   * hold: each parent belongs to the previous one. A missing parent, an unreadable one and a broken chain all answer
+   * `NotFound("Object not found")`, like a missing object, so a nested route reveals nothing about a parent the
+   * caller cannot read, nor about its children.
+   * @param context - the request context
+   * @param ancestors - the models of the `{pid.N}` parameters, outermost first
+   * @throws WebdaError.NotFound when a parent is missing, unreadable or not the child of the previous one
+   */
+  protected async checkParents(context: WebContext, ancestors: ModelClass[]): Promise<void> {
+    for (let i = 0; i < ancestors.length; i++) {
+      const id = context.parameter(`pid.${i}`);
+      const parent: any = await loadModelForAction(ancestors[i], id, context, "get");
+      if (i === 0) continue;
+      // Only a model with a parent is walked as a child: the relation exists
+      const { attribute } = getParentRelation(ancestors[i])!;
+      if (String(parent[attribute]) !== String(context.parameter(`pid.${i - 1}`))) {
+        throw new WebdaError.NotFound(NOT_FOUND_MESSAGE);
+      }
     }
   }
 

@@ -317,10 +317,13 @@ class SealedEndToEndTest extends WebdaApplicationTest {
   async restKeysApiOverTheRestTransport() {
     const User: any = useModel("User");
     const Note: any = useModel("Note");
-    const userId = String((await User.create({ uuid: "rest-user", displayName: "rest" })).getPrimaryKey());
+    // User is nested under Company in the sample-app: the route checks that its parent company is readable
+    await useModel<any>("Company").create({ uuid: "company-1", name: "company" });
+    const userId = String(
+      (await User.create({ uuid: "rest-user", displayName: "rest", company: "company-1" })).getPrimaryKey()
+    );
     const calls: string[] = [];
     const fetch = this.restFetch(userId, calls);
-    // User is nested under Company in the sample-app: the parent id is part of the route, not checked by the dispatcher
     const userPath = `/companies/company-1/users/${userId}`;
     const device = async () => ({
       vault: new KeyVault({ userId, api: restKeysApi(fetch, userId, { userPath }), storage: new MemoryStorage() }),

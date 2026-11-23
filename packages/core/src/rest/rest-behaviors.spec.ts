@@ -14,6 +14,7 @@ import { HttpContext, HttpMethodType } from "../contexts/httpcontext.js";
 import * as WebdaError from "../errors/errors.js";
 import type { Application } from "../application/application.js";
 import { hasSchema, registerSchema } from "../schemas/hooks.js";
+import { MemoryRepository, registerRepository } from "@webda/models";
 
 /**
  * Task 10: RESTOperationsTransport must surface Behavior actions over HTTP at
@@ -115,6 +116,16 @@ class RESTBehaviorsTest extends WebdaApplicationTest {
    * Stub `User.ref(uuid)` so the dispatcher's `model.ref(uuid).get()` call
    * resolves to `instance`. Returns the sinon stub so the caller can restore.
    */
+  /**
+   * Store the parent company of the nested user routes: a nested route checks its parent first
+   * @param uuid - the company primary key
+   */
+  private async createCompany(uuid: string) {
+    const Company = useModel<any>("Company");
+    registerRepository(Company, new MemoryRepository(Company, ["uuid"]));
+    await Company.create({ uuid, name: uuid });
+  }
+
   private stubModelRef(User: any, instance: any) {
     return sinon.stub(User, "ref").callsFake(() => ({
       async get() {
@@ -217,12 +228,13 @@ class RESTBehaviorsTest extends WebdaApplicationTest {
         canAct: async (_ctx: any, action: string) => action === "mfa.verify",
         mfa: new FakeMFA()
       };
+      await this.createCompany("company-1");
       refStub = this.stubModelRef(User, fakeUser);
 
       // User is nested under Company in sample-app; the transport's tree walk
-      // produces `/api/companies/{pid.0}/users/{uuid}/mfa.verify`. The parent
-      // company id is not consulted by the dispatcher (we stub User.ref) so any
-      // string is fine.
+      // produces `/api/companies/{pid.0}/users/{uuid}/mfa.verify`. The route
+      // checks that the parent company exists and is readable, then the
+      // dispatcher loads the user (we stub User.ref).
       const result = await this.routerHttp<{ verified: boolean; totp: string }>({
         method: "PUT",
         url: "/api/companies/company-1/users/user-1/mfa.verify",
@@ -291,6 +303,7 @@ class RESTBehaviorsTest extends WebdaApplicationTest {
         canAct: async () => true,
         mfa: new FakeMFA()
       };
+      await this.createCompany("company-1");
       refStub = this.stubModelRef(User, fakeUser);
 
       const result = await this.routerHttp<{ ok: boolean }>({

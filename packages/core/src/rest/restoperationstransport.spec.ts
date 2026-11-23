@@ -875,6 +875,10 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
     await transport.init();
     const User = useModel<any>("User");
     registerRepository(User, new MemoryRepository(User, ["uuid"]));
+    const Company = useModel<any>("Company");
+    registerRepository(Company, new MemoryRepository(Company, ["uuid"]));
+    await Company.create({ uuid: "c1", name: "c1" });
+    await Company.create({ uuid: "c2", name: "c2" });
     // sample-app User.canAct allows everything: only the parent filter applies
     await User.create({ uuid: "u-c1", name: "in c1", company: "c1" });
     await User.create({ uuid: "u-c2", name: "in c2", company: "c2" });
@@ -888,6 +892,7 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
       ).results.map(r => r.uuid);
     assert.deepStrictEqual(await query("c1"), ["u-c1"]);
     // A parent id carrying WebdaQL stays a value: it cannot widen the filter to other companies
+    await Company.create({ uuid: "c1' OR company != 'none", name: "injection" });
     assert.deepStrictEqual(await query("c1' OR company != 'none"), []);
   }
 
@@ -935,6 +940,83 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
   }
 
   @test
+  async nestedRoutesCheckEveryParent() {
+    const transport = new RESTOperationsTransport(
+      "TestRESTTransportNestedParent",
+      new RESTOperationsTransportParameters().load({ url: "/np/", exposeOpenAPI: false })
+    );
+    this.registerService(transport);
+    transport.resolve();
+    await transport.init();
+    const User = useModel<any>("User");
+    registerRepository(User, new MemoryRepository(User, ["uuid"]));
+    const Company = useModel<any>("Company");
+    registerRepository(Company, new MemoryRepository(Company, ["uuid"]));
+    await Company.create({ uuid: "open", name: "open" });
+    await Company.create({ uuid: "closed", name: "closed" });
+    // sample-app User.canAct allows everything: only the parent can refuse
+    await User.create({ uuid: "u-open", name: "in open", company: "open" });
+    await User.create({ uuid: "u-closed", name: "in closed", company: "closed" });
+    await User.create({ uuid: "u-orphan", name: "in no company" });
+    const canAct = sinon.stub(Company.prototype, "canAct").callsFake(async function (this: any) {
+      return this.getUUID() === "open" || "hidden company";
+    });
+    try {
+      const notFound = (request: { method: HttpMethodType; url: string; body?: any }) =>
+        assert.rejects(() => this.routerHttp(request), WebdaError.NotFound, `${request.method} ${request.url}`);
+      // An unreadable parent answers like a missing one, on every nested route
+      for (const parent of ["closed", "missing"]) {
+        await notFound({ method: "PUT", url: `/np/companies/${parent}/users`, body: { q: "" } });
+        await notFound({ method: "POST", url: `/np/companies/${parent}/users`, body: { name: "intruder" } });
+        await notFound({ method: "GET", url: `/np/companies/${parent}/users/u-closed` });
+        await notFound({ method: "PATCH", url: `/np/companies/${parent}/users/u-closed`, body: { name: "x" } });
+        await notFound({ method: "DELETE", url: `/np/companies/${parent}/users/u-closed` });
+        // Every ancestor is checked, not only the direct parent
+        await notFound({ method: "PUT", url: `/np/companies/${parent}/users/u-closed/computers`, body: { q: "" } });
+      }
+      // An ancestor chain that does not hold (a user of another company) is refused too
+      await notFound({ method: "PUT", url: `/np/companies/open/users/u-closed/computers`, body: { q: "" } });
+      await notFound({ method: "PUT", url: `/np/companies/open/users/u-orphan/computers`, body: { q: "" } });
+      assert.strictEqual(
+        (await User.query("")).results.filter((u: any) => u.name === "intruder").length,
+        0,
+        "no child is created under an unreadable parent"
+      );
+      assert.strictEqual((await User.ref("u-closed").get()).name, "in closed");
+      // A readable parent is unchanged
+      const listed = await this.routerHttp<{ results: any[] }>({
+        method: "PUT",
+        url: `/np/companies/open/users`,
+        body: { q: "" }
+      });
+      assert.deepStrictEqual(
+        listed.results.map(r => r.uuid),
+        ["u-open"]
+      );
+      const got = await this.routerHttp<any>({ method: "GET", url: `/np/companies/open/users/u-open` });
+      assert.strictEqual(got.name, "in open");
+      const created = await this.routerHttp<any>({
+        method: "POST",
+        url: `/np/companies/open/users`,
+        body: { name: "nested" }
+      });
+      assert.strictEqual(created.company, "open");
+      // A chain that holds reaches the child operation, its own rules apply (sample-app Computer needs a login)
+      const Computer = useModel<any>("Computer");
+      registerRepository(Computer, new MemoryRepository(Computer, ["uuid"]));
+      await Computer.create({ uuid: "pc", _user: "u-open" });
+      const computers = await this.routerHttp<{ results: any[] }>({
+        method: "PUT",
+        url: `/np/companies/open/users/u-open/computers`,
+        body: { q: "" }
+      });
+      assert.deepStrictEqual(computers.results, []);
+    } finally {
+      canAct.restore();
+    }
+  }
+
+  @test
   async queryBodyNotJsonHTTP() {
     const transport = new RESTOperationsTransport(
       "TestRESTTransportQueryBody",
@@ -945,6 +1027,9 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
     await transport.init();
     const User = useModel<any>("User");
     registerRepository(User, new MemoryRepository(User, ["uuid"]));
+    const Company = useModel<any>("Company");
+    registerRepository(Company, new MemoryRepository(Company, ["uuid"]));
+    await Company.create({ uuid: "c1", name: "c1" });
     await User.create({ uuid: "u-qb", name: "qb", company: "c1" });
     // A malformed JSON body (here unescaped quotes) is a client error, not a 500 "reading 'q' of undefined"
     await assert.rejects(

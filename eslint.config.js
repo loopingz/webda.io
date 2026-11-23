@@ -2,6 +2,7 @@ import tseslint from "typescript-eslint";
 import eslintConfigPrettier from "eslint-config-prettier";
 import unusedImports from "eslint-plugin-unused-imports";
 import jsdoc from "eslint-plugin-jsdoc";
+import webdaPlugin from "./packages/eslint-plugin/lib/index.js";
 
 export default [
   ...tseslint.configs.recommended,
@@ -103,6 +104,11 @@ export default [
     rules: {
       "jsdoc/require-param": ["error", { checkDestructured: false, enableFixer: false, checkTypesPattern: "^$" }]
     }
+  },
+  {
+    ...webdaPlugin.configs.recommended,
+    files: ["**/*.ts", "**/*.tsx"],
+    ignores: ["**/*.spec.ts", "**/*.spec.tsx", "**/src/test/**", "sample-apps/*/test/**", "test/**"]
   },
   // Must stay last: turns off any rule that conflicts with Prettier
   eslintConfigPrettier

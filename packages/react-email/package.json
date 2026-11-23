@@ -1,6 +1,6 @@
 {
   "name": "@webda/react-email",
-  "version": "4.0.0-beta.11",
+  "version": "4.0.0-rc.1",
   "description": "React Email components as Webda templates",
   "keywords": [
     "react-email",

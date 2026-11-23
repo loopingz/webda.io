@@ -1,5 +1,4 @@
 import type { Rule } from "eslint";
-import { isModelClass } from "../utils.js";
 
 /**
  * Rule: model-extends-core-model
@@ -43,13 +42,11 @@ const rule: Rule.RuleModule = {
         if (node.superClass) {
           return;
         }
-        if (!isModelClass(node)) {
-          context.report({
-            node: node.id,
-            messageId: "mustExtendModel",
-            data: { name: node.id.name }
-          });
-        }
+        context.report({
+          node: node.id,
+          messageId: "mustExtendModel",
+          data: { name: node.id.name }
+        });
       }
     };
   }

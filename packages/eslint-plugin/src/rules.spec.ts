@@ -88,6 +88,13 @@ describe("@webda/eslint-plugin rules", () => {
           async ping(name: string) { return name; }
         }`,
         errors: [{ messageId: "missingReturnType" }]
+      },
+      {
+        code: `class MyModel extends CoreModel {
+          @Action
+          async act(name: string) { return name; }
+        }`,
+        errors: [{ messageId: "missingReturnType" }]
       }
     ]
   });
@@ -137,12 +144,21 @@ describe("@webda/eslint-plugin rules", () => {
       }`,
       `class NotAModel {
         async run(ctx: OperationContext) {}
+      }`,
+      `class PostModel extends CoreModel {
+        syncHelper(id: string) {}
       }`
     ],
     invalid: [
       {
         code: `class PostModel extends CoreModel {
           async publish(ctx: OperationContext<void, void>) {}
+        }`,
+        errors: [{ messageId: "missingActionDecorator" }]
+      },
+      {
+        code: `class PostModel extends CoreModel {
+          async ["computed"](ctx: WebContext) {}
         }`,
         errors: [{ messageId: "missingActionDecorator" }]
       }
@@ -167,6 +183,10 @@ describe("@webda/eslint-plugin rules", () => {
         filename: "src/services/app.service.ts",
         code: `const custom = new AllowedService();`,
         options: [{ allowedClasses: ["AllowedService"] }]
+      },
+      {
+        filename: "src/services/app.service.ts",
+        code: `const dyn = new (getFactory())();`
       }
     ],
     invalid: [
@@ -191,10 +211,17 @@ describe("@webda/eslint-plugin rules", () => {
   tester.run("no-service-constructor-di", plugin.rules["no-service-constructor-di"], {
     valid: [
       `class MyService extends Service {
+        constructor(webda: any, name: string, params: any) {
+          super(webda, name, params);
+          other.getService("Mailer");
+        }
         async resolve() {
           await super.resolve();
           this.mailer = this.getService("Mailer");
         }
+      }`,
+      `class PlainClass {
+        constructor() { this.getService("X"); }
       }`
     ],
     invalid: [

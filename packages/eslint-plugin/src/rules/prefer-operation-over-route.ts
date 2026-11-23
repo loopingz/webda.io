@@ -33,7 +33,7 @@ const rule: Rule.RuleModule = {
           return;
         }
         const enclosingClass = findEnclosingClass(node);
-        const onModel = enclosingClass ? isModelClass(enclosingClass) : false;
+        const onModel = isModelClass(enclosingClass);
         context.report({
           node: routeDec,
           messageId: onModel ? "preferAction" : "preferOperation"

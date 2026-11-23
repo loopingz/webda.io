@@ -2,6 +2,10 @@ import { suite, test } from "@webda/test";
 import * as assert from "assert";
 import { ClientCertificateFilter, ClientCertificateFilterParameters } from "./clientcertificatefilter.service.js";
 import { HttpContext } from "../contexts/httpcontext.js";
+import { WebdaInternalSimpleTest } from "../test/index.js";
+import type { UnpackedConfiguration } from "../application/iconfiguration.js";
+import { useService } from "../core/hooks.js";
+import { useRouter } from "../rest/hooks.js";
 
 /**
  * @param path - request uri
@@ -44,5 +48,35 @@ class ClientCertificateFilterTest {
     );
     assert.strictEqual(await single.checkRequest(context("/admin/users", true)), true);
     assert.strictEqual(await single.checkRequest(context("/users", true)), false);
+  }
+}
+
+/**
+ * A filter declared with its short type ("ClientCertificateFilter" rather than
+ * "Webda/ClientCertificateFilter") must still have its capabilities, so the
+ * router registers it as a request filter
+ */
+@suite
+class ClientCertificateFilterShortTypeTest extends WebdaInternalSimpleTest {
+  getTestConfiguration(): string | Partial<UnpackedConfiguration> | undefined {
+    return {
+      parameters: { ignoreBeans: true },
+      services: {
+        shortFilter: { type: "ClientCertificateFilter" }
+      }
+    };
+  }
+
+  @test
+  async shortTypeIsARequestFilter() {
+    const filter = useService("shortFilter" as any) as ClientCertificateFilter;
+    assert.ok(filter instanceof ClientCertificateFilter);
+    assert.ok("request-filter" in filter.getCapabilities());
+    const ctx = await this.newContext();
+    ctx.setHttpContext(new HttpContext("api.example.com", "GET", "/any"));
+    // No client certificate: the filter refuses the request
+    assert.strictEqual(await useRouter().checkRequest(ctx), false);
+    ctx.getHttpContext().setClientCertificate({ subject: { CN: "alice" }, verified: true } as any);
+    assert.strictEqual(await useRouter().checkRequest(ctx), true);
   }
 }

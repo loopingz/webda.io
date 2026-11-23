@@ -365,3 +365,15 @@
 .docs-code-example pre {
   padding-bottom: 2.25rem;
 }
+
+/* Keep the brand accent distinct from both light and dark code themes. */
+.docs-code-jigsaw svg {
+  overflow: visible;
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 50%));
+}
+.docs-code-jigsaw path {
+  stroke: rgb(255 255 255 / 65%);
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
+  paint-order: stroke fill;
+}

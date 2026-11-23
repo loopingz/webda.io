@@ -18,6 +18,11 @@
             "description": "Key model",
             "type": "string"
           },
+          "nonceCacheSize": {
+            "default": 100000,
+            "description": "Maximum number of request nonces remembered to reject replays\n\nThe cache is in memory: each instance of a multi-instance deployment only knows its own nonces,\nso a request replayed on another instance within the clock skew is not detected.\nOnce full, the oldest nonces are forgotten first.",
+            "type": "number"
+          },
           "redirectUris": {
             "default": [],
             "description": "Allowed redirection with CSRF",
@@ -29,6 +34,11 @@
           "redirectUrl": {
             "description": "redirect endpoint",
             "type": "string"
+          },
+          "timestampSkewSec": {
+            "default": 60,
+            "description": "Permitted clock skew of the request timestamps, in seconds, on each side of the server time",
+            "type": "number"
           },
           "type": {
             "description": "Type of the service",

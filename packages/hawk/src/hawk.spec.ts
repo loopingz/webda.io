@@ -148,8 +148,10 @@ class HawkServiceTest extends WebdaApplicationTest {
 
   @test
   async validSignature() {
+    // The test context carries a "{}" body: its hash must be signed
     const { header, artifacts } = Hawk.client.header("http://test.webda.io/", "GET", {
-      credentials: this.key.toHawkCredentials()
+      credentials: this.key.toHawkCredentials(),
+      payload: "{}"
     });
     // @ts-ignore
     this.context.getHttpContext().getHeaders()["host"] = "test.webda.io";
@@ -227,6 +229,151 @@ class HawkServiceTest extends WebdaApplicationTest {
       this.context.getHttpContext().getHeaders()[k] = headers[k];
     }
     return await this.checkRequest(this.context);
+  }
+
+  /**
+   * Build a context for a Hawk signed request, optionally with a body
+   * @param options - request options
+   * @returns the context and the client artifacts
+   */
+  async signedContext(
+    options: {
+      url?: string;
+      method?: HttpMethodType;
+      signedPayload?: string;
+      body?: string;
+      contentType?: string;
+      header?: string;
+    } = {}
+  ) {
+    const { url = "/", method = "POST", signedPayload, body, contentType = "application/json" } = options;
+    const signed =
+      options.header === undefined
+        ? Hawk.client.header(`http://test.webda.io${url}`, method, {
+            credentials: this.key.toHawkCredentials(),
+            ...(signedPayload !== undefined ? { payload: signedPayload, contentType } : {})
+          })
+        : { header: options.header, artifacts: undefined };
+    const context = await this.newContext();
+    await context.newSession();
+    const http = new HttpContext("test.webda.io", method, url, "http", 80, {
+      host: "test.webda.io",
+      authorization: signed.header,
+      "content-type": contentType
+    });
+    if (body !== undefined) {
+      http.setBody(body);
+    }
+    context.setHttpContext(http);
+    return { context, header: signed.header, artifacts: signed.artifacts };
+  }
+
+  @test
+  async signedBodyAccepted() {
+    const body = JSON.stringify({ amount: 10 });
+    const { context } = await this.signedContext({ signedPayload: body, body });
+    assert.strictEqual(await this.checkRequest(context), true);
+  }
+
+  @test
+  async tamperedBodyRejected() {
+    const { context } = await this.signedContext({
+      signedPayload: JSON.stringify({ amount: 10 }),
+      body: JSON.stringify({ amount: 10000 })
+    });
+    await assert.rejects(() => this.checkRequest(context), WebdaError.Forbidden);
+  }
+
+  @test
+  async bodyWithoutHashRejected() {
+    // The MAC does not cover the body when the client sends no hash: refuse any body then
+    const { context } = await this.signedContext({ body: JSON.stringify({ amount: 10000 }) });
+    await assert.rejects(() => this.checkRequest(context), WebdaError.Forbidden);
+  }
+
+  @test
+  async strippedBodyRejected() {
+    // A hash was signed for a body that is not there anymore
+    const { context } = await this.signedContext({ signedPayload: JSON.stringify({ amount: 10 }) });
+    await assert.rejects(() => this.checkRequest(context), WebdaError.Forbidden);
+  }
+
+  @test
+  async getWithoutBodyAccepted() {
+    const { context } = await this.signedContext({ method: "GET" });
+    assert.strictEqual(await this.checkRequest(context), true);
+    // An empty payload hash is verified too
+    const { context: hashed } = await this.signedContext({ method: "GET", signedPayload: "" });
+    assert.strictEqual(await this.checkRequest(hashed), true);
+  }
+
+  @test
+  async replayRejected() {
+    const body = JSON.stringify({ amount: 10 });
+    const { context, header } = await this.signedContext({ signedPayload: body, body });
+    assert.strictEqual(await this.checkRequest(context), true);
+    // Same Authorization header, captured and sent again within the clock skew
+    const { context: replay } = await this.signedContext({ header, body });
+    await assert.rejects(() => this.checkRequest(replay), WebdaError.Forbidden);
+    // A new nonce is accepted
+    const { context: fresh } = await this.signedContext({ signedPayload: body, body });
+    assert.strictEqual(await this.checkRequest(fresh), true);
+  }
+
+  @test
+  async sessionReplayRejected() {
+    const test = await this.addService(
+      HawkService,
+      new HawkServiceParameters().load({ dynamicSessionKey: "myCSRF" }),
+      "sessionReplay"
+    );
+    const key = useCrypto().current;
+    const { header } = Hawk.client.header("http://test.webda.io/plop", "GET", {
+      credentials: { id: "session", key: await useCrypto().hmac("whatever", key), algorithm: "sha256" }
+    });
+    const send = async () => {
+      const ctx = await this.newContext();
+      await ctx.newSession();
+      ctx.getSession()["myCSRF"] = `${key}.whatever`;
+      ctx.setHttpContext(
+        new HttpContext("test.webda.io", "GET", "/plop", "http", 80, { host: "test.webda.io", authorization: header })
+      );
+      return test.checkRequest(ctx);
+    };
+    assert.strictEqual(await send(), true);
+    await assert.rejects(send, WebdaError.Forbidden);
+    await test.stop();
+  }
+
+  @test
+  async emptyResponseSigned() {
+    const { context, artifacts } = await this.signedContext({ method: "GET" });
+    assert.strictEqual(await this.checkRequest(context), true);
+    // No body: the Server-Authorization still carries the hash of the empty payload
+    this.service.signResponse(context);
+    const res = {
+      headers: {
+        "server-authorization": context.getResponseHeaders()["Server-Authorization"],
+        "content-type": "application/json"
+      }
+    };
+    assert.ok(
+      Hawk.client.authenticate(res, this.key.toHawkCredentials(), artifacts, {
+        payload: "",
+        contentType: "application/json",
+        required: true
+      })
+    );
+    // A body injected in an empty response is detected
+    assert.throws(
+      () =>
+        Hawk.client.authenticate(res, this.key.toHawkCredentials(), artifacts, {
+          payload: "injected",
+          contentType: "application/json",
+          required: true
+        }),
+      /Bad response payload mac/
+    );
   }
 
   @test

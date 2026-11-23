@@ -27,6 +27,7 @@
     "codemod": "jscodeshift --parser=ts --extensions=tsx,ts -t ../codemod/current.mjs src"
   },
   "dependencies": {
+    "@webda/cache": "workspace:^",
     "@webda/core": "workspace:*",
     "hawk": "^9.0.2",
     "is-in-subnet": "^4.0.1",

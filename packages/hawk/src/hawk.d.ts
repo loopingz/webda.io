@@ -72,7 +72,38 @@ declare module "hawk" {
      * @param credentials - resolve credentials by key id
      * @returns authenticated credentials and signing artifacts
      */
-    authenticate(request: Request, credentials: (id: string) => Promise<Credentials>): Promise<Authentication>;
+    authenticate(
+      request: Request,
+      credentials: (id: string) => Promise<Credentials>,
+      options?: {
+        /**
+         * Permitted clock skew in seconds
+         */
+        timestampSkewSec?: number;
+        /**
+         * Payload to verify against the hash of the Authorization header; requires the hash when set
+         */
+        payload?: string | Buffer;
+        /**
+         * Reject a reused nonce by throwing
+         */
+        nonceFunc?: (key: string, nonce: string, ts: string) => Promise<void>;
+      }
+    ): Promise<Authentication>;
+    /**
+     * Verify a payload against the hash of authenticated artifacts
+     * @param payload - the payload
+     * @param credentials - credentials used for authentication
+     * @param artifacts - authenticated request artifacts
+     * @param contentType - the payload content type
+     * @throws Error if the hash does not match
+     */
+    authenticatePayload(
+      payload: string | Buffer,
+      credentials: Credentials,
+      artifacts: Record<string, unknown>,
+      contentType?: string
+    ): void;
     /**
      * Sign the response to an authenticated request.
      * @param credentials - credentials used for authentication
@@ -83,7 +114,7 @@ declare module "hawk" {
     header(
       credentials: Credentials,
       artifacts: Record<string, unknown>,
-      options: { payload: string; contentType: string }
+      options: { payload: string | Buffer; contentType: string }
     ): string;
   };
 }

@@ -1299,4 +1299,77 @@ class DomainServiceTest extends WebdaApplicationTest {
     }
     assert.strictEqual(Object.keys(useInstanceStorage().operations!).length, before);
   }
+
+  @test
+  async operationNamingModes() {
+    const { Brand } = this.setupBrandRepo();
+    const models = useApplication().getModels() as any;
+    class NamingItem extends (Brand as any) {
+      static Metadata: any = {
+        ...(Brand as any).Metadata,
+        Identifier: "WebdaDemo/NamingItem",
+        Plural: "NamingItems",
+        Relations: {},
+        Actions: { archive: {} }
+      };
+    }
+    models["WebdaDemo/NamingItem"] = NamingItem;
+    const operations = useInstanceStorage().operations!;
+    const clearOps = () => {
+      Object.keys(operations)
+        .filter(id => id.startsWith("NamingItem"))
+        .forEach(id => delete operations[id]);
+    };
+
+    try {
+      // Default ("mixed"): singular for item operations, plural for Query
+      const mixedService = new DomainService("DomainService", new DomainServiceParameters().load({}));
+      assert.strictEqual(mixedService.getParameters().operationNaming, "mixed");
+      mixedService.initOperations();
+      assert.ok(operations["NamingItem.Create"]);
+      assert.ok(operations["NamingItem.Get"]);
+      assert.ok(operations["NamingItem.Update"]);
+      assert.ok(operations["NamingItem.Delete"]);
+      assert.ok(operations["NamingItem.Patch"]);
+      assert.ok(operations["NamingItem.Archive"]);
+      assert.ok(operations["NamingItems.Query"]);
+      assert.strictEqual(operations["NamingItem.Query"], undefined);
+      assert.strictEqual(operations["NamingItems.Create"], undefined);
+
+      clearOps();
+
+      // "singular": all operations use singular model name
+      const singularService = new DomainService(
+        "DomainService",
+        new DomainServiceParameters().load({ operationNaming: "singular" })
+      );
+      singularService.initOperations();
+      assert.ok(operations["NamingItem.Create"]);
+      assert.ok(operations["NamingItem.Get"]);
+      assert.ok(operations["NamingItem.Query"]);
+      assert.ok(operations["NamingItem.Archive"]);
+      assert.strictEqual(operations["NamingItems.Query"], undefined);
+
+      clearOps();
+
+      // "plural": all operations use plural model name
+      const pluralService = new DomainService(
+        "DomainService",
+        new DomainServiceParameters().load({ operationNaming: "plural" })
+      );
+      pluralService.initOperations();
+      assert.ok(operations["NamingItems.Create"]);
+      assert.ok(operations["NamingItems.Get"]);
+      assert.ok(operations["NamingItems.Update"]);
+      assert.ok(operations["NamingItems.Delete"]);
+      assert.ok(operations["NamingItems.Patch"]);
+      assert.ok(operations["NamingItems.Archive"]);
+      assert.ok(operations["NamingItems.Query"]);
+      assert.strictEqual(operations["NamingItem.Create"], undefined);
+      assert.strictEqual(operations["NamingItem.Query"], undefined);
+    } finally {
+      delete models["WebdaDemo/NamingItem"];
+      clearOps();
+    }
+  }
 }

@@ -623,24 +623,37 @@ export class RESTOperationsTransport<
     // Register the model url with the router
     useRouter()?.registerModelUrl(app.getModelId(model), prefix);
 
+    // Determine whether item operations were registered under singular or plural model name
+    const itemOpPrefix = ["Create", "Get", "Update", "Delete", "Patch"].some(k => operations[`${plural}.${k}`])
+      ? plural
+      : shortId;
+
     // Register routes for standard CRUD operations
     this.exposeQueryRoute(prefix, plural, shortId, Identifier, depth, injectAttribute, operations);
-    this.exposeCreateRoute(prefix, shortId, Identifier, depth, injectAttribute, operations);
-    this.exposeDeleteRoute(prefix, shortId, Identifier, operations);
-    this.exposeUpdateRoute(prefix, shortId, Identifier, operations);
-    this.exposeGetRoute(prefix, shortId, Identifier, operations);
+    this.exposeCreateRoute(prefix, itemOpPrefix, Identifier, depth, injectAttribute, operations);
+    this.exposeDeleteRoute(prefix, itemOpPrefix, Identifier, operations);
+    this.exposeUpdateRoute(prefix, itemOpPrefix, Identifier, operations);
+    this.exposeGetRoute(prefix, itemOpPrefix, Identifier, operations);
 
     // Register action routes
     const actionsName = Object.keys(actions);
     actionsName
       .filter(k => !["create", "update", "delete", "get", "query"].includes(k))
       .forEach(actionName => {
-        this.exposeActionRoute(prefix, shortId, Identifier, actionName, actions[actionName], depth, injectAttribute);
+        this.exposeActionRoute(
+          prefix,
+          itemOpPrefix,
+          Identifier,
+          actionName,
+          actions[actionName],
+          depth,
+          injectAttribute
+        );
       });
 
     // Register behavior routes
     (relations.behaviors || []).forEach(behavior => {
-      this.exposeBehaviorRoutes(prefix, shortId, Identifier, name, behavior);
+      this.exposeBehaviorRoutes(prefix, itemOpPrefix, Identifier, name, behavior);
     });
 
     // Find children (models whose parent points to this model)
@@ -678,7 +691,7 @@ export class RESTOperationsTransport<
     injectAttribute: string | undefined,
     operations: Record<string, OperationDefinition>
   ): void {
-    const operationId = `${plural}.Query`;
+    const operationId = operations[`${plural}.Query`] ? `${plural}.Query` : `${shortId}.Query`;
     if (!operations[operationId]) return;
 
     const openapi: OpenAPIWebdaDefinition = {

@@ -14,6 +14,7 @@
   "packages/debug": "4.0.0-rc.1",
   "packages/decorators": "4.0.0-rc.1",
   "packages/elasticsearch": "4.0.0-rc.1",
+  "packages/eslint-plugin": "4.0.0-rc.1",
   "packages/fs": "4.0.0-rc.1",
   "packages/gcp": "4.0.0-rc.1",
   "packages/google-auth": "4.0.0-rc.1",

@@ -51,9 +51,11 @@ It reuses the transparent, theme-aware `DiagramFigure` and canonical jigsaw outl
 
 ## Documentation presentation
 
-- The sidebar groups existing routes into Learn, Build, Run & deploy, and Reference. Add new top-level directories to `sidebars.js` so they stay discoverable.
+- The sidebar groups existing routes into Learn, Build, Run & deploy, Reference, and Migration. Add new top-level directories to `sidebars.js` so they stay discoverable.
 - Start guides with an outcome and prerequisites; explain when to use a feature and end with relevant next steps. The Quick Start, Events, and Configuration Service pages demonstrate the structure.
 - Use standard Docusaurus `:::tip`, `:::info`, and `:::warning` callouts with descriptive titles. Their icons and labels accompany the Webda colors.
-- Code fences retain Docusaurus copy, highlighting, line highlighting (`{2}`), and filename (`title="file.ts"`) support. The CodeBlock wrapper adds a language header and folds examples over 35 lines. Use `Tabs`/`TabItem` with `groupId="package-manager"` for equivalent commands.
+- JSONC examples use the comment-aware JSON grammar while retaining their JSONC label. Code fences retain Docusaurus copy, highlighting, line highlighting (`{2}`), and filename (`title="file.ts"`) support. The CodeBlock wrapper adds a language header and folds examples over 35 lines. Use `Tabs`/`TabItem` with `groupId="package-manager"` for equivalent commands.
 - `DiagramFigure` scales artwork to the page and opens a native modal dialog with zoom, scroll/swipe, keyboard focus handling, and Escape dismissal. Keep the original image link as a fallback.
-- Article pages intentionally omit animated background decoration to keep reading focused.
+- Article pages retain the animated Webda jigsaw band behind the page introduction.
+
+`ClientCertificateFlow` illustrates native and trusted-proxy certificate entry paths, followed by the login-mode identity flow. Keep its trust and factor-mode notes aligned with the Client Certificate page.

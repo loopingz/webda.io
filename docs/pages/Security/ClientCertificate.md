@@ -9,15 +9,9 @@ Webda can authenticate requests with X.509 TLS client certificates, in two modes
 The certificate is exposed on the request, `CertificateProvider` from `@webda/auth` turns it into a user session and
 `ClientCertificateFilter` can reserve paths to certificate holders.
 
-```mermaid
-flowchart LR
-  C[Client + cert] -->|mTLS| T[Reverse proxy]
-  T -->|HTTP + certificate header| W[Webda HttpServer]
-  C2[Client + cert] -->|mTLS native| W
-  W -->|ClientCertificate on HttpContext| S[SessionManager.load]
-  S -->|stateless session| P[CertificateProvider]
-  P -->|Ident certificate:uid| U[User]
-```
+import ClientCertificateFlow from "@site/src/components/ClientCertificateFlow";
+
+<ClientCertificateFlow />
 
 ## Native mode
 

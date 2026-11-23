@@ -1,0 +1,132 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 820" role="img" aria-labelledby="title description">
+<title id="title">Async events: emit now, handle in a worker</title>
+<desc id="description">AsyncEvents registers a queue-send listener on a service and stores the original callback. The service emits an event, AsyncEvents sends its serialized envelope to a queue, and a worker consumes and revives it before calling the registered callbacks. Awaiting emit waits for enqueueing, not for worker callback completion.</desc>
+<defs>
+<!-- Canonical outline from WebdaJigsaw.tsx. --><path id="events-jigsaw" d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z"/>
+
+<style>
+:root{--ink:#202b40;--label:#33445c;--muted:#52627a;--surface:#fff;--line:#71829c;--sync:#355f99;--async:#9c5f13;--run:#347449;--stop:#68578a;--pale:#eef3f9}
+@media(prefers-color-scheme:dark){:root{--ink:#f1f5ff;--label:#c5d0e7;--muted:#9fafd0;--surface:#1b1b1d;--line:#71829c;--sync:#8cbbeb;--async:#f4aa58;--run:#81bf8c;--stop:#b4a0ed;--pale:#282d38}}
+text{font-family:Inter,system-ui,-apple-system,sans-serif;fill:var(--ink)}.label{font-size:23px;font-weight:600}.detail{font-size:19px;fill:var(--label)}.small{font-size:17px;fill:var(--muted)}.hook{font:600 22px ui-monospace,SFMono-Regular,monospace}.line{fill:none;stroke:var(--line);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+</style>
+<filter id="soft-shadow" x="-50%" y="-100%" width="200%" height="300%"><feGaussianBlur stdDeviation="12"/></filter>
+<marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto-start-reverse"><path d="M1 1 L7 4 L1 7" fill="none" stroke="var(--line)" stroke-width="1.3"/></marker>
+</defs>
+<text x="48" y="57" font-size="32" font-weight="650">Emit now. Handle in a worker.</text>
+<text x="48" y="92" class="detail" text-anchor="start">AsyncEvents bridges service events and queued background work.</text>
+<rect x="48" y="125" width="1104" height="99" rx="16" fill="var(--pale)"/>
+<text x="72" y="162" class="hook" text-anchor="start">1  Register with bindAsyncListener(service, event, callback)</text>
+<text x="72" y="198" class="detail" text-anchor="start">Attach a queue-send listener to the emitter; keep the original callback for the worker.</text>
+<path d="M428 224 V253 H154 V282" class="line" marker-end="url(#arrow)" stroke-dasharray="7 7"/>
+<text x="640" y="259" class="small" text-anchor="middle">Registration happens before events are emitted.</text>
+<g transform="translate(180 367)">
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -60)" fill="#435f7e"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -61)" fill="#435f7e"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -62)" fill="#435f7e"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -63)" fill="#435f7e"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -64)" fill="#435f7e"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -65)" fill="#435f7e"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -66)" fill="#435f7e"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -67)" fill="#435f7e"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -68)" fill="#435f7e"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -69)" fill="#435f7e"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -70)" fill="#435f7e"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -71)" fill="#435f7e"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -72)" fill="#435f7e"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -73)" fill="#435f7e"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -74)" fill="#435f7e"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -75)" fill="#435f7e"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -76)" fill="#435f7e"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -77)" fill="#435f7e"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -78)" fill="#8cbbeb"/>
+<g transform="translate(-53 -49)" stroke="#16213b" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="44" height="44" rx="6"/><path d="M13 17 L8 25 L13 33 M37 17 L42 25 L37 33 M29 15 L21 35"/></g></g>
+<g transform="translate(470 367)">
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -60)" fill="#426747"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -61)" fill="#426747"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -62)" fill="#426747"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -63)" fill="#426747"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -64)" fill="#426747"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -65)" fill="#426747"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -66)" fill="#426747"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -67)" fill="#426747"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -68)" fill="#426747"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -69)" fill="#426747"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -70)" fill="#426747"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -71)" fill="#426747"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -72)" fill="#426747"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -73)" fill="#426747"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -74)" fill="#426747"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -75)" fill="#426747"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -76)" fill="#426747"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -77)" fill="#426747"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -78)" fill="#81bf6b"/>
+<g transform="translate(-53 -49)" stroke="#16213b" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M25 0 L6 29 H23 L18 50 L44 19 H27Z"/></g></g>
+<g transform="translate(760 367)">
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -60)" fill="#926336"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -61)" fill="#926336"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -62)" fill="#926336"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -63)" fill="#926336"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -64)" fill="#926336"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -65)" fill="#926336"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -66)" fill="#926336"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -67)" fill="#926336"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -68)" fill="#926336"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -69)" fill="#926336"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -70)" fill="#926336"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -71)" fill="#926336"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -72)" fill="#926336"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -73)" fill="#926336"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -74)" fill="#926336"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -75)" fill="#926336"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -76)" fill="#926336"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -77)" fill="#926336"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -78)" fill="#f4aa58"/>
+<g transform="translate(-53 -49)" stroke="#16213b" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="0" y="0" width="50" height="12" rx="3"/><rect x="0" y="19" width="50" height="12" rx="3"/><rect x="0" y="38" width="50" height="12" rx="3"/><path d="M8 6 H12 M8 25 H12 M8 44 H12"/></g></g>
+<g transform="translate(1050 367)">
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -60)" fill="#68578a"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -61)" fill="#68578a"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -62)" fill="#68578a"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -63)" fill="#68578a"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -64)" fill="#68578a"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -65)" fill="#68578a"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -66)" fill="#68578a"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -67)" fill="#68578a"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -68)" fill="#68578a"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -69)" fill="#68578a"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -70)" fill="#68578a"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -71)" fill="#68578a"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -72)" fill="#68578a"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -73)" fill="#68578a"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -74)" fill="#68578a"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -75)" fill="#68578a"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -76)" fill="#68578a"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -77)" fill="#68578a"/>
+<use href="#events-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -78)" fill="#b4a0ed"/>
+<g transform="translate(-53 -49)" stroke="#16213b" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="0" y="0" width="50" height="50" rx="6"/><path d="M0 13 H50 M10 7 H11 M18 7 H19 M11 24 L19 31 L11 38 M27 38 H39"/></g></g>
+<text x="153" y="451" class="label" text-anchor="middle">Service</text>
+<text x="153" y="484" class="small" text-anchor="middle">Emits the event</text>
+<text x="443" y="451" class="label" text-anchor="middle">AsyncEvents</text>
+<text x="443" y="484" class="small" text-anchor="middle">Wraps the event payload</text>
+<text x="733" y="451" class="label" text-anchor="middle">Queue</text>
+<text x="733" y="484" class="small" text-anchor="middle">Holds serialized events</text>
+<text x="1023" y="451" class="label" text-anchor="middle">Worker</text>
+<text x="1023" y="484" class="small" text-anchor="middle">Revives and dispatches</text>
+<path d="M273 344 H351" class="line" marker-end="url(#arrow)"/>
+<text x="312.0" y="321" class="small" text-anchor="middle">2  emit()</text>
+<path d="M563 344 H641" class="line" marker-end="url(#arrow)"/>
+<text x="602.0" y="321" class="small" text-anchor="middle">3  send</text>
+<path d="M853 344 H931" class="line" marker-end="url(#arrow)"/>
+<text x="892.0" y="321" class="small" text-anchor="middle">4  consume</text>
+<path d="M1023 507 V544" class="line" marker-end="url(#arrow)"/>
+<rect x="824" y="553" width="328" height="95" rx="14" fill="var(--pale)" stroke="var(--stop)"/>
+<text x="988" y="591" class="label" text-anchor="middle">5  Original callbacks</text>
+<text x="988" y="625" class="small" text-anchor="middle">Worker awaits their promises</text>
+<rect x="48" y="538" width="710" height="110" rx="14" fill="var(--pale)" stroke="var(--sync)"/>
+<text x="72" y="578" class="label" text-anchor="start">What does await emit() wait for?</text>
+<text x="72" y="612" class="detail" text-anchor="start">The queue-send promise — not the worker’s callbacks.</text>
+<path d="M48 691 H1152" class="line" opacity=".35"/>
+<text x="48" y="733" class="label" text-anchor="start">Event envelope</text>
+<text x="48" y="770" class="detail" text-anchor="start">service · type · payload · time</text>
+<text x="657" y="733" class="label" text-anchor="start">Core events are different</text>
+<text x="657" y="770" class="detail" text-anchor="start">emitCoreEvent() is fire-and-forget (void).</text>
+</svg>

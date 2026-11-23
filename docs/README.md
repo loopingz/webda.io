@@ -31,3 +31,12 @@ The static view explains the entire sequence without playback. Keep the hook des
 Both diagrams share `src/components/DiagramFigure` for theme selection, alternative text, a full-size link,
 and keyboard scrolling. Keep text horizontal and legible in both themes; avoid encoding lifecycle timing as
 arbitrary dates or lengths.
+
+## Dynamic configuration diagram
+
+`src/components/ConfigurationFlow` displays `static/img/concepts/configuration-service.svg` on the
+Configuration Service page. It shows notification and polling triggers converging on the same read,
+merge, compare, decrypt, and apply pipeline, including the unchanged-value path.
+Keep behavior aligned with `packages/core/src/configurations/configuration.service.ts` and
+`Core.updateConfiguration` in `packages/core/src/core/core.ts`: updates load changed parameters,
+not a full service restart. The diagram uses the shared `DiagramFigure` and canonical jigsaw outline.

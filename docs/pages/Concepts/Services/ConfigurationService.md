@@ -22,27 +22,13 @@ The configuration shared parameters is also available.
 A service cannot be changed into another type of service for security purpose.
 Creating dynamic route through the ConfigurationService is not recommended, it will be probably be block in the near future.
 
-This is the general process if the ConfigurationProvider cannot trigger
+## Dynamic updates
 
-```mermaid
-sequenceDiagram
-	participant C as ConfigurationService
-    participant Cp as ConfigurationProvider
-    participant W as Webda Core
-	loop
-	C->>Cp: Get 'sourceId' configuration
-	C->>C: Compare current with previous
-	opt if changes
-		C->>C: Process all watchers
-		opt if webda.services within configuration
-			C->>W: Reinit services with new values
-		end
-	end
-	C->>C: Wait for next interval
-	end
-```
+import ConfigurationFlow from "@site/src/components/ConfigurationFlow";
 
-This is the general process if the ConfigurationProvider can trigger, it will be on demand
+<ConfigurationFlow />
+
+Sources are read and merged in their configured order, starting from the defaults. A provider notification or the polling interval triggers a refresh. If the merged configuration differs from the previous value, encrypted values are decrypted and passed to Core. Core updates changed service parameters while preserving service types.
 
 ## Existing Configuration Provider
 

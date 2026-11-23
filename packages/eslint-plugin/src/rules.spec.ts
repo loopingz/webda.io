@@ -271,6 +271,12 @@ describe("@webda/eslint-plugin rules", () => {
     expect(getDecoratorName({ expression: { type: "Literal" } })).toBeUndefined();
     expect(findDecorator({}, "Operation")).toBeUndefined();
     expect(getClassExtendsName({})).toBeUndefined();
+    expect(
+      getClassExtendsName({
+        superClass: { type: "MemberExpression", property: { type: "Identifier", name: "CoreModel" } }
+      })
+    ).toBe("CoreModel");
+    expect(getClassExtendsName({ superClass: { type: "CallExpression" } })).toBeUndefined();
     expect(isModelClass({})).toBe(false);
     expect(isServiceClass({})).toBe(false);
     expect(findEnclosingClass({})).toBeUndefined();

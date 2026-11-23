@@ -1,5 +1,12 @@
 import { suite, test } from "@webda/test";
-import { useDynamicService, useModel, useRegistry, useRepository } from "@webda/core";
+import {
+  SimpleOperationContext,
+  runWithContext,
+  useDynamicService,
+  useModel,
+  useRegistry,
+  useRepository
+} from "@webda/core";
 import { WebdaApplicationTest } from "@webda/core/lib/test/application.js";
 import type { TestApplication } from "@webda/core/lib/test/objects.js";
 import * as assert from "assert";
@@ -50,6 +57,20 @@ class ElasticSearchBaseTest extends WebdaApplicationTest {
   }
 
   /**
+   * A caller context
+   * @param user - the logged in user, none for an anonymous caller
+   * @returns the context
+   */
+  as(user?: string): SimpleOperationContext {
+    const context = new SimpleOperationContext();
+    context.newSession();
+    if (user) {
+      context.getSession().login(user, user);
+    }
+    return context;
+  }
+
+  /**
    * @returns the User model
    */
   get User(): any {
@@ -74,17 +95,22 @@ class ElasticSearchTest extends ElasticSearchBaseTest {
     await this.waitAsyncEnded();
     assert.ok(await this.service.exists("users", "user1"));
     assert.strictEqual(await this.service.count("users"), 1);
-    let results = await this.service.search("users", {
-      query: { match_all: {} }
-    });
+    let results = await this.service.search(
+      "users",
+      {
+        query: { match_all: {} }
+      },
+      0,
+      this.as("user1")
+    );
     assert.strictEqual(results.length, 1);
     assert.ok(results[0] instanceof this.User);
     assert.strictEqual((<any>results[0]).testor, "plop2");
-    results = await this.service.search("users", "*");
+    results = await this.service.search("users", "*", 0, this.as("user1"));
     assert.strictEqual(results.length, 1);
     await repo.patch("user1", { status: "PATCHED" });
     await this.waitAsyncEnded();
-    assert.strictEqual((<any>(await this.service.search("users", "*"))[0]).status, "PATCHED");
+    assert.strictEqual((<any>(await this.service.search("users", "*", 0, this.as("user1")))[0]).status, "PATCHED");
     await repo.delete("user1");
     await this.waitAsyncEnded();
     assert.ok(!(await this.service.exists("users", "user1")));
@@ -106,6 +132,29 @@ class ElasticSearchTest extends ElasticSearchBaseTest {
   }
 
   @test
+  async searchChecksPermissions() {
+    const repo = useRepository(this.User);
+    await repo.create({ uuid: "user1", name: "first" });
+    await repo.create({ uuid: "user2", name: "second" });
+    await this.waitAsyncEnded();
+    const uuids = (results: any[]) => results.map(r => r.getUUID()).sort();
+    // Webda/User only lets a user read itself: the other hits are dropped
+    assert.deepStrictEqual(uuids(await this.service.search("users", "*", 0, this.as("user1"))), ["user1"]);
+    assert.deepStrictEqual(
+      uuids(await this.service.search("users", { query: { match_all: {} } }, 0, this.as("user2"))),
+      ["user2"]
+    );
+    assert.deepStrictEqual(await this.service.search("users", "*", 0, this.as()), []);
+    // Without a context, the search runs as the current caller
+    assert.deepStrictEqual(uuids(await runWithContext(this.as("user2"), () => this.service.search("users", "*"))), [
+      "user2"
+    ]);
+    assert.deepStrictEqual(await this.service.search("users", "*"), []);
+    // Trusted code can still read every hit, explicitly
+    assert.deepStrictEqual(uuids(await this.service.searchUnchecked("users", "*")), ["user1", "user2"]);
+  }
+
+  @test
   async subModel() {
     await useRepository(this.SimpleUser).create({ uuid: "simple1", name: "simple1" });
     await useRepository(this.User).create({ uuid: "user1", name: "user1" });
@@ -113,7 +162,7 @@ class ElasticSearchTest extends ElasticSearchBaseTest {
     assert.ok(await this.service.exists("simpleusers", "simple1"));
     assert.ok(!(await this.service.exists("simpleusers", "user1")));
     assert.ok(await this.service.exists("users", "user1"));
-    const results = await this.service.search("simpleusers", "*");
+    const results = await this.service.search("simpleusers", "*", 0, this.as("simple1"));
     assert.strictEqual(results.length, 1);
     assert.ok(results[0] instanceof this.SimpleUser);
     // Partial update on a model not indexed
@@ -124,7 +173,7 @@ class ElasticSearchTest extends ElasticSearchBaseTest {
 
   @test
   async badIndex() {
-    const methods = ["search", "exists", "count", "reindex", "getTimedIndexFromUuid"];
+    const methods = ["search", "searchUnchecked", "exists", "count", "reindex", "getTimedIndexFromUuid"];
     for (const m of methods) {
       await assert.rejects(() => this.service[m]("notexisting"), ESUnknownIndexError);
     }
@@ -170,7 +219,7 @@ class ElasticSearchTest extends ElasticSearchBaseTest {
     await repo.upsertItemToCollection("user1", <any>"items", { name: "item2b" }, 1);
     await repo.deleteItemFromCollection("user1", <any>"items", 0);
     await this.waitAsyncEnded();
-    const results = await this.service.search<any>("users", "*");
+    const results = await this.service.search<any>("users", "*", 0, this.as("user1"));
     assert.strictEqual(results.length, 1);
     assert.deepStrictEqual(
       results[0].items.map(i => i.name),

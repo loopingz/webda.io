@@ -4,9 +4,12 @@ import {
   Service,
   ServiceParameters,
   WebdaError,
+  isModelActionAllowed,
+  useContext,
   useModel,
   useRegistry,
   useRepository,
+  type IOperationContext,
   type ModelClass,
   type Repository
 } from "@webda/core";
@@ -605,13 +608,44 @@ export default class ElasticSearchService<
   }
 
   /**
-   * Search on Elastic search
+   * Search on Elastic search as a caller
+   *
+   * Each hit is loaded as an instance of the index model and kept only when the caller may read it
+   * (`canAct(context, "get", hit)`, the check of the model query operation): a model without permission check
+   * returns no hit. The page is filtered after Elasticsearch answers, so it can hold fewer hits than asked for;
+   * `from` counts the hits of Elasticsearch, readable or not.
+   *
+   * The model's `getPermissionQuery` is a WebdaQL filter, it cannot be sent to Elasticsearch: add the matching
+   * Elasticsearch filter to the query to avoid short pages.
+   * @param index - the index name
+   * @param query - a query string or an ES query body
+   * @param from - offset of the first result
+   * @param context - the caller, the current context by default
+   * @returns the models found that the caller may read
+   */
+  async search<K = any>(
+    index: string,
+    query: any,
+    from: number = 0,
+    context: IOperationContext = useContext()
+  ): Promise<K[]> {
+    const model = this.checkIndex(index)._model;
+    const hits = await this.searchUnchecked<K>(index, query, from);
+    const readable = await Promise.all(hits.map(hit => isModelActionAllowed(hit, context, "get", model)));
+    return hits.filter((_hit, i) => readable[i]);
+  }
+
+  /**
+   * Search on Elastic search without permission check
+   *
+   * Every hit is returned, whoever the caller is: only for trusted code (jobs, migrations), never with the input of
+   * a client. Use {@link search} to search as a caller.
    * @param index - the index name
    * @param query - a query string or an ES query body
    * @param from - offset of the first result
    * @returns the models found
    */
-  async search<K = any>(index: string, query: any, from: number = 0): Promise<K[]> {
+  async searchUnchecked<K = any>(index: string, query: any, from: number = 0): Promise<K[]> {
     const idx = this.checkIndex(index);
     // Cannot import type from ES client easily
     let q: any = {};

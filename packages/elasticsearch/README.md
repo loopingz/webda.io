@@ -63,8 +63,17 @@ pnpm add @webda/elasticsearch
 | `indexes.<n>.dateSplit.frequency` | string | `"monthly"` | No | Time-based index split: `yearly`, `monthly`, `weekly`, `daily`, or `hourly` |
 | `indexes.<n>.dateSplit.attribute` | string | — | No | Model attribute containing the date used for index partitioning |
 
-The service registers no route: search the indexes from your code with `search(index, query)`, which returns the hits
-loaded as instances of the index model.
+The service registers no route: search the indexes from your code with `search(index, query, from?, context?)`, which
+returns the hits loaded as instances of the index model, as the caller (the current context by default):
+
+- a hit is kept only when the caller may read it, `canAct(context, "get", hit)` of the index model, the check of the
+  model query operation; a model without permission check returns no hit;
+- hits are filtered after Elasticsearch answers, so a page can hold fewer hits than asked for, and `from` counts the
+  Elasticsearch hits. The model's `getPermissionQuery` is WebdaQL and is not sent to Elasticsearch: add the matching
+  Elasticsearch filter to your query (for example the owner field) to avoid short pages.
+
+`searchUnchecked(index, query, from?)` returns every hit without permission check, for trusted code only (jobs,
+migrations), never with client input.
 
 ## Usage
 
@@ -79,7 +88,7 @@ export class PostSearchService extends Service {
   es: ElasticSearchService;
 
   async findPosts(query: string): Promise<Post[]> {
-    // Returns the hits loaded as instances of the index model
+    // Returns the hits the current caller may read, loaded as instances of the index model
     return this.es.search<Post>("posts", {
       query: { match: { title: query } }
     });

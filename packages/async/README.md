@@ -96,6 +96,10 @@ export class ReportService extends Service {
 // webda async worker
 ```
 
+An action keeps server-side data (its arguments, the operation context with the caller session and input): answer the
+fields the caller needs, as above, rather than the action itself. `PUT {url}/{operationId}` answers the action's
+`toDTO()`, without its context.
+
 ## Reference
 
 - API reference: see the auto-generated typedoc at `docs/pages/Modules/async/`.

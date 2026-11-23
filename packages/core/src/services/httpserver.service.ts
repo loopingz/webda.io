@@ -203,7 +203,7 @@ export type HttpServerEvents = {
   /** Emitted when a request does not match any route */
   "Webda.404": { context: WebContext };
   /** Sent when route is added to context */
-  "Webda.UpdateContextRoute": { context: WebContext };
+  "Webda.UpdateContextRoute": { context: WebContext; route?: string };
 };
 
 /** HTTP/1.1-only headers that must be filtered for HTTP/2 */

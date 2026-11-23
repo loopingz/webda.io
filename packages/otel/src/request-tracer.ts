@@ -17,7 +17,13 @@ import {
   trace
 } from "@opentelemetry/api";
 import * as tracing from "@opentelemetry/sdk-trace";
-import { type RequestTraceHandle, type RequestTracer, type TracedRequest, createSubnetChecker } from "@webda/core";
+import {
+  type RequestTraceHandle,
+  type RequestTracer,
+  type TracedRequest,
+  createSubnetChecker,
+  useCoreEvents
+} from "@webda/core";
 import type { OtelService } from "./otel.service.js";
 
 /**
@@ -39,6 +45,21 @@ const MAX_TOKEN_LENGTH = 4096;
  * Context key asking {@link ForceableRootSampler} to sample the new root span of a trace token request
  */
 const FORCE_SAMPLING = createContextKey("webda.otel.forceSampling");
+
+/**
+ * Context key holding the route of the request, reported by the router once it matched one
+ */
+const REQUEST_ROUTE = createContextKey("webda.otel.requestRoute");
+
+/**
+ * Route of a request, filled when the router matches it
+ */
+interface RequestRoute {
+  /**
+   * Route template, e.g. `/tasks/{uuid}`
+   */
+  route?: string;
+}
 
 /**
  * Bucket boundaries, in seconds, of `http.server.request.duration` (semantic conventions)
@@ -151,6 +172,10 @@ export class OtelRequestTracer implements RequestTracer {
    * RPC duration
    */
   protected rpcDuration: Histogram;
+  /**
+   * Stop listening to the router
+   */
+  protected unsubscribe: () => void;
 
   /**
    * Create a new OtelRequestTracer instance
@@ -169,6 +194,20 @@ export class OtelRequestTracer implements RequestTracer {
       description: "Duration of RPC server requests",
       unit: "ms"
     });
+    // The router reports the template of the route it matched, in the context of the request
+    this.unsubscribe = useCoreEvents("Webda.UpdateContextRoute", ({ route }) => {
+      const holder = context.active().getValue(REQUEST_ROUTE) as RequestRoute | undefined;
+      if (holder && route) {
+        holder.route = route;
+      }
+    });
+  }
+
+  /**
+   * Stop listening to the router
+   */
+  close(): void {
+    this.unsubscribe();
   }
 
   /**
@@ -246,15 +285,18 @@ export class OtelRequestTracer implements RequestTracer {
   }
 
   /**
-   * Return `{method} {path}` for HTTP, `{service}/{method}` for gRPC
+   * Return `{method} {route}` for HTTP, `{method}` while no route is known, `{service}/{method}` for gRPC
+   *
+   * The concrete path is never part of the name (semantic conventions, bounded cardinality): it is in `url.path`
    * @param request - the request
-   * @returns `{method} {path}` for HTTP, `{service}/{method}` for gRPC
+   * @param route - the route template, e.g. `/tasks/{uuid}`
+   * @returns the span name
    */
-  protected spanName(request: TracedRequest): string {
+  protected spanName(request: TracedRequest, route?: string): string {
     if (request.protocol === "grpc") {
       return request.path.replace(/^\//, "");
     }
-    return `${this.method(request)} ${request.path || "/"}`;
+    return route ? `${this.method(request)} ${route}` : this.method(request);
   }
 
   /**
@@ -293,9 +335,10 @@ export class OtelRequestTracer implements RequestTracer {
    * Attributes shared by the span and the duration metric
    * @param request - the request
    * @param status - the response status, if known
+   * @param route - the route template, if known
    * @returns the attributes
    */
-  protected metricAttributes(request: TracedRequest, status?: number): Attributes {
+  protected metricAttributes(request: TracedRequest, status?: number, route?: string): Attributes {
     if (request.protocol === "grpc") {
       const { service, method } = this.rpc(request);
       return {
@@ -307,6 +350,7 @@ export class OtelRequestTracer implements RequestTracer {
     }
     return {
       "http.request.method": this.method(request),
+      ...(route ? { "http.route": route } : {}),
       ...(status !== undefined ? { "http.response.status_code": status } : {}),
       ...(request.scheme ? { "url.scheme": request.scheme } : {}),
       ...(this.protocolVersion(request) ? { "network.protocol.version": this.protocolVersion(request) } : {})
@@ -344,10 +388,18 @@ export class OtelRequestTracer implements RequestTracer {
    * @param started - `performance.now()` when the request started
    * @param status - the response status
    * @param error - the error thrown by the request, if any
+   * @param route - the route template the router matched, if any
    */
-  protected finish(request: TracedRequest, span: Span | undefined, started: number, status?: number, error?: unknown) {
+  protected finish(
+    request: TracedRequest,
+    span: Span | undefined,
+    started: number,
+    status?: number,
+    error?: unknown,
+    route?: string
+  ) {
     const elapsed = performance.now() - started;
-    const attributes = this.metricAttributes(request, status);
+    const attributes = this.metricAttributes(request, status, route);
     if (error !== undefined) {
       attributes["error.type"] = (error as Error)?.constructor?.name || "_OTHER";
     } else if (request.protocol !== "grpc" && this.isError(request, status)) {
@@ -355,6 +407,9 @@ export class OtelRequestTracer implements RequestTracer {
       attributes["error.type"] = String(status);
     }
     if (span) {
+      if (route && request.protocol === "http") {
+        span.updateName(this.spanName(request, route));
+      }
       span.setAttributes(attributes);
       if (error !== undefined) {
         span.recordException(error instanceof Error ? error : String(error));
@@ -394,15 +449,16 @@ export class OtelRequestTracer implements RequestTracer {
     } catch (err) {
       this.service.log("WARN", "Cannot start the request span", err);
     }
+    const route: RequestRoute = {};
     let error: unknown;
     try {
-      return await context.with(ctx, () => fn(handle));
+      return await context.with(ctx.setValue(REQUEST_ROUTE, route), () => fn(handle));
     } catch (err) {
       error = err ?? new Error("Unknown error");
       throw err;
     } finally {
       try {
-        this.finish(request, span, started, status, error);
+        this.finish(request, span, started, status, error, route.route);
       } catch (err) {
         this.service.log("WARN", "Cannot record the request span", err);
       }

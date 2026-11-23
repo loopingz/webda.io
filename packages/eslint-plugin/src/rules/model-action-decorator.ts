@@ -33,12 +33,7 @@ const rule: Rule.RuleModule = {
           return;
         }
         const methodName = node.key?.name;
-        if (
-          methodName === "canAct" ||
-          methodName === "authorizeClientEvent" ||
-          methodName === "toStoredJSON" ||
-          methodName === "validate"
-        ) {
+        if (typeof methodName === "string" && /^(can[A-Z]|authorize[A-Z]|toStoredJSON$|validate$)/.test(methodName)) {
           return;
         }
         const enclosingClass = findEnclosingClass(node);

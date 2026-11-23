@@ -1,8 +1,15 @@
+import { existsSync } from "node:fs";
+import { execSync } from "node:child_process";
 import tseslint from "typescript-eslint";
 import eslintConfigPrettier from "eslint-config-prettier";
 import unusedImports from "eslint-plugin-unused-imports";
 import jsdoc from "eslint-plugin-jsdoc";
-import webdaPlugin from "./packages/eslint-plugin/lib/index.js";
+
+const webdaPluginPath = new URL("./packages/eslint-plugin/lib/index.js", import.meta.url);
+if (!existsSync(webdaPluginPath)) {
+  execSync("pnpm --filter @webda/eslint-plugin run build", { stdio: "inherit" });
+}
+const { default: webdaPlugin } = await import(webdaPluginPath.href);
 
 export default [
   ...tseslint.configs.recommended,

@@ -525,7 +525,8 @@ export default class AsyncJobService<T extends AsyncJobServiceParameters = Async
         (await SimpleOperationContext.fromContext(context)).setExtension("operation", operationId)
       );
     }
-    context.write(action);
+    // Public form only: the stored context carries the caller session
+    context.write(action.toDTO());
   }
 
   /**

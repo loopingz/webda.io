@@ -382,6 +382,18 @@ export class AsyncOperationAction extends AsyncAction {
   isInternal() {
     return true;
   }
+
+  /**
+   * Public form of the action, the one launch responses and operation transports serialize
+   *
+   * The stored context carries the caller session and the operation input: it is
+   * server-only, read by the runner from the store or from the HMAC-authenticated status hook
+   * @returns the action without its context
+   */
+  toDTO(): any {
+    const { context, ...dto } = super.toDTO() as any;
+    return dto;
+  }
 }
 
 /**

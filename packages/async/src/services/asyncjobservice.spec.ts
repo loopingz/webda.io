@@ -13,6 +13,8 @@ import {
   registerOperationAuthorizer,
   unregisterOperationFeatureFlag,
   ServiceParameters,
+  SimpleOperationContext,
+  toOperationOutput,
   unregisterOperationAuthorizer,
   useApplication,
   useContext,
@@ -904,6 +906,54 @@ class AsyncJobServiceTest extends AsyncTest {
     await assert.rejects(() => service.launchOperation(context), /Plop/);
     check.restore();
     delete useCore().getServices()["async"];
+  }
+
+  @test
+  async launchResponseDoesNotEchoTheSession() {
+    const service = await this.addService(
+      AsyncJobService,
+      {
+        type: "Webda/AsyncJobService",
+        queue: "AsyncQueue",
+        runners: ["LocalRunner"],
+        asyncOperationDefinition: "./test/asyncOperations.json"
+      },
+      "async"
+    );
+    try {
+      for (const schedule of [undefined, Date.now() + 86400000]) {
+        const context = await this.newContext({ id: "my-id" });
+        await context.newSession();
+        context.getSession<any>().role = "hr";
+        context.getSession<any>().secretToken = "session-secret";
+        context.getParameters().operationId = "User.Revoke";
+        context.getParameters().schedule = schedule;
+        await service.launchOperation(context);
+        const output = context.getOutput();
+        const res = JSON.parse(output);
+        assert.ok(res.uuid);
+        assert.strictEqual(res.status, schedule ? "SCHEDULED" : "QUEUED");
+        assert.ok(!output.includes("session-secret"), "the launch response echoes the session");
+        assert.strictEqual(res.context, undefined);
+        assert.strictEqual(res.__secretKey, undefined);
+      }
+      // The operation transports serialize an operation result through its DTO: it has no context either
+      const context = await this.newContext({ id: "my-id" });
+      await context.newSession();
+      context.getSession<any>().secretToken = "session-secret";
+      const action = await service.callOperation(
+        (await SimpleOperationContext.fromContext(context)).setExtension("operation", "User.Revoke")
+      );
+      const dto = toOperationOutput(action);
+      assert.strictEqual(dto.status, "QUEUED");
+      assert.strictEqual(dto.context, undefined);
+      assert.ok(!JSON.stringify(dto).includes("session-secret"), "the operation output echoes the session");
+      // The stored action keeps its context for the runner
+      const stored = await AsyncOperationAction.ref(action.uuid).get();
+      assert.strictEqual(stored.context.session.secretToken, "session-secret");
+    } finally {
+      delete useCore().getServices()["async"];
+    }
   }
 
   @test

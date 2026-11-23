@@ -1521,4 +1521,68 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
       delete models["Test/Missing"];
     }
   }
+
+  @test
+  async operationNamingSingularAndPluralResolveRoutes() {
+    const { Brand } = await (async () => {
+      const { MemoryRepository, registerRepository } = await import("@webda/models");
+      const { useModel } = await import("../application/hooks.js");
+      const Brand = useModel("Brand");
+      registerRepository(Brand, new MemoryRepository(Brand, ["uuid"]));
+      return { Brand };
+    })();
+    const { DomainService, DomainServiceParameters } = await import("../services/domainservice.service.js");
+    const operations = useInstanceStorage().operations!;
+    const clearBrandOps = () => {
+      for (const key of Object.keys(operations)) {
+        if (key.startsWith("Brand")) {
+          delete operations[key];
+        }
+      }
+    };
+
+    try {
+      // Singular mode: Brand.Query should be exposed via REST
+      clearBrandOps();
+      const singularDomain = new DomainService(
+        "DomainSingular",
+        new DomainServiceParameters().load({ operationNaming: "singular", models: ["WebdaDemo/Brand"] })
+      );
+      this.registerService(singularDomain);
+      singularDomain.initOperations();
+      const singularTransport = new RESTOperationsTransport(
+        "SingularRESTTransport",
+        new RESTOperationsTransportParameters().load({ url: "/ns/", exposeOpenAPI: false })
+      );
+      this.registerService(singularTransport);
+      singularTransport.resolve();
+      await singularTransport.init();
+      const qRes = await this.routerHttp({ method: "PUT", url: "/ns/brands", body: {} });
+      assert.ok(Array.isArray(qRes.results));
+
+      // Plural mode: Brands.Create and Brands.Get should be exposed via REST
+      clearBrandOps();
+      const pluralDomain = new DomainService(
+        "DomainPlural",
+        new DomainServiceParameters().load({ operationNaming: "plural", models: ["WebdaDemo/Brand"] })
+      );
+      this.registerService(pluralDomain);
+      pluralDomain.initOperations();
+      const pluralTransport = new RESTOperationsTransport(
+        "PluralRESTTransport",
+        new RESTOperationsTransportParameters().load({ url: "/np/", exposeOpenAPI: false })
+      );
+      this.registerService(pluralTransport);
+      pluralTransport.resolve();
+      await pluralTransport.init();
+      const created = await this.routerHttp({ method: "POST", url: "/np/brands", body: { name: "Acme" } });
+      assert.strictEqual(created.name, "Acme");
+      const fetched = await this.routerHttp({ method: "GET", url: `/np/brands/${created.uuid}` });
+      assert.strictEqual(fetched.name, "Acme");
+    } finally {
+      clearBrandOps();
+      // Restore default mixed operations for any subsequent tests
+      useDynamicService<DomainService>("DomainService").initOperations();
+    }
+  }
 }

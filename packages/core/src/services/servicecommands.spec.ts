@@ -427,6 +427,45 @@ class ExecuteServiceCommandTest {
   }
 
   @test
+  async absentProviderOfASharedCommandIsNotAWarning() {
+    const memory = new MemoryLogger(useWorkerOutput(), "WARN");
+    const calls: string[] = [];
+    // Two services declare the command, only one is configured
+    const services = {
+      "MyApp/ContainerDeployer": {
+        template: async () => {
+          calls.push("container");
+        }
+      }
+    } as any;
+    const cmdInfo = {
+      description: "Template",
+      services: [
+        { name: "MyApp/FunctionsDeployer", method: "template", type: "MyApp/FunctionsDeployer" },
+        { name: "MyApp/ContainerDeployer", method: "template", type: "MyApp/ContainerDeployer" }
+      ],
+      args: {}
+    };
+    try {
+      assert.strictEqual(await executeServiceCommand("template", cmdInfo, {}, services), 0);
+      assert.deepStrictEqual(calls, ["container"]);
+      assert.deepStrictEqual(
+        memory.getLogs().filter(log => log.log?.level === "WARN"),
+        []
+      );
+      // None configured: the command still fails
+      assert.strictEqual(await executeServiceCommand("template", cmdInfo, {}, {}), 1);
+      assert.ok(
+        memory
+          .getLogs()
+          .some(log => log.log?.args.join(" ").includes("No service instance found to run command 'template'"))
+      );
+    } finally {
+      memory.close();
+    }
+  }
+
+  @test
   async missingMethodIsReportedWithTheInstanceName() {
     const memory = new MemoryLogger(useWorkerOutput(), "ERROR");
     const services = { Unit: { getName: () => "Unit" } } as any;

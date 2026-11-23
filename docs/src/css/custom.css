@@ -107,3 +107,91 @@
     width: 300px;
   }
 }
+
+/* Documentation tables use the same blue/cyan palette as the Webda jigsaw.
+   Keep Infima's horizontal overflow so wide reference tables stay usable. */
+.theme-doc-markdown table {
+  --webda-table-accent: #4557a4;
+  --webda-table-border: #dce1ef;
+  --webda-table-header: #eef1fa;
+  --webda-table-stripe: #f8f9fc;
+  --webda-table-hover: #edf5fc;
+  border: 1px solid var(--webda-table-border);
+  border-top: 3px solid var(--webda-table-accent);
+  border-radius: 10px;
+  border-collapse: separate;
+  border-spacing: 0;
+  max-width: 100%;
+  background: var(--ifm-background-color);
+  box-shadow: 0 3px 12px rgb(30 45 90 / 5%);
+  scrollbar-color: var(--webda-table-accent) var(--webda-table-header);
+  scrollbar-width: thin;
+}
+
+[data-theme="dark"] .theme-doc-markdown table {
+  --webda-table-accent: #a6b2ff;
+  --webda-table-border: #383e52;
+  --webda-table-header: #272d43;
+  --webda-table-stripe: #202127;
+  --webda-table-hover: #253449;
+}
+
+.theme-doc-markdown table tr {
+  border: 0;
+  background: transparent;
+}
+
+.theme-doc-markdown table :is(th, td) {
+  padding: 0.85rem 1rem;
+  border: 0;
+  line-height: 1.6;
+}
+
+.theme-doc-markdown table th {
+  background: var(--webda-table-header);
+  color: var(--webda-table-accent);
+  font-weight: 650;
+}
+
+.theme-doc-markdown table td {
+  vertical-align: top;
+  border-top: 1px solid var(--webda-table-border);
+  transition: background-color 140ms ease;
+}
+
+.theme-doc-markdown table tbody tr:nth-child(even) td {
+  background: var(--webda-table-stripe);
+}
+
+.theme-doc-markdown table tbody tr:focus-within td {
+  background: var(--webda-table-hover);
+}
+
+@media (hover: hover) {
+  .theme-doc-markdown table tbody tr:hover td {
+    background: var(--webda-table-hover);
+  }
+}
+
+.theme-doc-markdown table a {
+  text-underline-offset: 0.2em;
+  text-decoration-thickness: 1px;
+}
+
+.theme-doc-markdown table a:focus-visible {
+  outline: 2px solid var(--webda-table-accent);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+@media (max-width: 600px) {
+  .theme-doc-markdown table :is(th, td) {
+    padding: 0.65rem 0.8rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-doc-markdown table td {
+    transition: none;
+  }
+}

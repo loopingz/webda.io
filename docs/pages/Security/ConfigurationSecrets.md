@@ -60,20 +60,9 @@ maps to its own place:
 | Local development | `FileConfiguration` on `local.config.jsonc`     | plain values, the file is ignored by git      |
 | Deployed (k8s)    | `KubernetesConfigurationService` on a ConfigMap | encrypted with the `pki` encrypter, committed |
 
-```mermaid
-flowchart LR
-  subgraph Repo["Git repository"]
-    CFG["webda.config.jsonc<br/>no secret"]
-    DEP["deployments/production.jsonc<br/>Configuration: KubernetesConfigurationService"]
-    CM["k8s/webda.jsonc<br/>crypt:pki:v1:..."]
-    PUB[".webda/keys/*.pub.pem"]
-  end
-  LOCAL["local.config.jsonc<br/>(gitignored, plain)"] --> DEV["webda debug"]
-  CFG --> DEV
-  CM -->|kubectl create configmap| POD["Pod"]
-  SEC["Secret webda-pki<br/>private keys"] -->|/etc/webda/pki| POD
-  DEP --> POD
-```
+import ConfigurationSecretsFlow from "@site/src/components/ConfigurationSecretsFlow";
+
+<ConfigurationSecretsFlow />
 
 #### 1. The application: no secret, a file source for development
 

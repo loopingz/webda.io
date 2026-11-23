@@ -212,6 +212,18 @@ export function isInternalModel(model: any): boolean {
 }
 
 /** Parameters for DomainService, controlling model exposure, URL naming, and query methods */
+/**
+ * Naming mode for model operation IDs in DomainService
+ *
+ * - `"mixed"`: singular for item operations (`User.Create`, `User.Get`, ...) and plural for `Query` (`Users.Query`)
+ * - `"singular"`: always use singular model name (`User.Query`, `User.Create`, ...)
+ * - `"plural"`: always use plural model name (`Users.Query`, `Users.Create`, ...)
+ */
+export type OperationNamingMode = "mixed" | "singular" | "plural";
+
+/**
+ * Configuration parameters for DomainService
+ */
 export class DomainServiceParameters extends ServiceParameters {
   /**
    * Expose objects as operations too
@@ -219,6 +231,12 @@ export class DomainServiceParameters extends ServiceParameters {
    * @default true
    */
   operations?: boolean;
+  /**
+   * Naming mode for model operation IDs
+   *
+   * @default "mixed"
+   */
+  operationNaming?: OperationNamingMode;
   /**
    * Transform the name of the model to be used in the URL
    *
@@ -255,6 +273,7 @@ export class DomainServiceParameters extends ServiceParameters {
     super.load(params);
     // Init default here
     this.operations ??= true;
+    this.operationNaming ??= "mixed";
     this.nameTransfomer ??= "camelCase";
     this.queryMethod ??= "PUT";
     this.models ??= ["*"];
@@ -829,6 +848,9 @@ export class DomainService<
       }
       const shortId = Metadata.Identifier.split("/").pop();
       const plural = Metadata.Plural;
+      const naming = this.parameters.operationNaming ?? "mixed";
+      const itemModelName = naming === "plural" ? plural : shortId;
+      const queryModelName = naming === "singular" ? shortId : plural;
       const modelSchema = modelKey;
       const actionsName = Object.keys(Metadata.Actions);
 
@@ -875,7 +897,7 @@ export class DomainService<
         .filter(k => !actionsName.includes(k))
         .forEach(k => {
           k = k.substring(0, 1).toUpperCase() + k.substring(1);
-          const id = `${shortId}.${k}`;
+          const id = `${itemModelName}.${k}`;
           registerOperation(id, {
             service: this.getName(),
             method: k === "Create" ? "modelCreate" : "modelUpdate",
@@ -894,7 +916,7 @@ export class DomainService<
         .filter(k => !actionsName.includes(k))
         .forEach(k => {
           k = k.substring(0, 1).toUpperCase() + k.substring(1);
-          const id = `${shortId}.${k}`;
+          const id = `${itemModelName}.${k}`;
           registerOperation(id, {
             service: this.getName(),
             method: `model${k}`,
@@ -910,7 +932,7 @@ export class DomainService<
           });
         });
       if (!actionsName.includes("query")) {
-        const id = `${plural}.Query`;
+        const id = `${queryModelName}.Query`;
         registerOperation(id, {
           service: this.getName(),
           method: "modelQuery",
@@ -926,7 +948,7 @@ export class DomainService<
       }
       // Add patch
       if (!actionsName.includes("update")) {
-        const id = `${shortId}.Patch`;
+        const id = `${itemModelName}.Patch`;
         registerOperation(id, {
           service: this.getName(),
           method: "modelPatch",
@@ -946,7 +968,7 @@ export class DomainService<
       Object.keys(actions)
         .filter(k => !["create", "update", "delete", "get", "query"].includes(k))
         .forEach(name => {
-          const id = `${shortId}.${name.substring(0, 1).toUpperCase() + name.substring(1)}`;
+          const id = `${itemModelName}.${name.substring(0, 1).toUpperCase() + name.substring(1)}`;
           const info: any = {
             service: this.getName(),
             method: `modelAction`,
@@ -993,7 +1015,7 @@ export class DomainService<
           registerOperation(id, info);
         });
 
-      this.addBehaviorOperations(model as any, Metadata, shortId);
+      this.addBehaviorOperations(model as any, Metadata, itemModelName);
     }
   }
 

@@ -926,7 +926,7 @@
       "Schema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
-        "description": "Parameters for DomainService, controlling model exposure, URL naming, and query methods",
+        "description": "Configuration parameters for DomainService",
         "properties": {
           "models": {
             "default": [
@@ -954,6 +954,16 @@
             "see": [
               "https://blog.boot.dev/clean-code/casings-in-coding/#:~:text=%F0%9F%94%97%20Camel%20Case,Go",
               "https://blog.boot.dev/clean-code/casings-in-coding/#:~:text=%F0%9F%94%97%20Camel%20Case,Go"
+            ],
+            "type": "string"
+          },
+          "operationNaming": {
+            "default": "mixed",
+            "description": "Naming mode for model operation IDs",
+            "enum": [
+              "mixed",
+              "singular",
+              "plural"
             ],
             "type": "string"
           },

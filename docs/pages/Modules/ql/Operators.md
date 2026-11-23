@@ -229,7 +229,7 @@ Clauses must appear in this order: filter → ORDER BY → LIMIT → OFFSET.
 npx vitest run packages/ql/src/query.spec.ts
 ```
 
-The spec file covers all operators including equality, LIKE, IN, CONTAINS, >=, <=, >, <, !=, AND, OR, and mixed expressions.
+The spec file covers all operators including equality, `LIKE`, `IN`, `CONTAINS`, `>=`, `<=`, `>`, `<`, `!=`, `AND`, `OR`, and mixed expressions.
 
 ## See also
 

@@ -6,9 +6,15 @@ import ServiceLifecycle from "@site/src/components/ServiceLifecycle";
 
 # Services
 
+Services hold integrations, background tasks, and behavior that spans multiple models. Webda creates and manages each service through a shared lifecycle.
+
+## When to use a service
+
+Use a service for work that does not belong to one model. For a complete implementation, follow [My First Service](../../QuickStart/FirstService.md).
+
 ## Bean
 
-When you create a service with the `@Bean` annotation, the service becomes a Bean: a singleton of your application, it won't be reusable
+A service decorated with `@Bean` is an application singleton. It starts without an explicit service entry when it belongs to the main application.
 
 ## Lifecycle
 
@@ -25,35 +31,35 @@ See [Service Lifecycle](../../Modules/core/Lifecycle.md) for hook signatures, ex
 
 ## Generic Parameters
 
-A Service is a generic class that has at least 2 Parameters:
+A service can declare its parameter class and the events it emits:
 
+```typescript title="Service type parameters"
+Service<T extends ServiceParameters, E extends Events>
 ```
-Service<T extends ServiceParameters,E extends Events>
 
-T: Define the class that define and load the parameters from the configuration
-E: Define the events and their types that the service emits
-```
+- `T` defines and loads configuration parameters.
+- `E` defines event names and payload types.
 
 ## Dependencies
 
 ### @Inject
 
-You can use @Inject to retrieve another Service
+Use `@Inject` to declare a service dependency. Access injected dependencies during `resolve()` or later.
 
 ## Predefined Services
 
-Webda have some predefined services that are created by default:
+Webda provides these built-in services:
 
-| Name           | Description                                                    | Default Type               |
-| -------------- | -------------------------------------------------------------- | -------------------------- |
-| Configuration  | Load the configuration from the configuration file             | N/A                        |
-| Registry       | The default storage for objects in Webda                       | Webda/MemoryStore          |
-| CryptoService  | The service that provide the encryption and decryption of data | Webda/CryptoService        |
-| Router         | The service that manage the routing of the application         | Webda/Router               |
-| TokenService   | Issues access tokens (JWT) and rotating refresh tokens         | Webda/TokenService         |
-| SessionManager | The service that manage the session of the user                | Webda/CookieSessionManager |
+| Name           | Description                                            | Default Type               |
+| -------------- | ------------------------------------------------------ | -------------------------- |
+| Configuration  | Load the configuration from the configuration file     | N/A                        |
+| Registry       | The default storage for objects in Webda               | Webda/MemoryStore          |
+| CryptoService  | Encrypts and decrypts data                             | Webda/CryptoService        |
+| Router         | Routes application requests                            | Webda/Router               |
+| TokenService   | Issues access tokens (JWT) and rotating refresh tokens | Webda/TokenService         |
+| SessionManager | Manages user sessions                                  | Webda/CookieSessionManager |
 
-## See also
+## Next steps
 
 - [Core Services](../../Modules/core/Services.md)
 - [Core Service Lifecycle](../../Modules/core/Lifecycle.md)

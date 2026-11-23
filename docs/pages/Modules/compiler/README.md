@@ -90,7 +90,7 @@ It no longer generates code: `webdac build` does, without touching your sources.
 
 ### See also
 
-- [Build reference](_media/Build.md)
-- [Code generation](_media/CodeGen.md)
-- [Module manifest](_media/ModuleManifest.md)
-- [Extending the compiler](_media/Plugins.md)
+- [Build reference](Build.md)
+- [Code generation](CodeGen.md)
+- [Module manifest](ModuleManifest.md)
+- [Extending the compiler](Plugins.md)

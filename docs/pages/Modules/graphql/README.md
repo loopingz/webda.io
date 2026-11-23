@@ -130,7 +130,7 @@ Set `exposeGraphiQL: true` (the default) to enable the in-browser GraphiQL IDE a
 
 ### See also
 
-- [Schema Generation](_media/Schema-Generation.md)
-- [Queries and Mutations](_media/Queries-And-Mutations.md)
-- [Subscriptions](_media/Subscriptions.md)
-- [@webda/core DomainService](_media/README.md) — base class for model-serving services
+- [Schema Generation](Schema-Generation.md)
+- [Queries and Mutations](Queries-And-Mutations.md)
+- [Subscriptions](Subscriptions.md)
+- [@webda/core DomainService](../core/README.md) — base class for model-serving services

@@ -81,7 +81,7 @@ await Task.query("owner = :owner OR reviewer = :owner", { owner: user });
 WebdaQL.bind("priority >= ? LIMIT ?", [2, 10]); // priority >= 2 LIMIT 10
 ```
 
-Placeholders are only allowed where a value is expected, values are escaped by type, and `= ?` / `!= ?` with `null` become `IS NULL` / `IS NOT NULL`. Template literals passed straight to a query method are escaped the same way at compile time by `webdac`. See [Parameters](_media/Parameters.md).
+Placeholders are only allowed where a value is expected, values are escaped by type, and `= ?` / `!= ?` with `null` become `IS NULL` / `IS NOT NULL`. Template literals passed straight to a query method are escaped the same way at compile time by `webdac`. See [Parameters](Parameters.md).
 
 ### API reference
 
@@ -101,7 +101,7 @@ Placeholders are only allowed where a value is expected, values are escaped by t
 
 ### See also
 
-- [WQL Syntax reference](_media/Syntax.md)
-- [Operators](_media/Operators.md)
-- [Parameters](_media/Parameters.md) — binding values safely
-- [Store Translators](_media/Translators.md) — how each Store backend converts WQL
+- [WQL Syntax reference](Syntax.md)
+- [Operators](Operators.md)
+- [Parameters](Parameters.md) — binding values safely
+- [Store Translators](Translators.md) — how each Store backend converts WQL

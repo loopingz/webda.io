@@ -22,3 +22,89 @@
 :global([data-theme="dark"]) .diagram {
   color-scheme: dark;
 }
+.viewport {
+  display: block;
+  position: relative;
+  width: 100%;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  text-align: inherit;
+  cursor: zoom-in;
+  overflow: hidden;
+}
+.enlarge {
+  display: block;
+  padding: 0.5rem 0.75rem;
+  text-align: right;
+  font-size: 0.8rem;
+  color: var(--ifm-color-primary);
+  background: var(--ifm-background-surface-color);
+  border-top: 1px solid var(--ifm-color-emphasis-200);
+}
+.viewport:focus-visible,
+.controls button:focus-visible,
+.canvas:focus-visible {
+  outline: 3px solid var(--ifm-color-primary);
+  outline-offset: 3px;
+}
+.dialog {
+  width: min(1400px, 96vw);
+  max-width: 96vw;
+  max-height: 92dvh;
+  padding: 1rem;
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 1rem;
+  background: var(--ifm-background-color);
+  color: var(--ifm-font-color-base);
+  box-shadow: 0 24px 80px rgb(0 0 0 / 30%);
+}
+.dialog::backdrop {
+  background: rgb(10 16 32 / 75%);
+}
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.controls {
+  display: flex;
+  gap: 0.4rem;
+}
+.controls button {
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 0.5rem;
+  background: var(--ifm-background-surface-color);
+  color: inherit;
+  cursor: pointer;
+}
+.controls button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.help {
+  margin: 0.75rem 0;
+  font-size: 0.85rem;
+  color: var(--ifm-color-emphasis-700);
+}
+.canvas {
+  overflow: auto;
+  max-height: 65dvh;
+  overscroll-behavior: contain;
+}
+.zoomStatus {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--ifm-color-emphasis-700);
+}
+@media print {
+  .enlarge,
+  .dialog {
+    display: none;
+  }
+}

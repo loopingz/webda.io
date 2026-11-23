@@ -1,26 +1,35 @@
 # Configuration Service
 
-The Configuration Service allows you to get new configuration dynamically either by watching the configuration store or by checking at regular interval.
+ConfigurationService refreshes application parameters from files, configuration stores, or secret providers. It applies an update only when the configuration changes.
 
-It will trigger only when the object changes.
+## When to use it
 
-```js title="local.config.json"
+Use dynamic configuration for values that can change while the application runs, such as feature settings or integration parameters. Service types remain fixed.
+
+## Before you begin
+
+Start with a [configured service](../../QuickStart/FirstService.md) and choose a configuration provider from the list below.
+
+## Configuration values
+
+```json title="local.config.json"
 {
-	"parameters": {
-		"param2": "test"
-	},
-	"services": {
-		"MyService": {
-			"param1": "dynamic"
-		}
-	}
+  "parameters": {
+    "param2": "test"
+  },
+  "services": {
+    "MyService": {
+      "param1": "dynamic"
+    }
+  }
 }
 ```
 
-The configuration shared parameters is also available.
+The `parameters` section supplies shared values; `services` supplies values for individual services.
 
-A service cannot be changed into another type of service for security purpose.
-Creating dynamic route through the ConfigurationService is not recommended, it will be probably be block in the near future.
+:::warning Service types stay fixed
+Configuration updates cannot change an existing service into another type. Treat route definitions as application code rather than dynamic configuration.
+:::
 
 ## Dynamic updates
 
@@ -32,11 +41,17 @@ Sources are read and merged in their configured order, starting from the default
 
 ## Existing Configuration Provider
 
-- \{@link FileConfiguration} to simply use a file as configuration
-- \{@link KubernetesConfiguration} to simply use Kubernetes Secrets or ConfigMap
+- `FileConfiguration` loads configuration from a file.
+- [KubernetesConfiguration](../../Modules/kubernetes/KubernetesConfiguration.md) loads Kubernetes Secrets or ConfigMaps.
 - AWS Secrets Manager (`@webda/aws`) and Azure Key Vault (`@webda/azure`)
 
 ## Encrypted values
 
 The configuration returned by the sources can contain encrypted values (`crypt:<encrypter>:<data>`): they are
 decrypted before being applied, like in `webda.config.jsonc`. See [Configuration Secrets](../../Security/ConfigurationSecrets.md).
+
+## Next steps
+
+- [Protect configuration secrets](../../Security/ConfigurationSecrets.md).
+- [Mount Kubernetes configuration](../../Modules/kubernetes/KubernetesConfiguration.md).
+- [Understand service startup and shutdown](./Services.md#lifecycle).

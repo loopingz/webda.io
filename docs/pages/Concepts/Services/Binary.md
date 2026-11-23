@@ -72,7 +72,7 @@ The above configuration will allow a user to link a binary to a user on the fiel
 
 To configure just add the parameter bucket
 
-\{@link S3Binary}
+See [S3Binary configuration](../../Modules/aws/S3Binary.md).
 
 ## FileBinary
 

@@ -4,17 +4,41 @@ sidebar_position: 1
 
 # Quick Start
 
-Webda requires Node.js 22 or later.
+Create a Webda application, run it locally, and explore its generated models and services.
+
+## Before you begin
+
+You need **Node.js 22 or later** and npm or pnpm installed. No global Webda installation is required.
+
+import Tabs from "@theme/Tabs";
+import TabItem from "@theme/TabItem";
 
 ## Create the application
 
-```shell
+<Tabs groupId="package-manager">
+<TabItem value="npm" label="npm">
+
+```shell title="Terminal"
 npm create @webda my-app
 cd my-app
 ```
 
+</TabItem>
+<TabItem value="pnpm" label="pnpm">
+
+```shell title="Terminal"
+pnpm create @webda my-app
+cd my-app
+```
+
+</TabItem>
+</Tabs>
+
 The command asks for the store and the transports, then installs the dependencies and initializes a git repository.
-To skip the questions, pass the options directly:
+
+:::tip Repeatable setup
+Pass options directly to skip the interactive questions.
+:::
 
 ```shell
 npm create @webda my-app -- --store postgres --transports rest,graphql --yes
@@ -55,6 +79,8 @@ my-app/
 
 ## Run it
 
+Start the development server, then open `http://localhost:18080`. The commands below also build your application.
+
 ```shell
 npm run debug   # build, then dev server with the interactive debug console on http://localhost:18080
 npm run serve   # build, then HTTP server on http://localhost:18080
@@ -73,7 +99,7 @@ folder (JSON schemas, operations). Do not edit these files: change the code and 
 The build writes the JSON schema of your configuration to `.webda/config.schema.json`, and the generated
 `webda.config.json` references it:
 
-```json
+```json title="webda.config.json" {2}
 {
   "$schema": ".webda/config.schema.json",
   "version": 4,

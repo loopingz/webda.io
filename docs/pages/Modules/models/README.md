@@ -112,8 +112,8 @@ Instance operations become `PUT /<plural>/{key}/<method>` and static ones `PUT /
 
 ### See also
 
-- [Defining Models](_media/Defining-Models.md)
-- [Relationships](_media/Relationships.md)
-- [Lifecycle](_media/Lifecycle.md)
-- [Actions](_media/Actions.md)
-- [Permissions](_media/Permissions.md)
+- [Defining Models](Defining-Models.md)
+- [Relationships](Relationships.md)
+- [Lifecycle](Lifecycle.md)
+- [Actions](Actions.md)
+- [Permissions](Permissions.md)

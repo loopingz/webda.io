@@ -9,7 +9,7 @@ We might want to explore using this module: https://github.com/jean-humann/docs-
 
 The blog overview uses `src/components/BlogModelSchema` to display the editable vector artwork in
 `static/img/tutorials/blog-model-schema.svg`. The SVG has an accessible title and relationship description;
-the component supplies image alternative text, a full-size link, and a keyboard-scrollable viewport on small screens.
+the component supplies image alternative text, a full-size link, and a responsive image that scales to small screens.
 
 Keep the relationships aligned with `sample-apps/blog-system/src/models/`: a user authors posts and comments,
 posts have comments, `PostTag` joins posts and tags, and `UserFollow` connects the follower and following user roles.
@@ -29,7 +29,7 @@ The static view explains the entire sequence without playback. Keep the hook des
 `packages/core/src/services/service.ts` and `packages/core/src/core/core.ts`.
 
 Both diagrams share `src/components/DiagramFigure` for theme selection, alternative text, a full-size link,
-and keyboard scrolling. Keep text horizontal and legible in both themes; avoid encoding lifecycle timing as
+and proportional sizing on small screens. Keep text horizontal and legible in both themes; avoid encoding lifecycle timing as
 arbitrary dates or lengths.
 
 ## Dynamic configuration diagram

@@ -205,6 +205,11 @@
             "type": "string",
             "x-webda-secret": true
           },
+          "forwardCredentials": {
+            "default": false,
+            "description": "Forward the client `Authorization` and `Cookie` headers to the backend\n\nThey carry the caller's credentials for this application (session cookie, bearer token):\nenable it only when the backend is trusted with them",
+            "type": "boolean"
+          },
           "proxyHeaders": {
             "default": true,
             "description": "Add X-Forwarded-* headers",

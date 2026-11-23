@@ -62,6 +62,25 @@ pnpm add @webda/runtime
 }
 ```
 
+### ProxyService headers
+
+The proxy forwards the client request headers with their keys lowercased, so the headers it sets itself
+(`x-forwarded-*`, `host`, and the extra headers a subclass passes to `rawProxy`) replace any client header of the
+same name. It never forwards hop-by-hop headers (`connection`, `keep-alive`, `proxy-authorization`, `te`,
+`trailer`, `upgrade`, ... and the headers listed in `Connection`).
+
+The client `Authorization` and `Cookie` headers are not forwarded either: they carry the caller's credentials for
+this application. Set `forwardCredentials: true` only when the backend must receive them and is trusted with them:
+
+```json
+{
+  "type": "ProxyService",
+  "url": "/legacy",
+  "backend": "http://old-service:8080",
+  "forwardCredentials": true
+}
+```
+
 ## Reference
 
 - API reference: see the auto-generated typedoc at `docs/pages/Modules/runtime/`.

@@ -1,5 +1,6 @@
-import { existsSync } from "node:fs";
-import { execSync } from "node:child_process";
+import { existsSync, mkdirSync, rmSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import tseslint from "typescript-eslint";
 import eslintConfigPrettier from "eslint-config-prettier";
 import unusedImports from "eslint-plugin-unused-imports";
@@ -7,7 +8,32 @@ import jsdoc from "eslint-plugin-jsdoc";
 
 const webdaPluginPath = new URL("./packages/eslint-plugin/lib/index.js", import.meta.url);
 if (!existsSync(webdaPluginPath)) {
-  execSync("pnpm --filter @webda/eslint-plugin run build", { stdio: "inherit" });
+  const lockDir = new URL("./packages/eslint-plugin/.build-lock", import.meta.url);
+  let acquired = false;
+  try {
+    mkdirSync(lockDir);
+    acquired = true;
+  } catch {
+    const sab = new SharedArrayBuffer(4);
+    const view = new Int32Array(sab);
+    const deadline = Date.now() + 30000;
+    while (existsSync(lockDir) && Date.now() < deadline) {
+      Atomics.wait(view, 0, 0, 50);
+    }
+  }
+  if (acquired) {
+    try {
+      if (!existsSync(webdaPluginPath)) {
+        const tscBin = fileURLToPath(
+          new URL("./packages/eslint-plugin/node_modules/typescript/bin/tsc", import.meta.url)
+        );
+        const tsConfig = fileURLToPath(new URL("./packages/eslint-plugin/tsconfig.json", import.meta.url));
+        execFileSync(process.execPath, [tscBin, "-p", tsConfig], { stdio: "inherit" });
+      }
+    } finally {
+      rmSync(lockDir, { recursive: true, force: true });
+    }
+  }
 }
 const { default: webdaPlugin } = await import(webdaPluginPath.href);
 

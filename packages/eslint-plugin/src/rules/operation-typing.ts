@@ -36,9 +36,11 @@ const rule: Rule.RuleModule = {
           return;
         }
         const fn = node.value;
+        /* v8 ignore start -- defensive guard: MethodDefinition always has a value */
         if (!fn) {
           return;
         }
+        /* v8 ignore stop */
         const params: any[] = fn.params || [];
         for (const param of params) {
           const typeNode = getParameterTypeAnnotation(param);

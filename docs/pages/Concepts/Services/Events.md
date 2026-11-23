@@ -7,20 +7,11 @@ The framework use the EventEmitter for events.
 We also have a mechanism to listen asynchronously to events (`AsyncEvents` service of `@webda/async`). They will then be posted to a Queue for them
 to be consumed through its `worker()`
 
-```mermaid
-sequenceDiagram
-	participant S as Service
-	participant As as AsyncEventService
-	participant Q as Queue
-    participant Aw as AsyncEventService Worker
-    As->>S: Bind event to a sendQueue listener
-	activate As
-	S->>As: Emit event
-    As->>Q: Push the event to the queue
-	deactivate As
-	Aw->>Q: Consume queue
-	Aw->>Aw: Call the original listener
-```
+import ServiceEvents from "@site/src/components/ServiceEvents";
+
+<ServiceEvents />
+
+For an asynchronous listener, `await service.emit(...)` waits for the queue-send promise, not for the original callback to finish. The worker consumes the event, restores its payload, and awaits the registered callbacks.
 
 ### `Webda.Init.Services`
 

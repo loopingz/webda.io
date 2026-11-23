@@ -40,3 +40,11 @@ merge, compare, decrypt, and apply pipeline, including the unchanged-value path.
 Keep behavior aligned with `packages/core/src/configurations/configuration.service.ts` and
 `Core.updateConfiguration` in `packages/core/src/core/core.ts`: updates load changed parameters,
 not a full service restart. The diagram uses the shared `DiagramFigure` and canonical jigsaw outline.
+
+## Service events diagram
+
+`src/components/ServiceEvents` displays `static/img/concepts/service-events.svg` on the Events page.
+The diagram separates listener registration from delivery through AsyncEvents, a queue, and its worker.
+Keep the enqueue/completion boundary aligned with `packages/async/src/services/asyncevents.service.ts`
+and `Service.emit`: awaiting the queue-send listener does not await the worker's original callbacks.
+It reuses the transparent, theme-aware `DiagramFigure` and canonical jigsaw outline.

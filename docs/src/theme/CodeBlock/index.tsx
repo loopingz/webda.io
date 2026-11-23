@@ -24,9 +24,11 @@ export default function CodeBlockWrapper(props: Props) {
     <div className="docs-code-example">
       <div className="docs-code-language">
         <span>{language}</span>
-        <WebdaJigsaw fillColor={color} style={{ width: 18, height: 18 }} />
       </div>
       <CodeBlock {...props} />
+      <span className="docs-code-jigsaw" aria-hidden="true">
+        <WebdaJigsaw fillColor={color} />
+      </span>
     </div>
   );
   return lines > 35 ? (

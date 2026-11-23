@@ -278,7 +278,7 @@
   overflow: hidden;
   margin-bottom: 1.5rem;
 }
-.docs-code-example > div:last-child {
+.docs-code-example > div:nth-child(2) {
   margin-bottom: 0;
   border-radius: 0;
   box-shadow: none;
@@ -343,4 +343,25 @@
 .docs-code-details[open] .docs-code-show,
 .docs-code-details:not([open]) .docs-code-hide {
   display: none;
+}
+
+.docs-code-example {
+  position: relative;
+}
+.docs-code-jigsaw {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 30px;
+  height: 30px;
+  pointer-events: none;
+  transform: scaleX(-1);
+}
+.docs-code-jigsaw svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.docs-code-example pre {
+  padding-bottom: 2.25rem;
 }

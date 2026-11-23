@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -148,7 +148,7 @@ describe("WebdaLinter", () => {
     });
 
     it("lints a full project with dependencies, config, deployments, and untyped operations", () => {
-      const dir = mkdtempSync(join(tmpdir(), "webda-lint-"));
+      const dir = realpathSync(mkdtempSync(join(tmpdir(), "webda-lint-")));
       try {
         writeFileSync(
           join(dir, "package.json"),
@@ -193,7 +193,8 @@ describe("WebdaLinter", () => {
                 Plural: "Tasks",
                 Actions: {
                   create: {},
-                  doThing: { global: true }
+                  doThing: { global: true },
+                  noInputAction: { global: true }
                 }
               }
             },
@@ -289,6 +290,13 @@ describe("WebdaLinter", () => {
         };
         mergeDependencyModules(dir, mod);
         expect(lintModule(mod, mod, { services: { s: { models: ["UnknownModel", 123] } } })).toEqual([]);
+        expect(
+          lintModule(
+            { models: { "App/Orphan": {} as any } } as WebdaModule,
+            { moddas: {}, beans: {}, deployers: {}, schemas: {} } as WebdaModule,
+            { services: { s: { models: ["App/X"] } } }
+          ).some(i => i.rule === "module/orphan-model")
+        ).toBe(true);
         expect(lintConfiguration({} as WebdaModule, { services: { s: {} } })).toEqual([]);
         expect(lintProject(dir).issues).toEqual([]);
       } finally {

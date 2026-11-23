@@ -276,7 +276,7 @@ export function lintModule(
   try {
     const ops = generateOperations(mergedMod);
     for (const [opId, op] of Object.entries(ops.operations)) {
-      const inputSchema = op.input ? ops.schemas[op.input] : undefined;
+      const inputSchema = ops.schemas[op.input!];
       if (inputSchema && inputSchema.type === "object" && !inputSchema.properties && !inputSchema.$ref) {
         issues.push({
           rule: "module/untyped-operation",
@@ -321,7 +321,7 @@ export function lintProject(projectPath: string): LintResult {
   let namespace = "Webda";
   try {
     const project = new WebdaProject(root);
-    namespace = project.namespace || "Webda";
+    namespace = project.namespace;
   } catch {
     // Allow linting even without a complete package.json
   }

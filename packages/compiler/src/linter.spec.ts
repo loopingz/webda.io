@@ -171,10 +171,14 @@ describe("WebdaLinter", () => {
             capabilities: { rest: true }
           })
         );
-        // Symlink to dependency to exercise symlink branch
-        symlinkSync(depDir, join(dir, "node_modules", "linked-core"));
-        // Broken symlink to exercise catch branch
-        symlinkSync(join(dir, "does-not-exist"), join(dir, "node_modules", "broken-link"));
+        // Junction works without admin privileges on Windows
+        symlinkSync(depDir, join(dir, "node_modules", "linked-core"), "junction");
+        // Broken symlink to exercise catch branch (skip if OS disallows unprivileged file symlinks)
+        try {
+          symlinkSync(join(dir, "does-not-exist"), join(dir, "node_modules", "broken-link"));
+        } catch {
+          // Ignore on Windows without Developer Mode
+        }
 
         // Local webda.module.json with an untyped operation
         writeFileSync(

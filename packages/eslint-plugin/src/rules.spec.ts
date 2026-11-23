@@ -1,7 +1,15 @@
 import { RuleTester } from "eslint";
 import tseslint from "typescript-eslint";
-import { describe, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import plugin from "./index.js";
+import {
+  findDecorator,
+  findEnclosingClass,
+  getClassExtendsName,
+  getDecoratorName,
+  isModelClass,
+  isServiceClass
+} from "./utils.js";
 
 RuleTester.describe = describe;
 RuleTester.it = it;
@@ -256,5 +264,15 @@ describe("@webda/eslint-plugin rules", () => {
         errors: [{ messageId: "preferWebdaError" }]
       }
     ]
+  });
+
+  it("utils handle edge cases gracefully", () => {
+    expect(getDecoratorName(null)).toBeUndefined();
+    expect(getDecoratorName({ expression: { type: "Literal" } })).toBeUndefined();
+    expect(findDecorator({}, "Operation")).toBeUndefined();
+    expect(getClassExtendsName({})).toBeUndefined();
+    expect(isModelClass({})).toBe(false);
+    expect(isServiceClass({})).toBe(false);
+    expect(findEnclosingClass({})).toBeUndefined();
   });
 });

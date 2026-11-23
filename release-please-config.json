@@ -23,6 +23,7 @@
     "packages/debug": {},
     "packages/decorators": {},
     "packages/elasticsearch": {},
+    "packages/eslint-plugin": {},
     "packages/fs": {},
     "packages/gcp": {},
     "packages/google-auth": {},

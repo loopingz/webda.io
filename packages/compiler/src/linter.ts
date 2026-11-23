@@ -1,6 +1,6 @@
 import { FileUtils, JSONUtils } from "@webda/utils";
 import { existsSync, lstatSync, readdirSync, realpathSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
+import { join, relative, resolve, sep } from "node:path";
 import { WebdaModule, WebdaProject } from "./definition.js";
 import { generateOperations } from "./operations.js";
 
@@ -353,7 +353,9 @@ export function lintProject(projectPath: string): LintResult {
     const configPath = FileUtils.getConfigurationFile(join(root, "webda.config"));
     if (configPath && existsSync(configPath)) {
       mainConfig = FileUtils.load(configPath);
-      issues.push(...lintConfiguration(mergedMod, mainConfig, relative(root, configPath), namespace));
+      issues.push(
+        ...lintConfiguration(mergedMod, mainConfig, relative(root, configPath).split(sep).join("/"), namespace)
+      );
     }
   } catch {
     // No webda.config.* found (e.g. library package)
@@ -367,7 +369,9 @@ export function lintProject(projectPath: string): LintResult {
       const depPath = join(deploymentsDir, entry);
       try {
         const depConfig = FileUtils.load(depPath);
-        issues.push(...lintConfiguration(mergedMod, depConfig, relative(root, depPath), namespace, true));
+        issues.push(
+          ...lintConfiguration(mergedMod, depConfig, relative(root, depPath).split(sep).join("/"), namespace, true)
+        );
       } catch {
         // Ignore unparseable files
       }

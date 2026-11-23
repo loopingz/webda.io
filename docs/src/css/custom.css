@@ -195,3 +195,29 @@
     transition: none;
   }
 }
+
+/* Inline code: a quiet Webda-blue chip, without changing fenced code blocks. */
+.theme-doc-markdown :not(pre) > code {
+  --webda-code-ink: #3d4d91;
+  --webda-code-fill: #f0f2fa;
+  --webda-code-border: #dce1f0;
+  padding: 0.12em 0.38em;
+  border: 1px solid var(--webda-code-border);
+  border-radius: 0.35rem;
+  background: var(--webda-code-fill);
+  color: var(--webda-code-ink);
+  font-size: 0.88em;
+  overflow-wrap: anywhere;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+[data-theme="dark"] .theme-doc-markdown :not(pre) > code {
+  --webda-code-ink: #c1caff;
+  --webda-code-fill: #272c40;
+  --webda-code-border: #414963;
+}
+
+.theme-doc-markdown a > code {
+  color: inherit;
+}

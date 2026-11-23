@@ -43,7 +43,7 @@ const rule: Rule.RuleModule = {
         if (findDecorator(node, ["Action", "Operation", "Route"])) {
           return;
         }
-        const params: any[] = node.value?.params || [];
+        const params: any[] = node.value.params;
         for (const param of params) {
           const typeNode = getParameterTypeAnnotation(param);
           if (
@@ -51,11 +51,13 @@ const rule: Rule.RuleModule = {
             typeNode.typeName?.type === "Identifier" &&
             (typeNode.typeName.name === "OperationContext" || typeNode.typeName.name === "WebContext")
           ) {
-            const methodName = node.key?.name || "<anonymous>";
             context.report({
-              node: node.key || node,
+              node: node.key,
               messageId: "missingActionDecorator",
-              data: { name: methodName, contextType: typeNode.typeName.name }
+              data: {
+                name: typeof methodName === "string" ? methodName : "<anonymous>",
+                contextType: typeNode.typeName.name
+              }
             });
             return;
           }

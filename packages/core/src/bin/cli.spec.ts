@@ -1708,6 +1708,76 @@ class CliOperationEdgeCasesTest {
   }
 
   @test
+  async runCliMergesServiceCommandsWithTheOperationsOfTheService() {
+    const app = realpathSync(mkdtempSync(join(tmpdir(), "webda-cli-merge-")));
+    const called: string[] = [];
+    const service = Object.fromEntries(
+      ["work", "hello", "status", "send", "deliver"].map(method => [
+        method,
+        async () => {
+          called.push(method);
+          return 0;
+        }
+      ])
+    );
+    const init = vi.spyOn(Core.prototype, "init").mockResolvedValue(undefined as any);
+    const stop = vi.spyOn(Core.prototype, "stop").mockResolvedValue(undefined);
+    const services = vi
+      .spyOn(Core.prototype, "getServices")
+      .mockReturnValue({ Notifier: service, Mailer: service, "Mini/Notifier": service, "Mini/Mailer": service } as any);
+    const exit = vi.spyOn(process, "exit").mockImplementation((() => undefined) as any);
+    try {
+      write(join(app, "package.json"), { name: "mini", version: "1.0.0", type: "module" });
+      write(join(app, "webda.config.json"), {
+        version: 4,
+        services: { Notifier: { type: "Mini/Notifier" }, Mailer: { type: "Mini/Mailer" } }
+      });
+      write(join(app, "notifier.js"), "export class Notifier {}\n");
+      write(join(app, "webda.module.json"), {
+        ...webdaModule({
+          "Mini/Notifier": {
+            Import: "notifier.js:Notifier",
+            commands: {
+              "notifier work": { method: "work", description: "Work", phase: "initialized" },
+              "notifier hello": { method: "hello", description: "Hello", phase: "initialized" }
+            }
+          },
+          "Mini/Mailer": {
+            Import: "notifier.js:Notifier",
+            commands: { mailer: { method: "deliver", description: "Deliver", phase: "initialized" } }
+          }
+        })
+      });
+      write(join(app, ".webda/operations.json"), {
+        operations: Object.fromEntries(
+          ["Notifier.Status", "Notifier.Hello", "Mailer.Send"].map(id => [id, { id, input: "void", output: "void" }])
+        ),
+        schemas: {}
+      });
+      const run = async (...argv: string[]) => {
+        await runCli({ appPath: app, argv: [...argv, "--console-patch=false"] });
+        await new Promise<void>(resolve => setImmediate(resolve));
+      };
+      // The command is not hidden by the operations of the service of the same name
+      await run("notifier", "work");
+      // The operations stay reachable in the same group
+      await run("notifier", "status");
+      // A command and an operation of the same name: the command wins
+      await run("notifier", "hello");
+      // A command without subcommands and the operations of its service: the command is `mailer mailer`
+      await run("mailer", "mailer");
+      await run("mailer", "send");
+      assert.deepStrictEqual(called, ["work", "status", "hello", "deliver", "send"]);
+    } finally {
+      exit.mockRestore();
+      services.mockRestore();
+      stop.mockRestore();
+      init.mockRestore();
+      rmSync(app, { recursive: true, force: true });
+    }
+  }
+
+  @test
   async runCliRegistersBeansOfTheOperation() {
     const app = realpathSync(mkdtempSync(join(tmpdir(), "webda-cli-beans-")));
     const service = { hello: () => {} };

@@ -48,6 +48,39 @@ export function createHttpHeader(line: string, headers: http.IncomingHttpHeaders
 }
 
 /**
+ * Hop-by-hop headers (RFC 9110 section 7.6.1): they describe the client connection, not the request,
+ * so they are never forwarded. `transfer-encoding` is kept: Node frames the piped body from it.
+ */
+export const HOP_BY_HOP_HEADERS = [
+  "connection",
+  "keep-alive",
+  "proxy-authenticate",
+  "proxy-authorization",
+  "proxy-connection",
+  "te",
+  "trailer",
+  "upgrade"
+];
+
+/**
+ * Client credentials, only forwarded when `forwardCredentials` is set
+ */
+export const CREDENTIAL_HEADERS = ["authorization", "cookie"];
+
+/**
+ * Copy a header map with every key lowercased, so a later header cannot sit beside another casing
+ * @param headers - header map
+ * @returns the same headers, keys lowercased
+ */
+export function lowercaseHeaders(headers: { [key: string]: any } = {}): { [key: string]: any } {
+  const result: { [key: string]: any } = {};
+  for (const key in headers) {
+    result[key.toLowerCase()] = headers[key];
+  }
+  return result;
+}
+
+/**
  * Proxy to a backend service
  */
 export class ProxyParameters extends ServiceParameters {
@@ -71,6 +104,15 @@ export class ProxyParameters extends ServiceParameters {
    * @default true
    */
   proxyHeaders: boolean;
+  /**
+   * Forward the client `Authorization` and `Cookie` headers to the backend
+   *
+   * They carry the caller's credentials for this application (session cookie, bearer token):
+   * enable it only when the backend is trusted with them
+   *
+   * @default false
+   */
+  forwardCredentials: boolean;
 
   /**
    * Normalize backend URL and set defaults
@@ -84,6 +126,7 @@ export class ProxyParameters extends ServiceParameters {
       this.backend = this.backend.substring(0, this.backend.length - 1);
     }
     this.proxyHeaders ??= true;
+    this.forwardCredentials ??= false;
   }
 }
 
@@ -215,11 +258,26 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
 
   /**
    * Build request headers to forward, adding X-Forwarded-* if configured
+   *
+   * Keys are lowercased. Hop-by-hop headers (and those the client lists in `Connection`) are dropped,
+   * and so are `Authorization` and `Cookie` unless `forwardCredentials` is set
    * @param context - the original HTTP context from the client
    * @returns header map to send to the backend including proxy headers
    */
   getRequestHeaders(context: HttpContext) {
-    const headers = { ...context.getHeaders() };
+    const headers: { [key: string]: any } = lowercaseHeaders(context.getHeaders());
+    const connection = headers["connection"];
+    const stripped = [
+      ...HOP_BY_HOP_HEADERS,
+      ...(this.parameters.forwardCredentials ? [] : CREDENTIAL_HEADERS),
+      // Headers the client declared as hop-by-hop
+      ...(Array.isArray(connection) ? connection.join(",") : (connection ?? ""))
+        .split(",")
+        .map((h: string) => h.trim().toLowerCase())
+    ];
+    for (const name of stripped) {
+      delete headers[name];
+    }
     if (this.parameters.proxyHeaders) {
       const existing = context.getHeader("x-forwarded-for");
       const previous = Array.isArray(existing) ? existing.join(", ") : existing;
@@ -234,11 +292,7 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
         "X-Forwarded-Port": context.getHeader("x-forwarded-port", `${context.getPortNumber()}`),
         "X-Forwarded-For": xff
       };
-      for (const name in forwarded) {
-        // Incoming headers are lowercased: drop them so only one casing is forwarded
-        delete headers[name.toLowerCase()];
-        headers[name] = forwarded[name];
-      }
+      Object.assign(headers, lowercaseHeaders(forwarded));
     }
     return headers;
   }
@@ -301,7 +355,13 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
     return (Url.protocol === "http:" ? http : https).request({
       path: Url.pathname + Url.search,
       method: "GET",
-      headers: { ...this.getRequestHeaders(context.getHttpContext()), host: Url.host },
+      // The upgrade headers are hop-by-hop: set them again for the backend connection
+      headers: {
+        ...this.getRequestHeaders(context.getHttpContext()),
+        host: Url.host,
+        connection: "Upgrade",
+        upgrade: "websocket"
+      },
       host: Url.hostname,
       port: Url.port
     });
@@ -402,8 +462,9 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
           ctx.getHttpContext().getMethod(),
           {
             ...this.getRequestHeaders(ctx.getHttpContext()),
-            Host,
-            ...headers
+            host: Host,
+            // Lowercased so the headers given here replace the client ones
+            ...lowercaseHeaders(headers)
           },
           res => {
             res.on("end", () => {

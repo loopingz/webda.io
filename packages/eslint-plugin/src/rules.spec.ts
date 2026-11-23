@@ -26,6 +26,10 @@ describe("@webda/eslint-plugin rules", () => {
       `class MyModel extends CoreModel {
         @Action()
         async publish(ctx: OperationContext<void, void>) {}
+      }`,
+      `class PlainClass {
+        @Webda.Operation()
+        async ok() {}
       }`
     ],
     invalid: [
@@ -55,6 +59,11 @@ describe("@webda/eslint-plugin rules", () => {
       `class MyService extends Service {
         @Operation()
         async ping(name: string): Promise<string> { return name; }
+      }`,
+      `class MyService extends Service {
+        @Operation()
+        async handle(ctx: WebContext) {}
+        helper() {}
       }`
     ],
     invalid: [
@@ -88,6 +97,14 @@ describe("@webda/eslint-plugin rules", () => {
       {
         filename: "src/services/helper.ts",
         code: `export class PlainHelper { help() {} }`
+      },
+      {
+        filename: "src/models/base.model.ts",
+        code: `export abstract class BaseModel {} export class HelperDto {} export class CustomModel extends CoreModel {}`
+      },
+      {
+        filename: "src/models/sub.model.ts",
+        code: `export class SubModel extends Webda.CoreModel {}`
       }
     ],
     invalid: [
@@ -107,6 +124,11 @@ describe("@webda/eslint-plugin rules", () => {
       }`,
       `class PostModel extends CoreModel {
         private helper(ctx: OperationContext) {}
+        canAct(ctx: OperationContext) {}
+        authorizeClientEvent(ctx: OperationContext) {}
+      }`,
+      `class NotAModel {
+        async run(ctx: OperationContext) {}
       }`
     ],
     invalid: [
@@ -132,6 +154,11 @@ describe("@webda/eslint-plugin rules", () => {
       {
         filename: "src/services/app.service.ts",
         code: `const params = new MyServiceParameters({});`
+      },
+      {
+        filename: "src/services/app.service.ts",
+        code: `const custom = new AllowedService();`,
+        options: [{ allowedClasses: ["AllowedService"] }]
       }
     ],
     invalid: [
@@ -143,6 +170,11 @@ describe("@webda/eslint-plugin rules", () => {
       {
         filename: "src/services/app.service.ts",
         code: `const store = new MemoryStore(app, "store", {});`,
+        errors: [{ messageId: "noManualNew" }]
+      },
+      {
+        filename: "src/services/app.service.ts",
+        code: `const nsSvc = new Webda.MailerService(app, "mailer", {});`,
         errors: [{ messageId: "noManualNew" }]
       }
     ]
@@ -174,7 +206,9 @@ describe("@webda/eslint-plugin rules", () => {
     valid: [
       `@Bean
       export class MyService extends Service {}`,
-      `export abstract class BaseService extends Service {}`
+      `export abstract class BaseService extends Service {}`,
+      `class InternalService extends Service {}`,
+      `export class PlainUtility {}`
     ],
     invalid: [
       {

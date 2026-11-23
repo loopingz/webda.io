@@ -1,5 +1,8 @@
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { lintConfiguration, lintModule, lintProject } from "./linter.js";
+import { lintConfiguration, lintModule, lintProject, mergeDependencyModules } from "./linter.js";
 import { WebdaModule } from "./definition.js";
 
 describe("WebdaLinter", () => {
@@ -142,6 +145,112 @@ describe("WebdaLinter", () => {
       const result = lintProject("/tmp/non-existent-webda-project-dir");
       expect(result.warnings).toBeGreaterThanOrEqual(1);
       expect(result.issues.some(i => i.rule === "project/missing-module")).toBe(true);
+    });
+
+    it("lints a full project with dependencies, config, deployments, and untyped operations", () => {
+      const dir = mkdtempSync(join(tmpdir(), "webda-lint-"));
+      try {
+        writeFileSync(
+          join(dir, "package.json"),
+          JSON.stringify({ name: "my-app", version: "1.0.0", webda: { namespace: "MyApp" } })
+        );
+        // Dependency module in node_modules/@webda/core
+        const depDir = join(dir, "node_modules", "@webda", "core");
+        mkdirSync(depDir, { recursive: true });
+        mkdirSync(join(dir, "node_modules", ".bin"), { recursive: true });
+        writeFileSync(join(dir, "node_modules", "file.txt"), "ignore");
+        writeFileSync(
+          join(depDir, "webda.module.json"),
+          JSON.stringify({
+            moddas: {
+              "Webda/MemoryStore": { label: "MemoryStore", Schema: { type: "object", properties: {} } }
+            },
+            models: {},
+            deployers: {},
+            schemas: {},
+            capabilities: { rest: true }
+          })
+        );
+        // Symlink to dependency to exercise symlink branch
+        symlinkSync(depDir, join(dir, "node_modules", "linked-core"));
+        // Broken symlink to exercise catch branch
+        symlinkSync(join(dir, "does-not-exist"), join(dir, "node_modules", "broken-link"));
+
+        // Local webda.module.json with an untyped operation
+        writeFileSync(
+          join(dir, "webda.module.json"),
+          JSON.stringify({
+            moddas: {},
+            beans: {
+              "MyApp/Worker": { label: "Worker" }
+            },
+            models: {
+              "MyApp/Task": {
+                Plural: "Tasks",
+                Actions: {
+                  create: {},
+                  doThing: { global: true }
+                }
+              }
+            },
+            schemas: {
+              "MyApp/Task.doThing.input": { type: "object" }
+            },
+            deployers: {}
+          })
+        );
+
+        // Main config
+        writeFileSync(
+          join(dir, "webda.config.jsonc"),
+          JSON.stringify({
+            version: 4,
+            services: {
+              invalidEntry: null,
+              tasks: {
+                type: "MemoryStore",
+                models: ["Task", 123]
+              }
+            }
+          })
+        );
+
+        // Deployments directory (override + non-json + invalid json)
+        mkdirSync(join(dir, "deployments"), { recursive: true });
+        writeFileSync(join(dir, "deployments", "readme.txt"), "ignore");
+        writeFileSync(join(dir, "deployments", "broken.json"), "{ invalid json");
+        writeFileSync(
+          join(dir, "deployments", "prod.json"),
+          JSON.stringify({
+            services: {
+              tasks: { type: "UnknownProdStore" }
+            }
+          })
+        );
+
+        const result = lintProject(dir);
+        expect(result.errors).toBe(0);
+        expect(
+          result.issues.some(i => i.rule === "config/unknown-service-type" && i.file === "deployments/prod.json")
+        ).toBe(true);
+        expect(
+          result.issues.some(i => i.rule === "config/store-missing-models" && i.file === "deployments/prod.json")
+        ).toBe(false);
+        expect(result.issues.some(i => i.rule === "module/untyped-operation")).toBe(true);
+        expect(result.issues.some(i => i.rule === "module/service-missing-schema")).toBe(true);
+
+        // Exercise mergeDependencyModules directly
+        const merged: WebdaModule = { moddas: {}, models: {}, deployers: {}, beans: {}, schemas: {} };
+        mergeDependencyModules(dir, merged);
+        expect(merged.moddas?.["Webda/MemoryStore"]).toBeDefined();
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it("handles null or non-object configurations gracefully", () => {
+      expect(lintConfiguration(baseModule, null)).toEqual([]);
+      expect(lintConfiguration(baseModule, { services: { bad: "string" } })).toEqual([]);
     });
   });
 });

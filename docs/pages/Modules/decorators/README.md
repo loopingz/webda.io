@@ -92,7 +92,7 @@ console.log(meta["expose"]); // ["name", "usr_id"]
 
 ### See also
 
-- [Catalog of built-in decorators](_media/Catalog.md)
-- [Writing custom decorators](_media/Custom.md)
-- [@webda/core](_media/README.md) — `@Bean`, `@Inject`, `@Route`, `@Operation`
-- [@webda/models](_media/README-1.md) — `@Expose`, `@BelongTo`, `@Contains`
+- [Catalog of built-in decorators](Catalog.md)
+- [Writing custom decorators](Custom.md)
+- [@webda/core](../core/README.md) — `@Bean`, `@Inject`, `@Route`, `@Operation`
+- [@webda/models](../models/README.md) — `@Expose`, `@BelongTo`, `@Contains`

@@ -1,3 +1,3 @@
 # ConfigMap and Secrets
 
-You can use ConfigMap and Secrets to configure your application and use \{@link KubernetesConfigurationService} to load them and reload on update.
+Use Kubernetes ConfigMaps and Secrets to configure your application. [KubernetesConfiguration](../../Modules/kubernetes/KubernetesConfiguration.md) loads mounted configuration and reloads it when it changes.

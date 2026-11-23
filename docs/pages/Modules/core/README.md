@@ -210,13 +210,13 @@ throw new WebdaError.Redirect("https://example.com/new-location");
 
 ## Deep-dive sub-pages
 
-- [Architecture](_media/Architecture.md) — 6-layer overview with diagram
-- [Service Lifecycle](_media/Lifecycle.md) — resolve → init → run → stop
-- [Services](_media/Services.md) — `Service`, `@Bean`, `@Inject`, `ServiceParameters`
-- [Stores](_media/Stores.md) — Store contract, query interface, events
-- [Context](_media/Context.md) — `WebContext`, sessions, request lifecycle
-- [Routing](_media/Routing.md) — `@Route`, `@Operation`, REST auto-generation
-- [Events](_media/Events.md) — `Core.on`, store events, `@On` decorator
-- [Errors](_media/Errors.md) — WebdaError hierarchy and HTTP status mapping
-- [Logging](_media/Logging.md) — `useLog` + `@webda/workout` integration
-- [CLI](_media/CLI.md) — `webda` runtime commands
+- [Architecture](Architecture.md) — 6-layer overview with diagram
+- [Service Lifecycle](Lifecycle.md) — resolve → init → run → stop
+- [Services](Services.md) — `Service`, `@Bean`, `@Inject`, `ServiceParameters`
+- [Stores](Stores.md) — Store contract, query interface, events
+- [Context](Context.md) — `WebContext`, sessions, request lifecycle
+- [Routing](Routing.md) — `@Route`, `@Operation`, REST auto-generation
+- [Events](Events.md) — `Core.on`, store events, `@On` decorator
+- [Errors](Errors.md) — WebdaError hierarchy and HTTP status mapping
+- [Logging](Logging.md) — `useLog` + `@webda/workout` integration
+- [CLI](CLI.md) — `webda` runtime commands

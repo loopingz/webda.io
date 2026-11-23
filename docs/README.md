@@ -48,3 +48,12 @@ The diagram separates listener registration from delivery through AsyncEvents, a
 Keep the enqueue/completion boundary aligned with `packages/async/src/services/asyncevents.service.ts`
 and `Service.emit`: awaiting the queue-send listener does not await the worker's original callbacks.
 It reuses the transparent, theme-aware `DiagramFigure` and canonical jigsaw outline.
+
+## Documentation presentation
+
+- The sidebar groups existing routes into Learn, Build, Run & deploy, and Reference. Add new top-level directories to `sidebars.js` so they stay discoverable.
+- Start guides with an outcome and prerequisites; explain when to use a feature and end with relevant next steps. The Quick Start, Events, and Configuration Service pages demonstrate the structure.
+- Use standard Docusaurus `:::tip`, `:::info`, and `:::warning` callouts with descriptive titles. Their icons and labels accompany the Webda colors.
+- Code fences retain Docusaurus copy, highlighting, line highlighting (`{2}`), and filename (`title="file.ts"`) support. The CodeBlock wrapper adds a language header and folds examples over 35 lines. Use `Tabs`/`TabItem` with `groupId="package-manager"` for equivalent commands.
+- `DiagramFigure` scales artwork to the page and opens a native modal dialog with zoom, scroll/swipe, keyboard focus handling, and Escape dismissal. Keep the original image link as a fallback.
+- Article pages intentionally omit animated background decoration to keep reading focused.

@@ -23,6 +23,7 @@ text{font-family:Inter,system-ui,-apple-system,sans-serif;fill:var(--ink)}.label
 <path d="M311 228 V256 H586 V292" class="line" marker-end="url(#arrow)"/>
 <path d="M889 228 V256 H606 V292" class="line" marker-end="url(#arrow)"/>
 <text x="596" y="320" class="hook" text-anchor="middle">Refresh</text>
+<!-- Icons share a visual center (-33, -36) and a 60-unit height; their local bounds differ. -->
 <g transform="translate(200 424)">
 <use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -77)" fill="#435f7e"/>
 <use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -78)" fill="#435f7e"/>
@@ -43,7 +44,7 @@ text{font-family:Inter,system-ui,-apple-system,sans-serif;fill:var(--ink)}.label
 <use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -93)" fill="#435f7e"/>
 <use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -94)" fill="#435f7e"/>
 <use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -95)" fill="#8cbbeb"/>
-<g transform="translate(-44 -59)" stroke="#16213b" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M2 -8 H33 L47 6 V54 H2Z"/><path d="M33 -8 V6 H47 M12 20 H36 M12 31 H36 M12 42 H27"/></g></g>
+<g transform="translate(-33 -36) scale(0.967742) translate(-24.5 -23)" stroke="#16213b" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M2 -8 H33 L47 6 V54 H2Z"/><path d="M33 -8 V6 H47 M12 20 H36 M12 31 H36 M12 42 H27"/></g></g>
 <g transform="translate(596 424)">
 <use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -77)" fill="#426747"/>
 <use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -78)" fill="#426747"/>
@@ -64,7 +65,7 @@ text{font-family:Inter,system-ui,-apple-system,sans-serif;fill:var(--ink)}.label
 <use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -93)" fill="#426747"/>
 <use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -94)" fill="#426747"/>
 <use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -95)" fill="#81bf6b"/>
-<g transform="translate(-44 -59)" stroke="#16213b" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M0 4 H49 M0 25 H49 M0 46 H49"/><circle cx="14" cy="4" r="6" fill="#81bf6b"/><circle cx="36" cy="25" r="6" fill="#81bf6b"/><circle cx="20" cy="46" r="6" fill="#81bf6b"/></g></g>
+<g transform="translate(-33 -36) scale(1.111111) translate(-24.5 -25)" stroke="#16213b" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M0 4 H49 M0 25 H49 M0 46 H49"/><circle cx="14" cy="4" r="6" fill="#81bf6b"/><circle cx="36" cy="25" r="6" fill="#81bf6b"/><circle cx="20" cy="46" r="6" fill="#81bf6b"/></g></g>
 <g transform="translate(1000 424)">
 <use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -77)" fill="#926336"/>
 <use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -78)" fill="#926336"/>
@@ -85,7 +86,7 @@ text{font-family:Inter,system-ui,-apple-system,sans-serif;fill:var(--ink)}.label
 <use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -93)" fill="#926336"/>
 <use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -94)" fill="#926336"/>
 <use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -95)" fill="#f4aa58"/>
-<g transform="translate(-44 -59)" stroke="#16213b" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="0" y="0" width="46" height="44" rx="6"/><path d="M-8 10 H0 M-8 33 H0 M46 10 H54 M46 33 H54 M12 -8 V0 M34 -8 V0 M12 44 V52 M34 44 V52 M13 15 L8 22 L13 29 M33 15 L38 22 L33 29"/></g></g>
+<g transform="translate(-33 -36) translate(-23 -22)" stroke="#16213b" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="0" y="0" width="46" height="44" rx="6"/><path d="M-8 10 H0 M-8 33 H0 M46 10 H54 M46 33 H54 M12 -8 V0 M34 -8 V0 M12 44 V52 M34 44 V52 M13 15 L8 22 L13 29 M33 15 L38 22 L33 29"/></g></g>
 <path d="M316 397 H448" class="line" marker-end="url(#arrow)"/>
 <text x="382" y="376" class="small" text-anchor="middle">read + merge</text>
 <path d="M722 397 H852" class="line" marker-end="url(#arrow)"/>

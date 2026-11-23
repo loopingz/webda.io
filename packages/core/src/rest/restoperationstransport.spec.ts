@@ -958,7 +958,7 @@ class RESTOperationsTransportTest extends WebdaApplicationTest {
     await User.create({ uuid: "u-open", name: "in open", company: "open" });
     await User.create({ uuid: "u-closed", name: "in closed", company: "closed" });
     await User.create({ uuid: "u-orphan", name: "in no company" });
-    const canAct = sinon.stub(Company.prototype, "canAct").callsFake(async function (this: any) {
+    const canAct = sinon.stub(Company.prototype, "canAct").callsFake(async function companyCanAct(this: any) {
       return this.getUUID() === "open" || "hidden company";
     });
     try {

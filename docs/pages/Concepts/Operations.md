@@ -213,7 +213,20 @@ Each operation defines its behavior in dry mode via the `dryRun` option:
 
 - `"execute"`: The operation has no side effects and executes normally. This is the default for read-only operations (`Get`, `Query`, or operations exposed with HTTP `GET`).
 - `"delegate"`: The operation method is executed and decides how to handle dry mode internally via `useDryRun()`.
-- `"skip"`: The method is **not** called. Input validation, permissions, and authorizers still run. Arguments have secrets masked, an INFO log `DRY RUN <operationId>` is emitted, event `Webda.OperationDryRun` is fired, and a `DryRunResult` is written to the context. This is the default for mutating operations.
+- `"skip"`: The method is **not** called. Input validation, permissions, and authorizers still run. Arguments have secrets masked (`SecretString` values, keys matching `password`, `secret`, `token`, `credential` or `authorization`, and fields marked `@Masked` on the class of an argument), an INFO log `DRY RUN <operationId>` is emitted, event `Webda.OperationDryRun` is fired, and a `DryRunResult` is written to the context. This is the default for mutating operations.
+
+`@Masked(pattern?)` marks a field as sensitive for this output, without changing the stored value. Each `X` of the pattern hides the character at that position; the result has the pattern length, padded with `?`. Without a pattern the value becomes `********`:
+
+```ts
+class Card extends UuidModel {
+  @Masked("XXXX-XXXX-XXXX-____")
+  number: string; // XXXX-XXXX-XXXX-3456 in a DryRunResult
+  @Masked
+  pin: string; // ********
+}
+```
+
+It applies to class instances such as models; a plain object argument is masked on its key names only.
 
 Example of a `"delegate"` operation:
 

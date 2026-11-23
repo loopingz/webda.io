@@ -1,5 +1,4 @@
 import { createMethodDecorator, createPropertyDecorator } from "@webda/decorators";
-import { truncate } from "fs/promises";
 
 /**
  * Options accepted by `@Action()` and `@Operation()`.
@@ -85,78 +84,83 @@ export const Action = createMethodDecorator((value: any, _context: any, _options
  */
 export const Shared = createMethodDecorator((value: any, _context: any) => value);
 
-/* v8 ignore start */
+/** Decorator metadata key listing the `@Masked` fields of a class and their mask */
+const MASKED_METADATA = "webda.masked";
+
+/** Representation of a masked value without pattern */
+export const MASKED_VALUE = "********";
+
 /**
- * Some simple annotations that can be used to add some behavior to attributes
+ * Mark a field as sensitive: it is masked wherever Webda displays arguments (dry-run result, `DRY RUN` log),
+ * like a secret
+ *
+ * The value stored on the instance is not changed: the model still reads and saves it in clear.
+ *
+ * With a pattern, each `X` of the pattern hides the character at that position and any other character
+ * keeps it; the result always has the pattern length (shorter values are padded with `?`), so the length of
+ * the value is not disclosed. Without a pattern, the whole value is replaced by `********`.
+ *
+ * ```ts
+ * class Card extends UuidModel {
+ *   @Masked("XXXX-XXXX-XXXX-____")
+ *   number: string; // shown as XXXX-XXXX-XXXX-3456
+ *   @Masked
+ *   pin: string; // shown as ********
+ * }
+ * ```
+ *
+ * It is a display rule, not a protection of the stored value: use `EncryptedField<T>` to encrypt it.
  */
-export const Masked = createPropertyDecorator((value: any, context, mask: string) => {
-  if (context.kind === "field") {
-    context.addInitializer(function maskedInit(this: any) {
-      const descriptor = Object.getOwnPropertyDescriptor(this, context.name) || {};
-      Object.defineProperty(this, context.name, {
-        ...descriptor,
-
-        /**
-         * Perform masked get
-         * @returns the result
-         */
-        get: function maskedGet() {
-          return this[`__${context.name}`];
-        },
-
-        /**
-         * Perform masked set
-         * @param value - the value
-         */
-        set: function maskedSet(value) {
-          value = value.padEnd(mask.length, "?");
-          for (let i = 0; i < mask.length; i++) {
-            if (mask[i] === "X") {
-              value = value.substring(0, i) + "X" + value.substring(i + 1);
-            }
-          }
-          if (truncate) {
-            value = value.substring(0, mask.length);
-          }
-          this[`__${context.name}`] = value;
-        }
-      });
-    });
-  }
+export const Masked = createPropertyDecorator((context: ClassFieldDecoratorContext, mask?: string) => {
+  // Copy the inherited list so a subclass does not add its fields to its parent's
+  const fields: Record<string, string | undefined> = Object.hasOwn(context.metadata, MASKED_METADATA)
+    ? (context.metadata[MASKED_METADATA] as Record<string, string | undefined>)
+    : { ...((context.metadata[MASKED_METADATA] as Record<string, string | undefined>) ?? {}) };
+  fields[String(context.name)] = mask;
+  context.metadata[MASKED_METADATA] = fields;
 });
 
 /**
- * Placeholder that only prefixes the value with "ENCRYPTED:": it does NOT encrypt anything
- * @deprecated use the {@link EncryptedField} behavior (`field: EncryptedField<T>`), encrypted with the CryptoService
+ * Fields marked `@Masked` on the class of an object, with their mask
+ * @param object - the object to inspect
+ * @returns field name to mask (undefined when the field is masked without pattern)
  */
-export const Encrypted = createPropertyDecorator((value: any, context) => {
-  if (context.kind === "field") {
-    context.addInitializer(function encryptedInit(this: any) {
-      const descriptor = Object.getOwnPropertyDescriptor(this, context.name) || {};
-      Object.defineProperty(this, context.name, {
-        ...descriptor,
+export function getMaskedFields(object: object): Record<string, string | undefined> {
+  // @ts-ignore Symbol.metadata is polyfilled by @webda/decorators
+  return object.constructor?.[Symbol.metadata]?.[MASKED_METADATA] ?? {};
+}
 
-        /**
-         * Perform encrypted get
-         * @returns the result
-         */
-        get: function encryptedGet() {
-          const val = this[`__${context.name}`];
-          if (val && val.startsWith("ENCRYPTED:")) {
-            return val.substring("ENCRYPTED:".length);
-          }
-          return val;
-        },
-
-        /**
-         * Perform encrypted set
-         * @param value - the value
-         */
-        set: function encryptedSet(value) {
-          this[`__${context.name}`] = "ENCRYPTED:" + value;
-        }
-      });
-    });
+/**
+ * Mask a value with a `@Masked` pattern
+ * @param value - the value to mask
+ * @param mask - the pattern, `X` hides a character; undefined hides the whole value
+ * @returns the masked value (undefined and null are kept)
+ */
+export function applyMask(value: unknown, mask?: string): unknown {
+  if (value === undefined || value === null) {
+    return value;
   }
+  if (!mask || typeof value !== "string") {
+    return MASKED_VALUE;
+  }
+  const padded = value.padEnd(mask.length, "?");
+  let result = "";
+  for (let i = 0; i < mask.length; i++) {
+    result += mask[i] === "X" ? "X" : padded[i];
+  }
+  return result;
+}
+
+/**
+ * Refused: it never encrypted anything (it only prefixed the value with "ENCRYPTED:")
+ *
+ * Declaring a field with it throws when the class is defined, so a field is not believed encrypted while it
+ * is stored in clear. Declare the field as `EncryptedField<T>` (`Webda/Encrypted` behavior), encrypted with
+ * the CryptoService.
+ * @deprecated use the {@link EncryptedField} behavior (`field: EncryptedField<T>`)
+ */
+export const Encrypted = createPropertyDecorator((context: ClassFieldDecoratorContext) => {
+  throw new Error(
+    `@Encrypted does not encrypt (field ${String(context.name)}): declare the field as EncryptedField<T>, encrypted with the CryptoService`
+  );
 });
-/* v8 ignore stop */

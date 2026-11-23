@@ -306,6 +306,8 @@ CryptoService: `await field.set(value)`, `await field.get()`, `field.clear()`, `
 is stored (server-only, never in an API output): the JSON value encrypted with the current symmetric key (random IV)
 inside a JWT signed with that key, so tampering is detected. Values encrypted before a key rotation still decrypt
 while the old key is in the CryptoService registry. Declare it like any behavior: `secret: EncryptedField<MyType>;`.
+The deprecated `@Encrypted` field decorator never encrypted (it only prefixed the value): it now throws when the
+class is defined, use `EncryptedField<T>` instead.
 **Every instance must share the CryptoService keys** (the `Registry` store): an instance without the key cannot
 decrypt. When the Registry is in the same database as the encrypted data, read the keys from a secret file with
 the CryptoService `keysFile` parameter, so a database dump does not contain them (see

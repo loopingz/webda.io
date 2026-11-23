@@ -55,7 +55,7 @@
   padding: 1rem;
   border: 1px solid var(--ifm-color-emphasis-300);
   border-radius: 1rem;
-  background: var(--ifm-background-color);
+  background: #fff;
   color: var(--ifm-font-color-base);
   box-shadow: 0 24px 80px rgb(0 0 0 / 30%);
 }
@@ -107,4 +107,8 @@
   .dialog {
     display: none;
   }
+}
+
+:global([data-theme="dark"]) .dialog {
+  background: #1b1b1d;
 }

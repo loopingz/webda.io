@@ -25,7 +25,7 @@ export default function CodeBlockWrapper(props: Props) {
       <div className="docs-code-language">
         <span>{language}</span>
       </div>
-      <CodeBlock {...props} />
+      <CodeBlock {...props} {...(language === "jsonc" ? { language: "json", className: "language-json" } : {})} />
       <span className="docs-code-jigsaw" aria-hidden="true">
         <WebdaJigsaw fillColor={color} />
       </span>

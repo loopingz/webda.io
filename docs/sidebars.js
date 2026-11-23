@@ -13,7 +13,8 @@ const sidebars = {
     section("Learn", ["QuickStart"]),
     section("Build", ["Concepts", "Application", "REST", "Security"]),
     section("Run & deploy", ["Deployments", "Debug", "Monitoring", "CommonIssues"], ["Testing"]),
-    section("Reference", ["Modules", "Migration"], ["Glossary", "Lifecycle", "Benchmarks", "Docs"])
+    section("Reference", ["Modules"], ["Glossary", "Lifecycle", "Benchmarks", "Docs"]),
+    section("Migration", ["Migration"])
   ]
 };
 module.exports = sidebars;

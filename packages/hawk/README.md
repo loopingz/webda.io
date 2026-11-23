@@ -34,12 +34,12 @@ pnpm add @webda/hawk
 {
   "services": {
     "hawk": {
-      "type": "Hawk",
-      "keyModel": "MyApp/ApiKey"
+      "type": "Webda/Hawk",
+      "keyModel": "Webda/ApiKey"
     },
     "apiKeyStore": {
       "type": "MemoryStore",
-      "models": ["MyApp/ApiKey"]
+      "models": ["Webda/ApiKey"]
     }
   }
 }

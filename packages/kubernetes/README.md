@@ -44,7 +44,7 @@ pnpm add @webda/kubernetes
       "context": "my-k8s-context"
     },
     "asyncJobService": {
-      "type": "AsyncJobService",
+      "type": "Webda/AsyncJobService",
       "queue": "AsyncActionsQueue",
       "runners": ["kubeRunner"]
     }

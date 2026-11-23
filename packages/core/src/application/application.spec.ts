@@ -111,6 +111,29 @@ class ApplicationTest extends WebdaInternalTest {
   }
 
   @test
+  async getModdaMetadataResolvesShortTypes() {
+    const app = new TestApplication(FileUtils.load(__dirname + "/../../test/config.json"));
+    await app.load();
+    const modules = app.getModules();
+    modules.moddas ??= {};
+    modules.beans ??= {};
+    modules.moddas["Webda/ShortFilter"] = { capabilities: ["request-filter"] } as any;
+    modules.beans["Webda/ShortBean"] = { capabilities: ["cors-filter"] } as any;
+    // @ts-ignore protected registries
+    app.moddas["Webda/ShortFilter"] = CoreModel;
+    // @ts-ignore protected registries
+    app.beans["Webda/ShortBean"] = CoreModel;
+    // A short type resolves like getModda, to the Webda namespace
+    assert.deepStrictEqual(app.getModdaMetadata("ShortFilter")?.capabilities, ["request-filter"]);
+    assert.deepStrictEqual(app.getModdaMetadata("Webda/ShortFilter")?.capabilities, ["request-filter"]);
+    assert.strictEqual(app.resolveWebdaObjectName("moddas", "ShortFilter"), "Webda/ShortFilter");
+    // Beans are searched after moddas
+    assert.deepStrictEqual(app.getModdaMetadata("ShortBean")?.capabilities, ["cors-filter"]);
+    assert.strictEqual(app.getModdaMetadata("Unknown"), undefined);
+    assert.strictEqual(app.getModdaMetadata(undefined as any), undefined);
+  }
+
+  @test
   async cov() {
     assert.throws(
       () => new Application("/notexisting"),

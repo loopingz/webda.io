@@ -263,8 +263,9 @@ abstract class Service<
    * Load capabilities from webda.module.json metadata into {@link _compiledCapabilities}.
    *
    * Called during {@link resolve} after dependency injection. Reads the service's
-   * type name from parameters, looks it up in the application's module metadata
-   * (moddas or beans section), and populates `_compiledCapabilities` with an
+   * type name from parameters, resolves it like service creation does (a short type
+   * gets the application or `Webda` namespace) and looks it up in the application's module
+   * metadata (moddas or beans section), and populates `_compiledCapabilities` with an
    * empty object for each declared capability name.
    *
    * Fails silently if the application is not available (e.g., in unit tests
@@ -282,10 +283,8 @@ abstract class Service<
    */
   protected loadCapabilities() {
     try {
-      const app = useApplication();
-      const modules = app.getModules();
-      const type = this.parameters.type;
-      const metadata = modules.moddas?.[type] || modules.beans?.[type];
+      // Resolve the type as service creation does: a short type ("Hawk") is the namespaced modda ("Webda/Hawk")
+      const metadata = useApplication().getModdaMetadata(this.parameters.type);
       if (metadata?.capabilities) {
         this._compiledCapabilities = {};
         for (const cap of metadata.capabilities) {

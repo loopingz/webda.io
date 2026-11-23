@@ -37,7 +37,7 @@ pnpm add @webda/async
       "type": "MemoryQueue"
     },
     "asyncJobService": {
-      "type": "AsyncJobService",
+      "type": "Webda/AsyncJobService",
       "queue": "AsyncActionsQueue",
       "url": "/async",
       "runners": ["serviceRunner"],

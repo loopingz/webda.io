@@ -24,7 +24,7 @@ import { InstanceCache } from "../cache/cache.js";
 import type { Service } from "../services/service.js";
 import { ModelMetadata } from "@webda/compiler";
 import { applyDeployment, getDeploymentFile, loadDeployment, type Deployment } from "./deployment.js";
-import type { BehaviorMetadata } from "@webda/compiler";
+import type { BehaviorMetadata, ServiceMetadata } from "@webda/compiler";
 import { installModelTypes } from "./model-types.js";
 import { checkRelations, logDiagnostic } from "./relations-check.js";
 
@@ -474,12 +474,51 @@ export class Application {
    * @returns true if the condition is met
    */
   hasWebdaObject(section: Section, name: string): boolean {
-    let objectName = this.completeNamespace(name);
+    return this[section][this.resolveWebdaObjectName(section, name)] !== undefined;
+  }
+
+  /**
+   * Resolve the registry key of a Webda object
+   *
+   * A name without namespace is completed with the application namespace,
+   * then with the `Webda` namespace if the application does not define it:
+   * `Hawk` resolves to `MyApp/Hawk` when it exists, `Webda/Hawk` otherwise.
+   *
+   * Every lookup of a type (service creation, module metadata) goes through
+   * this method so a short type always designates the same object.
+   * @param section - the section name
+   * @param name - the name to resolve
+   * @returns the key in the section registry, which may not exist
+   */
+  resolveWebdaObjectName(section: Section, name: string): string {
+    const objectName = this.completeNamespace(name);
     this.log("TRACE", `Search for ${section} ${objectName}`);
-    if (!this[section][objectName] && name.indexOf("/") === -1) {
-      objectName = `Webda/${name}`;
+    if (!this[section][objectName] && !name.includes("/")) {
+      return `Webda/${name}`;
     }
-    return this[section][objectName] !== undefined;
+    return objectName;
+  }
+
+  /**
+   * Get the module metadata (capabilities, schema, ...) of a service type
+   *
+   * The type is resolved as {@link getModda} does, so a service declared with a
+   * short type (`Hawk`) gets the metadata of the class it is created from (`Webda/Hawk`).
+   * @param type - the service type, short or namespaced
+   * @returns the metadata from the moddas or beans section, undefined if unknown
+   */
+  getModdaMetadata(type: string): ServiceMetadata | undefined {
+    if (!type) {
+      return undefined;
+    }
+    const modules = this.getModules();
+    for (const section of ["moddas", "beans"] as const) {
+      const metadata = modules?.[section]?.[this.resolveWebdaObjectName(section, type)];
+      if (metadata) {
+        return metadata;
+      }
+    }
+    return undefined;
   }
 
   /**
@@ -514,12 +553,7 @@ export class Application {
    * @returns the result
    */
   getWebdaObject(section: Section, name: string) {
-    let objectName = this.completeNamespace(name);
-    this.log("TRACE", `Search for ${section} ${objectName}`);
-    if (!this[section][objectName] && name.indexOf("/") === -1) {
-      const namespaced = this.completeNamespace(name);
-      objectName = this[section][namespaced] ? `${namespaced}/${name}` : `Webda/${name}`;
-    }
+    const objectName = this.resolveWebdaObjectName(section, name);
     if (!this[section][objectName]) {
       if (Object.keys(this[section]).includes(objectName)) {
         throw Error(`Null ${section.substring(0, section.length - 1)} ${objectName}`);

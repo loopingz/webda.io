@@ -8,6 +8,7 @@ import { Store, StoreParameters } from "./store.js";
 import { EventRepository, MemoryRepository, TypeIndexedMap, type ModelClass, type Repository } from "@webda/models";
 import { InstanceCache } from "../cache/cache.js";
 import { useModelMetadata } from "../core/hooks.js";
+import * as WebdaError from "../errors/errors.js";
 import { Command } from "../services/command.js";
 import type { MigratableStore } from "./capability.js";
 import { mapRawPage, mapRawPatch, type RawPage, type RawPatch, type RawTable } from "./migration.js";
@@ -35,6 +36,13 @@ export class MemoryStoreParameters extends StoreParameters {
      * Encryption key for AES encryption
      */
     key?: string;
+    /**
+     * Environment variable holding the encryption key, read when the store starts
+     *
+     * It replaces `key`, and the store does not start if the variable is unset. `webda package` sets it to
+     * `WEBDA_REGISTRY_KEY` on the default Registry, whose unpacked key is the id of the packaging machine.
+     */
+    keyEnv?: string;
     /**
      * By default only save once every 1s if modified
      *
@@ -314,8 +322,16 @@ export class MemoryStore<K extends MemoryStoreParameters = MemoryStoreParameters
    */
   async init(): Promise<this> {
     if (this.parameters.persistence) {
-      if (this.parameters.persistence.key) {
-        this.key = crypto.createHash("sha256").update(this.parameters.persistence.key).digest();
+      const { keyEnv } = this.parameters.persistence;
+      const key = keyEnv ? process.env[keyEnv] : this.parameters.persistence.key;
+      if (keyEnv && !key) {
+        throw new WebdaError.CodeError(
+          "PERSISTENCE_KEY_MISSING",
+          `${this.getName()} persistence is encrypted with the key of the ${keyEnv} environment variable: set it`
+        );
+      }
+      if (key) {
+        this.key = crypto.createHash("sha256").update(key).digest();
       }
       try {
         if (existsSync(this.parameters.persistence.path)) {

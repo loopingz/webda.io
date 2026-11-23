@@ -1,6 +1,6 @@
 import { suite, test } from "@webda/test";
 import * as assert from "assert";
-import { existsSync, rmSync, unlinkSync } from "node:fs";
+import { existsSync, readFileSync, rmSync, unlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { TypeIndexedMap } from "@webda/models";
@@ -22,12 +22,12 @@ class MemoryStoreTypeIndexTest extends WebdaApplicationTest {
    * @param path - persistence file
    * @returns an initialized store holding Projects (and subclasses) and Companies
    */
-  async store(name: string, path: string): Promise<MemoryStore> {
+  async store(name: string, path: string, persistence: any = {}): Promise<MemoryStore> {
     return this.addService(
       MemoryStore,
       {
         models: ["WebdaDemo/Project", "WebdaDemo/Company"],
-        persistence: { path, delay: 0, compressionLevel: 0 }
+        persistence: { path, delay: 0, compressionLevel: 0, ...persistence }
       } as any,
       name
     );
@@ -64,6 +64,32 @@ class MemoryStoreTypeIndexTest extends WebdaApplicationTest {
       store.storage.get = get;
     }
     return read;
+  }
+
+  @test
+  async persistenceKeyFromEnvironment() {
+    const path = join(tmpdir(), `webda-memory-keyenv-${process.pid}-${Date.now()}.ldjson`);
+    const env = "WEBDA_TEST_MEMORY_KEY";
+    try {
+      delete process.env[env];
+      // A packaged Registry reads its key from the environment: no key, no start
+      await assert.rejects(
+        () => this.store("keyEnvMissing", path, { keyEnv: env }),
+        (err: any) => err.code === "PERSISTENCE_KEY_MISSING" && err.message.includes(env)
+      );
+      process.env[env] = "environment-secret";
+      // keyEnv wins over a configured key
+      const store = await this.store("keyEnvWrite", path, { keyEnv: env, key: "ignored" });
+      await this.repositories(store).companies.create({ uuid: "secret", name: "plaintext-company-name" });
+      await store.stop();
+      assert.ok(!readFileSync(path).toString("latin1").includes("plaintext-company-name"), "the file is encrypted");
+      const reloaded = await this.store("keyEnvRead", path, { key: "environment-secret" });
+      assert.strictEqual(reloaded.storage.size, 1, "encrypted with the environment key");
+      await reloaded.stop();
+    } finally {
+      delete process.env[env];
+      rmSync(path, { force: true });
+    }
   }
 
   @test

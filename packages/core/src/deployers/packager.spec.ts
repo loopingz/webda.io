@@ -15,9 +15,11 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { getMachineId } from "../core/hooks.js";
 import {
   getDeployedConfiguration,
   PACKAGED_CONFIGURATION,
+  REGISTRY_KEY_ENV,
   PACKAGED_INLINE_KEY,
   PACKAGED_MARKER,
   packageApplication,
@@ -242,6 +244,31 @@ class PackagerTest {
       !this.getApp().getConfiguration().cachedModules.project.git,
       "the application configuration is untouched"
     );
+  }
+
+  @test
+  async machineRegistryKeyIsNotPackaged() {
+    // The default Registry of an unpacked application is encrypted with the id of the packaging machine
+    const app = this.getApp();
+    const base = app.getConfiguration();
+    const registry = { type: "Webda/MemoryStore", persistence: { path: ".registry", key: getMachineId() } };
+    app.getConfiguration = () => ({ ...base, services: { ...base.services, Registry: registry } });
+    const configuration = getDeployedConfiguration(app, { marker: true });
+    assert.strictEqual(REGISTRY_KEY_ENV, "WEBDA_REGISTRY_KEY");
+    assert.deepStrictEqual(configuration.services.Registry.persistence, {
+      path: ".registry",
+      keyEnv: "WEBDA_REGISTRY_KEY"
+    });
+    assert.strictEqual(registry.persistence.key, getMachineId(), "the application configuration is untouched");
+    const { files } = await packageApplication(app);
+    const packaged = files.find(file => file.target === PACKAGED_CONFIGURATION).content.toString();
+    assert.ok(!packaged.includes(getMachineId()), "the package does not ship the machine key");
+    // An explicit key is the choice of the application: kept
+    registry.persistence.key = "explicit";
+    assert.deepStrictEqual(getDeployedConfiguration(app).services.Registry.persistence, {
+      path: ".registry",
+      key: "explicit"
+    });
   }
 
   @test

@@ -15,6 +15,7 @@ import { dirname, join, relative, resolve, sep } from "node:path";
 import type { Application } from "../application/application.js";
 import type { Configuration, PackagedInformation } from "../application/iconfiguration.js";
 import * as WebdaError from "../errors/errors.js";
+import { getMachineId } from "../core/hooks.js";
 import { getGitInformation } from "./git.js";
 
 /**
@@ -30,6 +31,11 @@ export const PACKAGED_MARKER = ".webda/packaged.json";
  * this configuration as packaged too
  */
 export const PACKAGED_INLINE_KEY = "$packaged";
+
+/**
+ * Environment variable holding the key of the default Registry in a packaged application
+ */
+export const REGISTRY_KEY_ENV = "WEBDA_REGISTRY_KEY";
 
 /**
  * Top-level entries of the application never packaged, `webda.config.*` and dot entries are always skipped
@@ -293,6 +299,14 @@ export function getDeployedConfiguration(app: Application, options: DeployedConf
     delete configuration.services?.[name];
   }
   delete configuration.$import;
+  // The default Registry key is the id of this machine: it would ship with the package and encrypt the
+  // registry of every deployment with the same value. A packaged application reads its key from the environment.
+  const persistence = configuration.services?.Registry?.persistence;
+  if (persistence?.key !== undefined && persistence.key === getMachineId()) {
+    delete persistence.key;
+    persistence.keyEnv ??= REGISTRY_KEY_ENV;
+    useLog("INFO", `The packaged Registry reads its persistence key from ${persistence.keyEnv}`);
+  }
   const modules: any = configuration.cachedModules ?? {};
   if (options.rewriteImport) {
     for (const section of ["moddas", "beans", "deployers", "models", "behaviors"]) {

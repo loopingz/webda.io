@@ -13,7 +13,8 @@ import {
   useRegistry,
   useRepository
 } from "@webda/core";
-import { randomBytes } from "node:crypto";
+import { CacheStorage } from "@webda/cache";
+import { createHash, randomBytes } from "node:crypto";
 import * as Hawk from "hawk";
 import type { ApiKey } from "./apikey.model.js";
 
@@ -80,6 +81,20 @@ export class HawkServiceParameters extends ServiceParameters {
    * @default []
    */
   redirectUris: string[];
+  /**
+   * Permitted clock skew of the request timestamps, in seconds, on each side of the server time
+   * @default 60
+   */
+  timestampSkewSec?: number;
+  /**
+   * Maximum number of request nonces remembered to reject replays
+   *
+   * The cache is in memory: each instance of a multi-instance deployment only knows its own nonces,
+   * so a request replayed on another instance within the clock skew is not detected.
+   * Once full, the oldest nonces are forgotten first.
+   * @default 100000
+   */
+  nonceCacheSize?: number;
 
   /**
    * @override
@@ -89,6 +104,8 @@ export class HawkServiceParameters extends ServiceParameters {
   load(params: any = {}): this {
     super.load(params);
     this.redirectUris ??= [];
+    this.timestampSkewSec ??= 60;
+    this.nonceCacheSize ??= 100000;
     return this;
   }
 }
@@ -122,6 +139,10 @@ export default class HawkService<T extends HawkServiceParameters = HawkServicePa
    * Listeners to remove on stop
    */
   protected unsubscribers: (() => void)[] = [];
+  /**
+   * Nonces already used within the clock skew window
+   */
+  protected nonces: CacheStorage;
 
   /**
    * Retrieve the hawk credentials of an api key
@@ -150,9 +171,77 @@ export default class HawkService<T extends HawkServiceParameters = HawkServicePa
       host: http.getHostName(),
       port: http.getPortNumber(),
       authorization: http.getUniqueHeader("authorization"),
-      payload: (await http.getRawBody()) || "",
+      payload: (await http.getRawBody()) || Buffer.alloc(0),
       contentType: http.getUniqueHeader("content-type") || ""
     };
+  }
+
+  /**
+   * Reject a nonce already used by the same credentials within the clock skew window
+   *
+   * Used as Hawk `nonceFunc`: it is called once the MAC is verified, so only key holders fill the cache
+   * @param id - the credentials id
+   * @param key - the credentials key, so that sessions sharing the `session` id do not collide
+   * @param nonce - the request nonce
+   * @param ts - the request timestamp
+   * @throws Error if the nonce was already used
+   */
+  checkNonce(id: string, key: string, nonce: string, ts: string) {
+    const entry = createHash("sha256")
+      .update(JSON.stringify([id, key, nonce, ts]))
+      .digest("base64");
+    if (this.nonces.hasCachedMethod(entry)) {
+      throw new Error("Nonce already used");
+    }
+    this.nonces.setCachedMethod(entry, [], true);
+  }
+
+  /**
+   * Authenticate a Hawk request, verifying its payload hash and rejecting replays
+   *
+   * A request with a body must carry a payload hash matching the body.
+   * A request without body may omit the hash; if it carries one it must be the hash of an empty payload.
+   * @param request - the hawk request
+   * @param credentialsFunc - resolve the credentials of an id
+   * @returns the hawk credentials and artifacts
+   */
+  async authenticate(
+    request: Awaited<ReturnType<HawkService["getHawkRequest"]>>,
+    credentialsFunc: (id: string) => Promise<HawkCredentials>
+  ): Promise<HawkContext> {
+    let id = "";
+    const hasBody = request.payload.length > 0;
+    const result = await Hawk.server.authenticate(
+      request,
+      credentialId => {
+        id = credentialId;
+        return credentialsFunc(credentialId);
+      },
+      {
+        timestampSkewSec: this.parameters.timestampSkewSec,
+        // Passing the payload makes Hawk require the hash and verify it
+        ...(hasBody ? { payload: request.payload } : {}),
+        nonceFunc: async (key, nonce, ts) => this.checkNonce(id, key, nonce, ts)
+      }
+    );
+    if (!hasBody && result.artifacts.hash) {
+      Hawk.server.authenticatePayload("", result.credentials, result.artifacts, request.contentType);
+    }
+    return result;
+  }
+
+  /**
+   * Create the nonce cache
+   * @returns this
+   */
+  resolve(): this {
+    super.resolve();
+    this.nonces = new CacheStorage({
+      // A nonce can be replayed as long as its timestamp is within the skew, on either side of the server time
+      ttl: this.parameters.timestampSkewSec! * 2000,
+      maxSize: this.parameters.nonceCacheSize
+    });
+    return this;
   }
 
   /**
@@ -231,7 +320,8 @@ export default class HawkService<T extends HawkServiceParameters = HawkServicePa
         return;
       }
       const header = Hawk.server.header(hawkContext.credentials, hawkContext.artifacts, {
-        payload: <string>context.getResponseBody(),
+        // Always sign a payload hash, an empty one included, so that a client can detect an injected body
+        payload: context.getResponseBody() || "",
         contentType
       });
       // LambdaServer behave a bit different
@@ -358,7 +448,7 @@ export default class HawkService<T extends HawkServiceParameters = HawkServicePa
         const [key, data] = secret.split(".");
         context.setExtension(
           "hawk",
-          await Hawk.server.authenticate(hawkRequest, async () => ({
+          await this.authenticate(hawkRequest, async () => ({
             id: "session",
             key: await this.cryptoService.hmac(data, key),
             algorithm: "sha256"
@@ -373,7 +463,7 @@ export default class HawkService<T extends HawkServiceParameters = HawkServicePa
     } else if (this.model) {
       // We have an Api Key store
       try {
-        context.setExtension("hawk", await Hawk.server.authenticate(hawkRequest, this.getApiKey.bind(this)));
+        context.setExtension("hawk", await this.authenticate(hawkRequest, this.getApiKey.bind(this)));
         const fullKey = await this.model.ref(context.getExtension<HawkContext>("hawk").credentials.id).get();
         if (!fullKey.canRequest(context)) {
           throw new WebdaError.Forbidden("Key not allowed to request");

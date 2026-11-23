@@ -51,6 +51,19 @@ pnpm add @webda/hawk
 | `dynamicSessionKey` | string | — | No | Session attribute to read a per-session HMAC key from |
 | `redirectUrl` | string | — | No | URL to redirect to after successful key exchange |
 | `redirectUris` | string[] | `[]` | No | Whitelist of allowed redirect URIs for CSRF protection |
+| `timestampSkewSec` | number | `60` | No | Permitted clock skew of the request timestamps, in seconds, on each side |
+| `nonceCacheSize` | number | `100000` | No | Maximum number of nonces remembered to reject replayed requests |
+
+### Request integrity and replays
+
+- A request with a body must sign its payload (`hash` attribute of the Authorization header, e.g. the `payload` option of
+  `Hawk.client.header`): a body without hash, or whose hash does not match, is rejected with `403`. A request without
+  body may omit the hash.
+- A nonce is accepted once per key within the clock skew window: a replayed Authorization header is rejected with `403`.
+  The nonce cache is in memory, per instance: behind a load balancer, a request replayed on another instance within the
+  window is not detected.
+- The `Server-Authorization` response header always carries the payload hash, an empty body included: verify it with
+  `Hawk.client.authenticate(res, credentials, artifacts, { payload, required: true })`.
 
 ## Usage
 
@@ -77,6 +90,8 @@ const { header } = Hawk.client.header(
   "GET",
   { credentials: { id: apiKeyId, key: apiKeySecret, algorithm: "sha256" } }
 );
+// A request with a body signs it too:
+// Hawk.client.header(url, "POST", { credentials, payload: body, contentType: "application/json" })
 // Send the Authorization: Hawk ... header
 
 // 3. HawkService automatically validates incoming requests as a RequestFilter

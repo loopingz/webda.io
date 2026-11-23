@@ -87,7 +87,7 @@ export function isServiceClass(classNode: any): boolean {
  * @returns True if the file is a test or spec file
  */
 export function isTestFile(filename: string): boolean {
-  return /\.(spec|test)\.[jt]sx?$/.test(filename) || /[/\\]test[/\\]/.test(filename);
+  return /\.(spec|test|bench)\.[jt]sx?$/.test(filename) || /[/\\](test|bench)[/\\]/.test(filename);
 }
 
 /**

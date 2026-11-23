@@ -350,6 +350,14 @@ class FileBackedMapTest {
   }
 
   @test
+  computeParametersCreatesMissingParents() {
+    const folder = path.join(this.tmpDir, "data", "keys");
+    const store = new FileStore("nestedFileStore", new FileStoreParameters().load({ folder }));
+    store.computeParameters();
+    assert.ok(fs.existsSync(folder));
+  }
+
+  @test
   computeParametersExistingFolder() {
     // Should not throw if folder already exists
     this.store.computeParameters();

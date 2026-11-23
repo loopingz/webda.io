@@ -53,6 +53,14 @@ class FileQueueUnitTest {
   }
 
   @test
+  computeParametersCreatesMissingParents() {
+    const folder = path.join(this.tmpDir, "data", "queue");
+    const queue = new FileQueue("nestedFileQueue", new FileQueueParameters().load({ folder }));
+    queue.computeParameters();
+    assert.ok(fs.existsSync(folder));
+  }
+
+  @test
   async sendAndReceiveMessage() {
     await this.queue.sendMessage({ hello: "world" });
     const size = await this.queue.size();

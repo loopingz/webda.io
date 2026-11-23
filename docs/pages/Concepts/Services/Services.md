@@ -2,6 +2,8 @@
 sidebar_position: 2
 ---
 
+import ServiceLifecycle from "@site/src/components/ServiceLifecycle";
+
 # Services
 
 ## Bean
@@ -10,19 +12,16 @@ When you create a service with the `@Bean` annotation, the service becomes a Bea
 
 ## Lifecycle
 
-The service will be created based on webda.config definition
+Core creates each service from its configuration, resolves its dependencies, and initializes it before use.
+The same instance then handles requests or background work until shutdown.
 
-```mermaid
-gantt
-    title Service
-    section Service
-    axisFormat ""
-    constructor  :2014-01-01  , 10d
-    createConfiguration  :2014-01-02  , 9d
-    resolve      : 2014-01-11, 10d
-    init      : 2014-01-21, 10d
+<ServiceLifecycle />
 
-```
+- **Constructor and `resolve()` are synchronous.** Use `resolve()` to access `@Inject` dependencies and wire references; call `super.resolve()` first. Do not start asynchronous work in either phase.
+- **`init()` performs asynchronous startup.** Call `await super.init()` first, then open connections or start background work.
+- **`stop()` releases resources.** Finish your own cleanup before `await super.stop()`. Core stops services concurrently, so do not assume another service is still running during cleanup.
+
+See [Service Lifecycle](../../Modules/core/Lifecycle.md) for hook signatures, examples, and initialization ordering.
 
 ## Generic Parameters
 

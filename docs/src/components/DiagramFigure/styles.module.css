@@ -1,0 +1,49 @@
+.figure {
+  margin: 1.5rem 0;
+}
+.viewport {
+  overflow-x: auto;
+  border-radius: 1rem;
+  border: 1px solid var(--ifm-color-emphasis-300);
+}
+.viewport:focus-visible {
+  outline: 3px solid var(--ifm-color-primary);
+  outline-offset: 3px;
+}
+.diagram {
+  display: block;
+  width: 100%;
+  min-width: 760px;
+  height: auto;
+  max-width: none;
+  color-scheme: light;
+}
+.caption {
+  margin-top: 0.75rem;
+  color: var(--ifm-color-emphasis-700);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+.mobileHint {
+  display: none;
+}
+@media (max-width: 760px) {
+  .mobileHint {
+    display: inline;
+  }
+}
+@media print {
+  .viewport {
+    overflow: visible;
+  }
+  .diagram {
+    min-width: 0;
+  }
+  .mobileHint {
+    display: none;
+  }
+}
+
+:global([data-theme="dark"]) .diagram {
+  color-scheme: dark;
+}

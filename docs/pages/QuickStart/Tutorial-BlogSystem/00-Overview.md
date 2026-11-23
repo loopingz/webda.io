@@ -3,6 +3,8 @@ sidebar_position: 0
 sidebar_label: Overview
 ---
 
+import BlogModelSchema from "@site/src/components/BlogModelSchema";
+
 # Blog System Tutorial — Overview
 
 **Goal:** Give you a complete picture of what you will build and how the steps fit together before you write a single line of code.
@@ -23,13 +25,7 @@ By the end of this tutorial you will have a **blog API** exposing the same domai
 
 The domain is a classic blog with a social layer:
 
-```
-User ──< Post ──< Comment
-            ╲
-             ╲──< PostTag >── Tag   (many-to-many via join table)
-
-User ──< UserFollow >── User          (self-referential follower graph)
-```
+<BlogModelSchema />
 
 Every model decides who may do what in its `canAct` method. Webda **denies by default**: a model without a permission check is refused on every transport. The blog rules are simple: anyone reads, logged-in users write, and only the author edits their own content.
 

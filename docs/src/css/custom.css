@@ -275,12 +275,13 @@
 .docs-code-example {
   border: 1px solid var(--ifm-color-emphasis-300);
   border-radius: 0.75rem;
-  overflow: hidden;
+  overflow: visible;
   margin-bottom: 1.5rem;
 }
 .docs-code-example > div:nth-child(2) {
   margin-bottom: 0;
-  border-radius: 0;
+  overflow: hidden;
+  border-radius: 0 0 0.75rem 0.75rem;
   box-shadow: none;
 }
 .docs-code-language {
@@ -350,8 +351,8 @@
 }
 .docs-code-jigsaw {
   position: absolute;
-  right: 0;
-  bottom: 0;
+  right: -7px;
+  bottom: -7px;
   width: 30px;
   height: 30px;
   pointer-events: none;
@@ -376,4 +377,8 @@
   stroke-width: 1px;
   vector-effect: non-scaling-stroke;
   paint-order: stroke fill;
+}
+
+.docs-code-language {
+  border-radius: 0.75rem 0.75rem 0 0;
 }

@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1040" role="img" aria-labelledby="title description">
+<title id="title">Several ways to unlock. One private keyring.</title>
+<desc id="description">Key wrapping happens on the client. Public keys seal; private keys open.</desc>
+<defs>
+<!-- Canonical outline from WebdaJigsaw.tsx. --><path id="config-jigsaw" d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z"/>
+
+<style>
+:root{--ink:#202b40;--label:#33445c;--muted:#52627a;--surface:#fff;--line:#71829c;--sync:#355f99;--async:#9c5f13;--run:#347449;--stop:#68578a;--pale:#eef3f9}
+@media(prefers-color-scheme:dark){:root{--ink:#f1f5ff;--label:#c5d0e7;--muted:#9fafd0;--surface:#1b1b1d;--line:#71829c;--sync:#8cbbeb;--async:#f4aa58;--run:#81bf8c;--stop:#b4a0ed;--pale:#282d38}}
+text{font-family:Inter,system-ui,-apple-system,sans-serif;fill:var(--ink)}.label{font-size:23px;font-weight:600}.detail{font-size:19px;fill:var(--label)}.small{font-size:17px;fill:var(--muted)}.hook{font:600 22px ui-monospace,SFMono-Regular,monospace}.line{fill:none;stroke:var(--line);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+</style>
+<filter id="soft-shadow" x="-50%" y="-100%" width="200%" height="300%"><feGaussianBlur stdDeviation="12"/></filter>
+<marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto-start-reverse"><path d="M1 1 L7 4 L1 7" fill="none" stroke="var(--line)" stroke-width="1.3"/></marker>
+</defs>
+<text x="48" y="57" font-size="32" font-weight="650">Several ways to unlock. One private keyring.</text>
+<text x="48" y="92" class="detail" text-anchor="start">Key wrapping happens on the client. Public keys seal; private keys open.</text>
+<rect x="48" y="126" width="352" height="111" rx="16" fill="var(--pale)" stroke="var(--line)" stroke-width="1.5"/>
+<text x="224" y="161" class="label" text-anchor="middle">Password KEK</text>
+<text x="224" y="194" class="small" text-anchor="middle">Password → Argon2id</text>
+<text x="224" y="220" class="small" text-anchor="middle">Own salt · password escrow</text>
+<rect x="424" y="126" width="352" height="111" rx="16" fill="var(--pale)" stroke="var(--line)" stroke-width="1.5"/>
+<text x="600" y="161" class="label" text-anchor="middle">Recovery KEK</text>
+<text x="600" y="194" class="small" text-anchor="middle">130-bit code → Argon2id</text>
+<text x="600" y="220" class="small" text-anchor="middle">Recovery escrow</text>
+<rect x="800" y="126" width="352" height="111" rx="16" fill="var(--pale)" stroke="var(--line)" stroke-width="1.5"/>
+<text x="976" y="161" class="label" text-anchor="middle">Device KEK</text>
+<text x="976" y="194" class="small" text-anchor="middle">Passcode / WebAuthn PRF / keystore</text>
+<text x="976" y="220" class="small" text-anchor="middle">Wrapped device blob stays local</text>
+<path d="M224 237 V269 H600 V302" class="line" marker-end="url(#arrow)"/>
+<path d="M600 237 V269 H600 V302" class="line" marker-end="url(#arrow)"/>
+<path d="M976 237 V269 H600 V302" class="line" marker-end="url(#arrow)"/>
+<text x="626" y="299" class="small" text-anchor="start">Each KEK wraps the same keyring key</text>
+<g transform="translate(627 395)">
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -60)" fill="#926336"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -61)" fill="#926336"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -62)" fill="#926336"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -63)" fill="#926336"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -64)" fill="#926336"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -65)" fill="#926336"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -66)" fill="#926336"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -67)" fill="#926336"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -68)" fill="#926336"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -69)" fill="#926336"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -70)" fill="#926336"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -71)" fill="#926336"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -72)" fill="#926336"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -73)" fill="#926336"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -74)" fill="#926336"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -75)" fill="#926336"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -76)" fill="#926336"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -77)" fill="#926336"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -78)" fill="#f4aa58"/>
+<g transform="translate(-52 -47)" stroke="#16213b" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="15" cy="16" r="12"/><path d="M24 25 L47 48 M33 34 L40 27 M40 41 L47 34"/></g></g>
+<text x="600" y="472" class="label" text-anchor="middle">Keyring key</text>
+<text x="600" y="501" class="small" text-anchor="middle">Random 32-byte AES key</text>
+<path d="M488 394 H253 V537" class="line" marker-end="url(#arrow)"/>
+<text x="360" y="382" class="small" text-anchor="middle">AES-GCM + keyring AAD</text>
+<g transform="translate(280 614)">
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -60)" fill="#426747"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -61)" fill="#426747"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -62)" fill="#426747"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -63)" fill="#426747"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -64)" fill="#426747"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -65)" fill="#426747"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -66)" fill="#426747"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -67)" fill="#426747"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -68)" fill="#426747"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -69)" fill="#426747"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -70)" fill="#426747"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -71)" fill="#426747"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -72)" fill="#426747"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -73)" fill="#426747"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -74)" fill="#426747"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -75)" fill="#426747"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -76)" fill="#426747"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -77)" fill="#426747"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -78)" fill="#81bf6b"/>
+<g transform="translate(-52 -47)" stroke="#16213b" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="22" width="44" height="28" rx="5"/><path d="M12 22 V13 A13 13 0 0 1 38 13 V22 M25 33 V40"/></g></g>
+<text x="253" y="691" class="label" text-anchor="middle">Encrypted keyring</text>
+<text x="253" y="722" class="small" text-anchor="middle">Every private P-256 key, indexed by kid</text>
+<text x="253" y="751" class="small" text-anchor="middle">Server stores the encrypted blob only</text>
+<g transform="translate(1000 614)">
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -60)" fill="#435f7e"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -61)" fill="#435f7e"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -62)" fill="#435f7e"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -63)" fill="#435f7e"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -64)" fill="#435f7e"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -65)" fill="#435f7e"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -66)" fill="#435f7e"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -67)" fill="#435f7e"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -68)" fill="#435f7e"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -69)" fill="#435f7e"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -70)" fill="#435f7e"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -71)" fill="#435f7e"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -72)" fill="#435f7e"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -73)" fill="#435f7e"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -74)" fill="#435f7e"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -75)" fill="#435f7e"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -76)" fill="#435f7e"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -77)" fill="#435f7e"/>
+<use href="#config-jigsaw" transform="matrix(.43 .248 -.43 .248 0 -78)" fill="#8cbbeb"/>
+<g transform="translate(-52 -47)" stroke="#16213b" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="15" cy="16" r="12"/><path d="M24 25 L47 48 M33 34 L40 27 M40 41 L47 34"/></g></g>
+<text x="973" y="691" class="label" text-anchor="middle">Public keys</text>
+<text x="973" y="722" class="hook" text-anchor="middle">user.keys.publicKeys</text>
+<text x="973" y="751" class="small" text-anchor="middle">Stored in clear on the server</text>
+<path d="M377 594 H850" class="line" stroke-dasharray="7 7"/>
+<text x="614" y="578" class="small" text-anchor="middle">Private / public halves of each user key pair</text>
+<path d="M253 771 V822" class="line" marker-end="url(#arrow)"/>
+<text x="253" y="803" class="small" text-anchor="middle">unlock locally</text>
+<rect x="48" y="835" width="410" height="97" rx="16" fill="var(--pale)" stroke="var(--run)" stroke-width="1.5"/>
+<text x="253" y="875" class="label" text-anchor="middle">Open on the recipient device</text>
+<text x="253" y="909" class="small" text-anchor="middle">Private key + matching field AAD</text>
+<path d="M973 771 V822" class="line" marker-end="url(#arrow)"/>
+<text x="973" y="803" class="small" text-anchor="middle">seal with an ephemeral key</text>
+<rect x="752" y="835" width="400" height="97" rx="16" fill="var(--pale)" stroke="var(--sync)" stroke-width="1.5"/>
+<text x="952" y="875" class="label" text-anchor="middle">Sealed field envelope</text>
+<text x="952" y="909" class="small" text-anchor="middle">Model stores ciphertext + kid + epk</text>
+<path d="M752 881 H471" class="line" marker-end="url(#arrow)"/>
+<text x="610" y="861" class="small" text-anchor="middle">fetch envelope</text>
+<text x="48" y="980" class="small" text-anchor="start">Sealing: ECDH-ES + HKDF-SHA-256 + AES-256-GCM</text>
+<text x="48" y="1010" class="small" text-anchor="start">Password escrow and client-code trust limits still apply; see the threat model below.</text>
+</svg>

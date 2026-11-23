@@ -45,20 +45,9 @@ The `Note` model of the sample app and `packages/core/src/models/sealed.e2e.spec
 
 ## Key hierarchy
 
-```mermaid
-flowchart TD
-  PW["Password"] -->|"Argon2id (client side, own salt)"| KEKPW["Password KEK"]
-  RC["Recovery code (130 bits)"] -->|"Argon2id"| KEKRC["Recovery KEK"]
-  DEV["Device passcode / WebAuthn PRF / OS keystore"] --> KEKDEV["Device KEK"]
-  KRK["Keyring key (random AES-256)"]
-  KEKPW -->|wraps| KRK
-  KEKRC -->|wraps| KRK
-  KEKDEV -->|wraps| KRK
-  KRK -->|"AES-GCM with the keyring AAD"| KR["Keyring: every private key, by kid"]
-  KP["User key pair, ECDH P-256"] --- KR
-  KP -->|public key, clear| PUB["Server: user.keys.publicKeys"]
-  PUB -->|"ECDH-ES ephemeral + HKDF-SHA-256 + AES-256-GCM"| ENV["Sealed envelope in the model"]
-```
+import SealedFieldKeys from "@site/src/components/SealedFieldKeys";
+
+<SealedFieldKeys />
 
 - The user owns an ECDH **P-256** key pair per `kid`; the public keys are stored in clear on the user.
 - All the private keys form the **keyring**, encrypted by a random **keyring key**. The server stores the encrypted keyring.

@@ -78,3 +78,15 @@ and the git information would be empty.
 
 `--config-only -o` refuses to overwrite the configuration file of the application (a source `webda.config.json`),
 which would also switch it to packaged mode: write it to another file, or add `--force`.
+
+### Registry key of a packaged application
+
+Unpacked, the default `Registry` (a `MemoryStore` persisted in `.registry`, holding the users, refresh tokens and
+crypto keys) is encrypted with the id of the machine it runs on. `webda package`, with or without `--config-only`,
+never writes that key: the packaged `Registry` gets `persistence.keyEnv: "WEBDA_REGISTRY_KEY"` instead, and reads
+its key from that environment variable when it starts. Provide it as a secret of the deployment; the `Registry`
+refuses to start without it (`PERSISTENCE_KEY_MISSING`).
+
+A `persistence.key` set explicitly in the configuration or the deployment is packaged as is. A package made before
+this change shipped the id of the packaging machine as its key: to keep reading an existing `.registry`, set
+`WEBDA_REGISTRY_KEY` to the `key` of the previous packaged configuration.

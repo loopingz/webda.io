@@ -1552,6 +1552,10 @@
                 "description": "Encryption key for AES encryption",
                 "type": "string"
               },
+              "keyEnv": {
+                "description": "Environment variable holding the encryption key, read when the store starts\n\nIt replaces `key`, and the store does not start if the variable is unset. `webda package` sets it to\n`WEBDA_REGISTRY_KEY` on the default Registry, whose unpacked key is the id of the packaging machine.",
+                "type": "string"
+              },
               "path": {
                 "description": "File path to save to",
                 "type": "string"

@@ -175,7 +175,7 @@ Related models are imported with `import type`: the compiler reads the types, an
 
 **`[WEBDA_PRIMARY_KEY] = ["slug"] as const`** — `Post` extends `Model` (not `UuidModel`) and declares its own key. Routes use it (`GET /posts/hello-world`), `Post.ref("hello-world").get()` loads by it, and `getPrimaryKey()` is typed from it.
 
-**`BelongTo<User>` / `OneToMany<Post, User, "author">`** — the post stores the key of its author in `author` (the user's uuid). The third type argument of `OneToMany` names the attribute of `Post` that points back to the user, so `user.posts.query("status = 'published'")` returns that user's posts.
+**`BelongTo<User>` / `OneToMany<Post, User, "author">`** — the post stores the key of its author in `author` (the user's uuid). The third type argument of `OneToMany` names the attribute of `Post` that points back to the user, so `user.posts.query("status = 'published'")` returns that user's posts. (Note: `sample-apps/blog-system` uses `ManyToOne<User>` / `ModelLink` instead of `BelongTo<User>` / `ModelParent`, which omits cascade delete on the parent.)
 
 **The author is the caller.** `getProtectedAttributes()` strips `author` from every client input, and `prepareCreate(context)` sets it from the session before the `create` permission check. A client cannot create a post in someone else's name.
 

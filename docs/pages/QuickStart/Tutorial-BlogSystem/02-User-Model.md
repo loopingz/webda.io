@@ -254,8 +254,8 @@ The email is shown because the caller is the account owner; the password hash ne
 ALICE=dc07c3d6-debc-4812-9a63-aadd6ac43b8a   # your value
 ```
 
-:::caution Known issue in 4.0.0-beta.6
-The HTTP server does not write the session cookie yet, so the session opened by `register` or `login` is not kept for the next request: `cookies.txt` stays empty and the logged-in steps of this tutorial answer `403`. The permission rules themselves work as described (the sample app tests them in-process).
+:::note Differences from `sample-apps/blog-system`
+The finished `sample-apps/blog-system/src/models/User.model.ts` uses Node's built-in `node:crypto` `scrypt` for `setPassword()` (with `bcryptjs` fallback in `verifyPassword()`) and preserves own properties plus `[WEBDA_STORAGE]` in `toJSON()` so stores can persist `__password` and `__email` (the public serializer strips `__`-prefixed fields from HTTP responses).
 :::
 
 **Log in later** with the same cookie jar:

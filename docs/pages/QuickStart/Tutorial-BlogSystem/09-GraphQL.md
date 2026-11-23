@@ -58,7 +58,7 @@ For each model, with `Post` as the example:
 - `Posts(query:)` takes a WebdaQL query, like `PUT /posts`, and returns `results` and `continuationToken`.
 - `Me` returns the logged-in user.
 - The root types are named `Query`, `Mutations` and `Subscription`.
-- Model and service `@Operation`s (`register`, `login`, `publish`, `Publisher.*`) are not part of the GraphQL schema: call them over REST or gRPC.
+- Model and service `@Operation`s (`userRegister`, `userLogin`, `postPublish`, `publisherPublishPost`, …) are exposed in the GraphQL schema as mutations (or queries/subscriptions depending on the operation configuration).
 
 ## Verify
 

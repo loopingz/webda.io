@@ -33,8 +33,13 @@ pnpm add @webda/grpc
 ```json
 {
   "services": {
+    "HttpServerH2c": {
+      "type": "Webda/HttpServer",
+      "port": 50051,
+      "h2c": true
+    },
     "grpc": {
-      "type": "GrpcService",
+      "type": "Webda/GrpcService",
       "protoFile": ".webda/app.proto",
       "packageName": "webda"
     }
@@ -67,12 +72,13 @@ export class PostService extends Service {
 //    webdac build
 //    → writes .webda/app.proto
 
-// 3. Start the server (gRPC is multiplexed on the same port as REST):
+// 3. Start the server (gRPC requires HTTP/2 — configure an HttpServer with h2c: true for plaintext,
+//    or autoTls: true for TLS + ALPN):
 //    webda serve
 //    → gRPC requests with content-type: application/grpc are routed to GrpcService
 
-// 4. Call from a gRPC client (example using grpcurl):
-//    grpcurl -plaintext -d '{"title":"Hello"}' localhost:18080 webda.PostService/CreatePost
+// 4. Call from a gRPC client (example using grpcurl against the h2c port 50051):
+//    grpcurl -plaintext -d '{"title":"Hello"}' localhost:50051 webda.PostService/CreatePost
 ```
 
 ## Partial query results

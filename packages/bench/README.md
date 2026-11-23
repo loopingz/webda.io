@@ -75,11 +75,11 @@ Then in the package:
 
 - `vitest.bench.config.ts`:
   ```ts
-  import { defineConfig } from "vite";
+  import { defineConfig } from "vitest/config";
   import { benchVitestOptions } from "@webda/bench/lib/vitest.js";
   export default defineConfig({ test: benchVitestOptions() });
   ```
-- `package.json`: `"bench": "vitest run --config vitest.bench.config.ts"` and `"@webda/bench": "workspace:*"` in
+- `package.json`: `"bench": "vitest run --config vitest.bench.config.ts"` and both `"@webda/bench": "workspace:*"` and `"@webda/test": "workspace:*"` (needed for `@suite`/`@test`) in
   `devDependencies`
 - `tsconfig.json`: add `"src/**/*.bench.ts"` to `exclude`, so bench files are not compiled into `lib`
 

@@ -5,7 +5,7 @@ sidebar_label: "@webda/utils"
 
 # @webda/utils
 
-> Common utility library for Node.js — `Throttler` for concurrent promise queues, `Duration` for human-readable time parsing, `FileUtils`/`JSONUtils`/`YAMLUtils` for filesystem and config helpers, `Debounce`, `Waiter`, and more.
+> Common utility library for Node.js — `Throttler` for concurrent promise queues, `Duration` for human-readable time parsing, `FileUtils`/`JSONUtils`/`YAMLUtils` for filesystem and config helpers, `Debounce`, `WaitFor`, and more.
 
 ## When to use it
 
@@ -34,28 +34,28 @@ const throttler = new Throttler(5 /* concurrency */);
 
 const ids = ["a", "b", "c", "d", "e", "f", "g", "h"];
 await Promise.all(ids.map(id => throttler.queue(async () => processItem(id), id)));
-await throttler.waitForCompletion();
+await throttler.wait();
 // At most 5 processItem() calls were running at any point in time
 
 // Duration — parse human-readable time strings
-const ms = Duration.parse("2m30s");  // → 150000
-const ms2 = Duration.parse("1h");    // → 3600000
-const label = Duration.format(90000); // → "1m30s"
+const ms = new Duration("2m30s").toMs();  // → 150000
+const ms2 = new Duration("1h").toMs();    // → 3600000
+const label = Duration.format(90000);     // → "1m30s"
 
 // FileUtils — load JSON, JSONC, or YAML transparently
 const config = FileUtils.load("./webda.config.jsonc");  // parses comments
-const data = JSONUtils.load("./data.json");
+const data = JSONUtils.loadFile("./data.json");
 
-// JSONUtils.stringify — pretty-print with sorted keys
-const pretty = JSONUtils.stringify({ b: 2, a: 1 }, undefined, 2);
-// { "a": 1, "b": 2 } — keys sorted
+// JSONUtils.sortObject — copy with sorted keys
+const sorted = JSONUtils.sortObject({ b: 2, a: 1 });
+// { a: 1, b: 2 }
 
-// Waiter — poll until a condition is met with backoff
-import { Waiter } from "@webda/utils";
-await new Waiter(async () => {
+// WaitFor — poll until a condition is met with backoff
+import { WaitFor, WaitLinearDelay } from "@webda/utils";
+await WaitFor(async () => {
   const status = await checkDeploymentStatus();
   return status === "COMPLETE";
-}, 200 /* pollMs */, 30000 /* timeoutMs */).wait();
+}, 150 /* retries */, "deployment", undefined, WaitLinearDelay(200));
 ```
 
 ### TypeScript utility types

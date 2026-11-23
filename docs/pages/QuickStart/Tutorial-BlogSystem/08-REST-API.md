@@ -111,8 +111,6 @@ A missing object and an object you may not read answer the same `404 Object not 
 
 `register` and `login` open a session, kept in a cookie. Send it back on each request (`curl -c cookies.txt -b cookies.txt`, or `credentials: "include"` with `fetch`) and `context.getCurrentUserId()` returns the user in `canAct`, `prepareCreate` and operations.
 
-In 4.0.0-beta.6 the cookie is not written yet: see the note on [page 02](./02-User-Model.md#verify).
-
 ## Verify
 
 With the server running, walk the full cycle on a fresh post (logged in as Alice):

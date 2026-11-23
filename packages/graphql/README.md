@@ -56,8 +56,8 @@ For every exposed model (e.g. `Post`) the service generates:
 | `createPost(Post: PostInput)` | Mutation | Create new instance |
 | `updatePost(uuid, Post: PostInput)` | Mutation | Replace by primary key |
 | `deletePost(uuid)` | Mutation | Delete by primary key |
-| `PostEvents` | Subscription | Stream events for all posts |
-| `PostEvent(uuid)` | Subscription | Stream events for a specific post |
+| `PostsEvents` | Subscription | Stream events for all posts |
+| `PostEvents(slug)` | Subscription | Stream events for a specific post (takes the primary key) |
 
 Custom `@Operation()` methods on the model become additional mutations or queries automatically.
 
@@ -86,10 +86,10 @@ mutation {
 
 ```graphql
 subscription {
-  PostEvents {
-    Created { object { slug title } }
-    Updated { object { slug title } }
-    Deleted { object_id }
+  PostsEvents {
+    Created
+    Updated
+    Deleted
   }
 }
 ```
@@ -126,14 +126,14 @@ The endpoint executes documents sent by `POST` (one per request, no batching) an
 
 ### GraphiQL
 
-Set `exposeGraphiQL: true` (the default) to enable the in-browser GraphiQL IDE at `/graphql`. Useful for development and introspection.
+`exposeGraphiQL` defaults to `useCore().isDebug()` (`true` in debug mode, `false` otherwise). Set `exposeGraphiQL: true` to always enable the in-browser GraphiQL IDE at `/graphql` for development and introspection.
 
 ### Parameters
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `url` | `/graphql` | HTTP endpoint path |
-| `exposeGraphiQL` | `true` | Serve the GraphiQL explorer UI |
+| `exposeGraphiQL` | `useCore().isDebug()` | Serve the GraphiQL explorer UI |
 | `exposeMe` | `true` | Expose `{ me { ... } }` query for current user |
 | `globalSubscription` | `true` | Expose aggregate `AggregateSubscriptions` subscription |
 | `userModel` | `User` | Short name of the User model for `me` query |

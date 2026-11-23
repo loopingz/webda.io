@@ -80,7 +80,7 @@ Operation ids map to gRPC names: the part before the dot becomes the service, th
 | `Post.Get`, `Post.Delete`        | `webda.PostService/Get`, `/Delete`   | `PostPrimaryKey { slug }`                               |
 | `Post.Create`, `Update`, `Patch` | `webda.PostService/Create`…          | `Post`                                                  |
 | `Posts.Query`                    | `webda.PostsService/Query`           | `SearchRequest { query }`                               |
-| `Post.Publish` (instance op)     | `webda.PostService/Publish`          | `UuidRequest { uuid }` (the post key)                   |
+| `Post.Publish` (instance op)     | `webda.PostService/Publish`          | `PostPublishRequest { slug, destination }`              |
 | `User.Register` (static op)      | `webda.UserService/Register`         | `UserRegisterInput { username, email, name, password }` |
 | `Publisher.PublishPost`          | `webda.PublisherService/PublishPost` | `PublisherPublishPostInput { postId }`                  |
 | `Version.Get`                    | `webda.VersionService/Get`           | empty                                                   |
@@ -146,12 +146,9 @@ grpcurl -plaintext -proto .webda/app.proto \
 
 The permissions are the same as over REST: an anonymous `webda.TagService/Create` is refused.
 
-:::caution Limitations in 4.0.0-beta.6
-
+:::note Notes
 - An operation returning a plain string (`Publisher.Publish`, `Version.Get`, `TestBean.TestOperation`) answers an empty message `{}` over gRPC.
 - Errors (missing object, refused permission) answer the gRPC code `Unknown` without a message.
-- An instance operation only receives the object key (`UuidRequest`): `Post.Publish` gets no `destination`.
-
 :::
 
 See the [@webda/grpc module](../../Modules/grpc/README.md) for the `protoFile` and `packageName` parameters.

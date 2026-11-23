@@ -108,8 +108,9 @@ section "Users"
 
 GRPC_USER="550e8400-e29b-41d4-a716-446655440020"
 
-check "Create user" webda.UserService Create \
-  -d "{\"uuid\":\"$GRPC_USER\",\"username\":\"grpcuser\",\"email\":\"grpc@example.com\",\"password\":\"secret\",\"name\":\"gRPC User\"}"
+# User.canAct refuses anonymous/direct Create ("Use the register operation"); use Register
+check "Register user" webda.UserService Register \
+  -d '{"username":"grpcuser","email":"grpc@example.com","password":"grpc-secret-1","name":"gRPC User"}'
 
 check "Get user" webda.UserService Get \
   -d "{\"uuid\":\"$GRPC_USER\"}"
@@ -136,7 +137,7 @@ check "Update post" webda.PostService Update \
 section "Post Actions"
 
 check "Publish post" webda.PostService Publish \
-  -d '{"uuid":"grpc-test"}'
+  -d '{"slug":"grpc-test","destination":"published"}'
 
 # ── Comments ───────────────────────────────────────────────────────────
 section "Comments"

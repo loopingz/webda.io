@@ -25,15 +25,15 @@ pnpm add @webda/runtime
 ### Services
 
 - `ClusterService` — Coordinates multiple Webda instances via a pub/sub channel; broadcasts invalidation events ([source](_media/cluster.ts))
-- `EchoService` — Development helper that echoes request bodies back to the caller ([source](_media/echo.ts))
+- `EchoService` — Serves a static result on a fixed route ([source](_media/echo.ts))
 - `InvitationService` — Token-based invitation/join-code system for model membership ([source](_media/invitationservice.ts))
 - `ProxyService` — HTTP reverse proxy that forwards requests matching a URL prefix to an upstream host ([source](_media/proxy.ts))
-- `VersionService` — Exposes a `/version` endpoint returning the application name and version ([source](_media/version.ts))
+- `VersionService` — Exposes a `/version` endpoint returning the application version as `text/plain` ([source](_media/version.ts))
 
-### Utility models
+### Utility models and services
 
 - `BinaryModel` — Base model with binary attachment support
-- `PasswordModel` — Secure password hashing helper
+- `PasswordEncryptionService` — Registers the `password` encrypter for configuration secrets
 
 ## Quick config example
 
@@ -47,7 +47,7 @@ pnpm add @webda/runtime
     "proxy": {
       "type": "ProxyService",
       "url": "/legacy",
-      "upstream": "http://old-service:8080"
+      "backend": "http://old-service:8080"
     }
   }
 }

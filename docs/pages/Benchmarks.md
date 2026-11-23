@@ -51,11 +51,13 @@ class MyStoreBench extends WebdaApplicationTest {
 ```
 
 ```typescript title="vitest.bench.config.ts"
-import { defineConfig } from "vite";
+import { defineConfig } from "vitest/config";
 import { benchVitestOptions } from "@webda/bench/lib/vitest.js";
 
 export default defineConfig({ test: benchVitestOptions() });
 ```
+
+Install `@webda/bench` and `@webda/test` (for `@suite` / `@test`) as `devDependencies`, then run:
 
 ```bash
 pnpm exec vitest run --config vitest.bench.config.ts

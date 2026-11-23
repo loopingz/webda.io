@@ -51,7 +51,7 @@ const obj = {
 };
 
 const json = serialize(obj);          // JSON string with $serializer metadata
-const restored = deserialize(obj);    // all types reconstructed correctly
+const restored = deserialize(json);   // all types reconstructed correctly
 // restored.date instanceof Date === true
 // restored.map instanceof Map === true
 

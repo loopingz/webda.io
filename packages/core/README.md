@@ -36,10 +36,10 @@ Responsible for discovering modules, loading configuration, and bootstrapping th
 
 The central orchestrator that manages the service lifecycle and dependency graph.
 
-- **Core** -- Creates and initializes services with dependency tracking, maps Models to Stores and BinaryServices, manages the operation registry. Lifecycle: `initial` -> `loading` -> `initializing` -> `ready` -> `stopping` -> `stopped`.
+- **Core** -- Creates and initializes services with dependency tracking, maps Models to Stores and BinaryServices, manages the operation registry. Lifecycle: `initial` -> `resolving` -> `resolved` -> `initializing` -> `ready` -> `stopping` -> `stopped` (plus `reinitializing`).
 - **InstanceStorage** -- `AsyncLocalStorage`-based context that holds the current Core, Application, Router, and request context. Enables the hooks pattern without passing references through every function call.
 - **Core Hooks** -- `useCore()`, `useService()`, `useDynamicService()`, `useModelStore()`, `useModelRepository()`, `getMachineId()`.
-- **Events** -- Async event system with lifecycle events: `Webda.Init`, `Webda.Request`, `Webda.Result`, `Webda.404`, `Webda.OperationSuccess`, `Webda.Configuration.Applied`, etc.
+- **Events** -- Async event system with lifecycle events: `Webda.Init.Services`, `Webda.Request`, `Webda.Result`, `Webda.404`, `Webda.OperationSuccess`, `Webda.Configuration.Applied`, etc.
 - **Errors** -- Typed HTTP errors: `Unauthorized` (401), `Forbidden` (403), `NotFound` (404), `BadRequest` (400), `Conflict` (409), `TooManyRequests` (429), `Redirect` (302), and more.
 
 ### Services Layer
@@ -191,7 +191,7 @@ Services emit typed async events. Subscribe with `on()`:
 
 ```typescript
 // Core lifecycle events
-useCoreEvents("Webda.Init", () => { /* framework ready */ });
+useCoreEvents("Webda.Init.Services", () => { /* framework services ready */ });
 useCoreEvents("Webda.Request", ({ context }) => { /* new request */ });
 
 // Repository events

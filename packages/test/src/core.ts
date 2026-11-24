@@ -498,6 +498,7 @@ export const suite: ReturnType<typeof createClassDecorator> & {
                 throw testError;
               }
             };
+            Object.defineProperty(testExecutor, "name", { value: String(t.fnKey) });
             // Wrap the test executor; pass timeout as 3rd arg for non-Mocha frameworks
             /* v8 ignore next 1 -- Mocha uses a different timeout API; not exercised in Vitest/Jest/Bun */
             const testTimeout = framework.type !== "mocha" ? t.settings?.timeout : undefined;
@@ -690,7 +691,7 @@ export function slow(ms: number) {
 }
 
 /**
- * Not yet used here but could generate multiple suites with different params
+ * Generate multiple suites with different parameter combinations
  * @param matrix - parameter combinations for test generation
  * @returns the class decorator
  */

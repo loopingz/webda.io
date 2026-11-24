@@ -33,6 +33,10 @@ Method parameters define the input schema; the return type defines the output (`
 An operation receives its arguments in declaration order, including `undefined` for omitted optional parameters so
 JavaScript defaults apply. Use `useContext()` or a parameter typed as `OperationContext` to access the caller.
 
+When `rest` is omitted, `@Operation()` defaults to `PUT` at `/${operationId.toLowerCase().replace(".", "/")}` (for
+example, `Reports.exportFail` is served at `PUT /reports/exportfail`), matching the generated OpenAPI specification.
+Pass `@Operation({ rest: { method, path } })` to customize the HTTP method or preserve camelCase in the path.
+
 ```ts
 @Operation({ rest: { method: "get", path: "projects/{projectId}/tasks{?status,limit?,offset?}" } })
 async listTasks(projectId: string, status: string, limit = 20, offset?: number): Promise<Task[]> {

@@ -68,6 +68,8 @@ class PostServiceTest extends WebdaApplicationTest {
 // On failure: .webda/tests/PostServiceTest/create and retrieve a post.log is written automatically
 ```
 
+> **Note:** Inside tests running under Vitest, retrieve registered models with `useModel("MyApp/Post")` (from `@webda/core`) instead of importing the `.ts` model file directly, so you get the compiled class registered by the application rather than a second copy.
+
 ## Reference
 
 - API reference: see the auto-generated typedoc at `docs/pages/Modules/test/`.

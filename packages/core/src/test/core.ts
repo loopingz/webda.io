@@ -4,7 +4,8 @@ import { ConsoleLogger, MemoryLogger, useLog, useWorkerOutput } from "@webda/wor
 import { existsSync, mkdirSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { sanitizeFilename } from "@webda/utils";
 import { dirname } from "node:path";
-import sinon, { SinonStub } from "sinon";
+import { createRequire } from "node:module";
+import type { SinonStub } from "sinon";
 
 /**
  * Define a test suite
@@ -91,7 +92,7 @@ export class WebdaTest {
       testName = type;
     }
 
-    const file = `.webda/tests/${sanitizeFilename(suiteName)}/${testName}.log`;
+    const file = `.webda/tests/${sanitizeFilename(suiteName)}/${sanitizeFilename(testName)}.log`;
     mkdirSync(dirname(file), { recursive: true });
     rmSync(file, { force: true });
     writeFileSync(
@@ -149,7 +150,13 @@ export class WebdaTest {
    * @returns the result
    */
   stub(obj: any, method?: any): SinonStub {
-    const stub = sinon.stub(obj, method);
+    let sinonLib: typeof import("sinon");
+    try {
+      sinonLib = createRequire(import.meta.url)("sinon");
+    } catch {
+      throw new Error("sinon is required to use WebdaTest.stub(); install sinon as a devDependency");
+    }
+    const stub = sinonLib.stub(obj, method);
     this.stubs.push(stub);
     return stub;
   }

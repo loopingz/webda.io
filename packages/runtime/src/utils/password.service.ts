@@ -3,7 +3,6 @@ import {
   CryptoService,
   ENCRYPTION_FORMAT_V2,
   Service,
-  ServiceParameters,
   StringEncrypter,
   useApplication
 } from "@webda/core";

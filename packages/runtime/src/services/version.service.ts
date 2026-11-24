@@ -22,6 +22,7 @@ export class VersionServiceParameters extends ServiceParameters {
 export class VersionService<T extends VersionServiceParameters = VersionServiceParameters> extends Service<T> {
   /**
    * Set defaults for version and url from the application's package.json
+   * @returns this instance for chaining
    */
   resolve(): this {
     this.parameters.version ||= useApplication().getPackageDescription().version;

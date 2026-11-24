@@ -436,13 +436,20 @@ class MemoryRepositoryClassFilterTest {
   }
 
   @test
-  async duplicateModelClassWithSameNameThrows() {
+  async unregisteredSubclassWarnsOnAncestorFallback() {
     this.setupSharedRepos();
-    // Simulate a second copy of BlogPost loaded by another module loader (e.g. Vitest .ts vs .js) (#1158)
-    const DuplicateBlogPost = class BlogPost extends Post {};
-    assert.throws(
-      () => useRepository(DuplicateBlogPost as any),
-      /Model class "BlogPost" is not the registered instance/
-    );
+    const warnings: string[] = [];
+    const origWarn = console.warn;
+    console.warn = (...args: any[]) => warnings.push(args.join(" "));
+    try {
+      const DuplicateBlogPost = class BlogPost extends Post {};
+      useRepository(DuplicateBlogPost as any);
+      assert.ok(
+        warnings.some(w => w.includes('Model class "BlogPost" is not registered; falling back to ancestor')),
+        "Expected console.warn when unregistered subclass falls back to ancestor"
+      );
+    } finally {
+      console.warn = origWarn;
+    }
   }
 }

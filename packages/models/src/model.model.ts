@@ -9,7 +9,7 @@ import {
   ModelClass
 } from "./storable.js";
 import { DirtyState, WEBDA_DIRTY } from "@webda/utils";
-import type { Helpers, ModelPatch, SelfDTO, SelfJSONed } from "./types.js";
+import type { Helpers, ModelPatch, SelfDTO } from "./types.js";
 import { randomUUID } from "crypto";
 import { type ModelRef, RelationRole } from "./relations.js";
 import type { Repository } from "./repositories/repository.js";

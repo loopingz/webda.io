@@ -22,10 +22,12 @@ import { Core } from "../core/core.js";
 import { STORE_CAPABILITY } from "../stores/capability.js";
 import { bootCoreForCommand, executeApplicationCommand, selectPhase } from "./cli-phase.js";
 import { runDryRun } from "../contexts/dryrun.js";
+import { useSystem } from "../contexts/globaloperationcontext.js";
+import { callOperation, listOperations } from "../core/operations.js";
 import { runWithInstanceStorage, useInstanceStorage } from "../core/instancestorage.js";
 import { CancelablePromise, FileUtils, parseImportDescriptor, toImportSpecifier } from "@webda/utils";
 import {
-  ConsoleLogger,
+  InteractiveConsoleLogger,
   type ConsoleLogStream,
   patchConsole,
   useLog,
@@ -1245,8 +1247,13 @@ async function runCommandLine(options: RunCliOptions, applicationCli: boolean): 
   const appPath = resolve(options.appPath ?? (process.env.WEBDA_APP_PATH || "."));
   const rawArgv = options.argv ?? process.argv.slice(2);
   await runWithInstanceStorage({}, async () => {
-    // Ensure console output is available before anything else
-    new ConsoleLogger(useWorkerOutput(), undefined, undefined, resolveLogStream(rawArgv, !!process.stdout.isTTY));
+    // Ensure console output is available before anything else (interactive on TTY unless --no-tty)
+    new InteractiveConsoleLogger(
+      useWorkerOutput(),
+      undefined,
+      undefined,
+      resolveLogStream(rawArgv, !!process.stdout.isTTY)
+    );
     if (shouldPatchConsole(rawArgv)) {
       patchConsole();
     }
@@ -1420,53 +1427,60 @@ async function runCommandLine(options: RunCliOptions, applicationCli: boolean): 
         // Execute the operation through Core
         const call = matchedCommand.call;
 
-        // Derive service name and method from the operation ID (e.g. "TestBean.TestOperation")
+        // Ensure the operation's service exists in the configuration (no-op for model operations)
         const dot = call.id.indexOf(".");
-        const serviceName = call.id.substring(0, dot);
-        const methodName = call.id.substring(dot + 1, dot + 2).toLowerCase() + call.id.substring(dot + 2);
-
-        // Ensure the operation's service exists in the configuration
-        await ensureServiceInConfig(app, serviceName);
+        const serviceName = dot >= 0 ? call.id.substring(0, dot) : call.id;
+        if (!app.getModels()[app.completeNamespace(serviceName)] && !app.getModels()[serviceName]) {
+          await ensureServiceInConfig(app, serviceName);
+        }
 
         const core = new Core(app);
         onInterrupt(createCommandShutdown(core).interrupt);
         await core.init();
 
-        // Find the service
-        const services = core.getServices();
-        let service = services[serviceName];
-        if (!service) {
-          for (const [name, svc] of Object.entries(services)) {
-            if (svc?.constructor?.name === serviceName || name.endsWith(`/${serviceName}`)) {
-              service = svc;
-              break;
-            }
-          }
-        }
-        if (!service) {
-          useLog("ERROR", `Service '${serviceName}' not found for operation '${call.id}'`);
-          process.exit(1);
-        }
-        if (typeof service[methodName] !== "function") {
-          useLog("ERROR", `Method '${methodName}' not found on service '${serviceName}'`);
-          process.exit(1);
-        }
-
-        // Validate input against JSON schema if the operation defines one
-        // If interactive and missing properties, prompt the user
+        // Prompt for missing required properties if interactive
         const opEntry = ops?.operations[call.id];
         if (opEntry?.input && ops.schemas[opEntry.input]) {
           const inputSchema = ops.schemas[opEntry.input];
           call.input = await promptForMissingInput(call.input ?? {}, inputSchema);
-          const { registerSchema, validateSchema } = await import("../schemas/hooks.js");
-          registerSchema(opEntry.input, inputSchema);
-          validateSchema(opEntry.input, call.input);
         }
 
-        // Call the method with input properties as positional arguments
-        const inputArgs = call.input ? Object.values(call.input) : [];
-        const executeCall = async () => service[methodName](...inputArgs);
-        const result = await (call.dryRun ? runDryRun(executeCall) : executeCall());
+        let result: any;
+        if (listOperations()[call.id]) {
+          const ctx = useSystem(call.input);
+          const executeCall = async () => {
+            await callOperation(ctx, call.id);
+            return ctx.getOutput();
+          };
+          result = await (call.dryRun ? runDryRun(executeCall) : executeCall());
+        } else {
+          // Fallback for synthetic test fixtures where operations.json is mocked without Core registration
+          const methodName =
+            dot >= 0
+              ? call.id.substring(dot + 1, dot + 2).toLowerCase() + call.id.substring(dot + 2)
+              : call.id;
+          const services = core.getServices();
+          let service = services[serviceName];
+          if (!service) {
+            for (const [name, svc] of Object.entries(services)) {
+              if (svc?.constructor?.name === serviceName || name.endsWith(`/${serviceName}`)) {
+                service = svc;
+                break;
+              }
+            }
+          }
+          if (!service) {
+            useLog("ERROR", `Service '${serviceName}' not found for operation '${call.id}'`);
+            process.exit(1);
+          }
+          if (typeof service[methodName] !== "function") {
+            useLog("ERROR", `Method '${methodName}' not found on service '${serviceName}'`);
+            process.exit(1);
+          }
+          const inputArgs = call.input ? Object.values(call.input) : [];
+          const executeCall = async () => service[methodName](...inputArgs);
+          result = await (call.dryRun ? runDryRun(executeCall) : executeCall());
+        }
         if (result !== undefined) {
           useOutput(typeof result === "string" ? result : JSON.stringify(result, undefined, 2));
         }

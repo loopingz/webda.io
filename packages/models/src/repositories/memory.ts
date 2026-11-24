@@ -620,9 +620,13 @@ export class MemoryRepository<
       }
       return -1;
     });
-    result.results = result.results.slice(originalOffset, query.limit + originalOffset);
-    if (result.results.length >= query.limit) {
-      result.continuationToken = (query.limit + originalOffset).toString();
+    if (query.limit !== undefined) {
+      result.results = result.results.slice(originalOffset, query.limit + originalOffset);
+      if (result.results.length >= query.limit) {
+        result.continuationToken = (query.limit + originalOffset).toString();
+      }
+    } else if (originalOffset > 0) {
+      result.results = result.results.slice(originalOffset);
     }
   }
 

@@ -131,6 +131,8 @@ class ConsoleLogger extends WorkerLogger {
 
   /**
    * Write to a stream while ignoring EPIPE when a downstream pipe closes (e.g. `| head -1`).
+   * @param stream - Target writable stream
+   * @param chunk - String chunk to write
    */
   static safeWrite(stream: NodeJS.WritableStream, chunk: string) {
     if (ConsoleLogger.closedStreams.has(stream) || (stream as any).destroyed || (stream as any).writableEnded) {

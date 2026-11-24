@@ -1,4 +1,4 @@
-import { PK, PrimaryKeyType, ModelClass, WEBDA_PRIMARY_KEY } from "../storable.js";
+import { PK, PrimaryKeyType, ModelClass, WEBDA_EVENTS, WEBDA_PRIMARY_KEY } from "../storable.js";
 import type { JSONed, Helpers, PropertyPaths, NumericPropertyPaths, PropertyPathType } from "../types.js";
 import { AbstractRepository } from "./abstract.js";
 import { ArrayElement } from "@webda/utils";
@@ -52,6 +52,20 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
   }
 
   /**
+   * Emit a post-write event without failing the already-committed operation if a listener throws.
+   */
+  protected async emitAfter<K extends keyof InstanceType<T>[typeof WEBDA_EVENTS]>(
+    event: K,
+    data: InstanceType<T>[typeof WEBDA_EVENTS][K]
+  ): Promise<void> {
+    try {
+      await this.emit(event, data);
+    } catch (err) {
+      console.error(`Error in ${String(event)} repository listener:`, err);
+    }
+  }
+
+  /**
    * Increment numeric attributes with event emission
    * @override
    */
@@ -68,7 +82,7 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
       }
     } as any);
     const updated = await this.repository.incrementAttributes(primaryKey, info, _conditionField, _condition);
-    await this.emit("PartialUpdated", {
+    await this.emitAfter("PartialUpdated", {
       object_id: primaryKey,
       partial_update: {
         increments: info
@@ -100,7 +114,7 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
       () => this.repository.query(query),
       r => ({ count: r.results.length, paginated: !!r.continuationToken })
     );
-    await this.emit("Queried", { ...res, query } as any);
+    await this.emitAfter("Queried", { ...res, query } as any);
     return res;
   }
 
@@ -177,7 +191,7 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
       () => this.repository.aggregate(spec),
       r => r.rows.length
     );
-    await this.emit("Aggregated", { query: spec, ...res } as any);
+    await this.emitAfter("Aggregated", { query: spec, ...res } as any);
     return res;
   }
 
@@ -382,7 +396,7 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
       }
     } as any);
     await this.repository.removeAttribute(uuid, attribute, conditionField, condition);
-    await this.emit("PartialUpdated", {
+    await this.emitAfter("PartialUpdated", {
       object_id: uuid,
       partial_update: {
         remove_attribute: {
@@ -409,7 +423,7 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
     const object_id = this.getPrimaryKey(item);
     await this.emit("Create", { object_id, object: item } as any);
     const res = await this.repository.create(item as Helpers<InstanceType<T>>, save);
-    await this.emit("Created", { object_id, object: res } as any);
+    await this.emitAfter("Created", { object_id, object: res } as any);
     return res;
   }
   /**
@@ -432,7 +446,7 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
       return;
     }
     const object = await this.repository.get(primaryKey);
-    await this.emit("Patched", { object_id: primaryKey, object, patch: data } as any);
+    await this.emitAfter("Patched", { object_id: primaryKey, object, patch: data } as any);
   }
   /**
    * Update with event emission (emits Update before and Updated after)
@@ -445,7 +459,7 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
   ): Promise<void> {
     await this.emit("Update", { object_id: this.getPrimaryKey(data), object: data } as any);
     await this.repository.update(data, conditionField, condition);
-    await this.emit("Updated", { object_id: this.getPrimaryKey(data), object: data } as any);
+    await this.emitAfter("Updated", { object_id: this.getPrimaryKey(data), object: data } as any);
   }
   /**
    * Delete with event emission (emits Delete before and Deleted after)
@@ -458,7 +472,7 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
   ): Promise<void> {
     await this.emit("Delete", { object_id: uuid } as any);
     await this.repository.delete(uuid, conditionField, condition);
-    await this.emit("Deleted", { object_id: uuid } as any);
+    await this.emitAfter("Deleted", { object_id: uuid } as any);
   }
   /** @override */
   async exists(uuid: PrimaryKeyType<InstanceType<T>>): Promise<boolean> {

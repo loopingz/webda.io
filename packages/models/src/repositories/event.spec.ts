@@ -336,4 +336,16 @@ class EventRepositoryMonitoringTest {
     assert.strictEqual(reports[3].count, 1);
     assert.ok(reports[3].query.includes("UPDATE"));
   }
+
+  @test
+  async postWriteListenerErrorIsLoggedWithoutFailingCreate() {
+    const inner = new MemoryRepository(SubClassModel, ["uuid"]);
+    const eventRepo = new EventRepository(SubClassModel, ["uuid"], inner);
+    eventRepo.on("Created", () => {
+      throw new Error("mailer down");
+    });
+    const created = await eventRepo.create({ uuid: "u-err", name: "Alice", age: 30, collection: [] } as any);
+    assert.strictEqual(created.uuid, "u-err");
+    assert.strictEqual(await eventRepo.exists("u-err"), true);
+  }
 }

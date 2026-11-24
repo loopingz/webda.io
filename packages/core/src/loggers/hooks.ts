@@ -1,4 +1,4 @@
-import { WorkerOutput, useLog, useOutput } from "@webda/workout";
+import { WorkerOutput, useLog, useLogLevel, useOutput } from "@webda/workout";
 import { Logger } from "./ilogger.js";
 import type { AbstractService } from "../core/icore.js";
 import { Model } from "@webda/models";
@@ -10,7 +10,7 @@ import { useModelId } from "../application/hooks.js";
 let output: { log: (level, ...args) => void } = console;
 let workerOutput: WorkerOutput;
 
-export { useLog, useOutput };
+export { useLog, useLogLevel, useOutput };
 
 /**
  * Set the global log output target for all loggers

@@ -1,5 +1,5 @@
 import { isWorkerLogLevel, LogFilter, WorkerLog, WorkerLogLevel, WorkerMessage, WorkerOutput } from "../core.js";
-import { ConsoleLogger } from "./console.js";
+import { ConsoleLogger, type ConsoleLogStream } from "./console.js";
 import chalk from "yoctocolors";
 const isUnicodeSupported = process.platform !== "win32" || Boolean(process.env.WT_SESSION);
 
@@ -71,7 +71,7 @@ class SimpleProgress {
   /** Timestamp (ms) when the progress was started */
   started: number;
   /** Timestamp (ms) when the progress was stopped */
-  stopped: number;
+  stopped?: number;
 
   /**
    * Create a new progress indicator
@@ -121,7 +121,8 @@ class SimpleProgress {
    * Hides cursor and begins spinner interval
    */
   start() {
-    this.started ??= Date.now();
+    this.started = Date.now();
+    this.stopped = undefined;
     this.hideCursor();
     this.interval ??= setInterval(() => {
       this.spinnerState++;
@@ -222,12 +223,13 @@ export class InteractiveConsoleLogger extends ConsoleLogger {
   constructor(
     output: WorkerOutput,
     level: WorkerLogLevel = isWorkerLogLevel(process.env.LOG_LEVEL) ? process.env.LOG_LEVEL : "INFO",
-    format: string = ConsoleLogger.defaultFormat
+    format: string = ConsoleLogger.defaultFormat,
+    logStream: ConsoleLogStream = "stdout"
   ) {
-    super(output, level, format);
+    super(output, level, format, logStream);
     this.format = format;
     // Set interactive based on TTY status and --no-tty flag
-    output.setInteractive(process.stdout.isTTY && !process.argv.includes("--no-tty"));
+    output.setInteractive(Boolean(process.stdout.isTTY) && !process.argv.includes("--no-tty"));
   }
 
   /**

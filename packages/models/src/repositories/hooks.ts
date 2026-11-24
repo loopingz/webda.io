@@ -13,6 +13,7 @@ import type { AggregatedRow, AggregationSpec, CountOptions, CountResult, MetricS
  * (`Model.create()`, `Model.query()`, `Model.ref()`).
  */
 export const Repositories = new WeakMap<ModelClass, Repository<any>>();
+const RegisteredByName = new Map<string, ModelClass>();
 
 /**
  * Return a repository for a model
@@ -20,12 +21,23 @@ export const Repositories = new WeakMap<ModelClass, Repository<any>>();
  * @returns the repository for the model
  */
 export function useRepository<T extends ModelClass>(arg: T): Repository<T> {
+  if (!Repositories.has(arg)) {
+    const existing = RegisteredByName.get(arg.name);
+    if (existing && existing !== arg) {
+      throw new Error(
+        `Model class "${arg.name}" is not the registered instance (a different class with the same name is registered; use useModel() in tests)`
+      );
+    }
+  }
   let clazz: any = arg;
   while (!Repositories.has(clazz)) {
     clazz = Object.getPrototypeOf(clazz);
     if (clazz === null || clazz === Object) {
       throw new Error(`No repository found for ${arg.prototype.constructor.name}`);
     }
+  }
+  if (clazz !== arg) {
+    console.warn(`Model class "${arg.name}" is not registered; falling back to ancestor "${clazz.name}"`);
   }
   return Repositories.get(clazz) as Repository<T>;
 }
@@ -39,6 +51,9 @@ export function useRepository<T extends ModelClass>(arg: T): Repository<T> {
  */
 export function registerRepository<T extends ModelClass>(model: T, repository: Repository<T>): void {
   Repositories.set(model, repository);
+  if (model.name) {
+    RegisteredByName.set(model.name, model);
+  }
 }
 
 /** Static repository operations supplied by the storage mixin. */

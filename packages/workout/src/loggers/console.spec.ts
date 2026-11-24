@@ -197,4 +197,24 @@ describe("ConsoleLoggerTest", () => {
       }
     }
   });
+
+  it("handles EPIPE without crashing", async () => {
+    const { PassThrough } = await import("node:stream");
+    const stream = new PassThrough();
+    let writes = 0;
+    stream.write = (() => {
+      writes++;
+      const err: NodeJS.ErrnoException = new Error("write EPIPE");
+      err.code = "EPIPE";
+      stream.emit("error", err);
+      return false;
+    }) as any;
+
+    output = new WorkerOutput();
+    const msg = new WorkerMessage("log", output, { log: { level: "INFO", args: ["hello"] } as any });
+    // First write emits EPIPE and marks stream closed; second write is a no-op (#1167)
+    ConsoleLogger.display(msg, ConsoleLogger.defaultFormat, stream);
+    ConsoleLogger.display(msg, ConsoleLogger.defaultFormat, stream);
+    assert.strictEqual(writes, 1);
+  });
 });

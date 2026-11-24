@@ -1,6 +1,7 @@
 import * as crypto from "node:crypto";
-import { createReadStream, createWriteStream, existsSync } from "node:fs";
-import { open } from "node:fs/promises";
+import { createReadStream, createWriteStream, existsSync, mkdirSync, rmSync } from "node:fs";
+import { open, rename } from "node:fs/promises";
+import { dirname } from "node:path";
 import { Readable, Writable } from "node:stream";
 import { createGzip } from "node:zlib";
 import { GunzipConditional } from "@webda/utils";
@@ -256,7 +257,10 @@ export class MemoryStore<K extends MemoryStoreParameters = MemoryStoreParameters
       );
     }
 
-    const dest = createWriteStream(this.parameters.persistence.path);
+    const targetPath = this.parameters.persistence.path;
+    mkdirSync(dirname(targetPath), { recursive: true });
+    const tmpPath = `${targetPath}.${process.pid}.${crypto.randomUUID()}.tmp`;
+    const dest = createWriteStream(tmpPath);
     if (this.key) {
       const iv = crypto.randomBytes(16);
       const cipher = crypto.createCipheriv(
@@ -269,11 +273,19 @@ export class MemoryStore<K extends MemoryStoreParameters = MemoryStoreParameters
     }
     pipeline.pipe(dest);
     await new Promise<void>((resolve, reject) => {
-      dest.on("finish", () => {
-        this.log("DEBUG", "Persisted memory data");
-        resolve();
+      dest.on("finish", async () => {
+        try {
+          await rename(tmpPath, targetPath);
+          this.log("DEBUG", "Persisted memory data");
+          resolve();
+        } catch (err) {
+          rmSync(tmpPath, { force: true });
+          this.log("ERROR", "Cannot persist memory data", err);
+          reject(err);
+        }
       });
       dest.on("error", err => {
+        rmSync(tmpPath, { force: true });
         this.log("ERROR", "Cannot persist memory data", err);
         reject(err);
       });

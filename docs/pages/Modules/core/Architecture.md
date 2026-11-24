@@ -5,59 +5,13 @@ sidebar_label: Architecture
 
 # Architecture
 
-`@webda/core` is organized into six layers. Each layer has a clear responsibility, and dependencies only flow downward.
+`@webda/core` is organized into six layers. Each group has a clear responsibility; shared infrastructure supports the runtime across these groups.
 
 ## The 6-layer diagram
 
-```mermaid
-flowchart TD
-    subgraph L1["Application Layer"]
-        Application["Application\n(module discovery, config loading)"]
-        UnpackedApp["UnpackedApplication\n(dev-mode auto-discovery)"]
-    end
+import ReferenceDiagram from "@site/src/components/ReferenceDiagram";
 
-    subgraph L2["Core Runtime"]
-        Core["Core\n(service lifecycle, DI graph)"]
-        InstanceStorage["InstanceStorage\n(AsyncLocalStorage)"]
-        Events["Core Events\n(Webda.Init.Services, Webda.Request, ...)"]
-    end
-
-    subgraph L3["Services Layer"]
-        Service["Service\n(base class, @Bean, @Inject)"]
-        ServiceParams["ServiceParameters\n(typed config)"]
-        CryptoSvc["CryptoService\n(JWT, encryption)"]
-        BinarySvc["BinaryService\n(file uploads)"]
-        DomainSvc["DomainService\n(model REST/GraphQL)"]
-    end
-
-    subgraph L4["Data Layer"]
-        Store["Store\n(CRUD, WQL queries, events)"]
-        MemoryStore["MemoryStore\n(in-memory + optional file)"]
-        Registry["Registry\n(framework KV store)"]
-    end
-
-    subgraph L5["HTTP / Request Layer"]
-        Router["Router\n(route matching, OpenAPI)"]
-        WebContext["WebContext\n(typed request/response)"]
-        SessionMgr["SessionManager\n(JWT sessions)"]
-    end
-
-    subgraph L6["Cross-Cutting"]
-        Logger["useLog\n(structured logging)"]
-        Metrics["useMetric\n(Prometheus)"]
-        Cache["@ProcessCache, @ContextCache"]
-        ErrorTypes["WebdaError\n(typed HTTP errors)"]
-    end
-
-    L1 --> L2
-    L2 --> L3
-    L3 --> L4
-    L2 --> L5
-    L2 --> L6
-    L3 --> L6
-    L4 --> L6
-    L5 --> L6
-```
+<ReferenceDiagram id="core-architecture" />
 
 ## Layer descriptions
 
@@ -78,7 +32,7 @@ The central orchestrator.
 
 ### 3. Services Layer
 
-All application logic lives in services.
+Services provide application infrastructure and orchestration; models can encapsulate domain logic.
 
 - **`Service<P>`** — base class. Provides `@Inject`, `@Route`, logging, metrics, `init()`, `resolve()`, `stop()`.
 - **`ServiceParameters`** — typed config base class. Extend to declare your service's configuration shape.
@@ -111,26 +65,7 @@ Shared infrastructure available everywhere.
 
 ## Request flow
 
-```mermaid
-sequenceDiagram
-    participant Client
-    participant HttpServer
-    participant Router
-    participant SessionManager
-    participant Service
-    participant Store
-
-    Client->>HttpServer: HTTP POST /posts
-    HttpServer->>Router: route(context)
-    Router->>SessionManager: session.load(context)
-    SessionManager-->>Router: session loaded
-    Router->>Service: executeOperation(context)
-    Service->>Store: save(post)
-    Store-->>Service: saved
-    Service-->>Router: result
-    Router->>SessionManager: session.save(context)
-    Router-->>Client: HTTP 201 Created
-```
+<ReferenceDiagram id="http-request-flow" />
 
 ## Hooks API
 

@@ -21,76 +21,17 @@ a trace of the run. To run something else than an operation at a tick, make an o
 
 Flow with a Queue
 
-```mermaid
-sequenceDiagram
-	participant Q as Queue
-    participant Aa as AsyncActionService API
-    participant S as Store
-    participant Ar as AsyncActionService Worker
-	participant R as Runner
-	participant J as Job
-    Aa->>S: Create new action in 'QUEUED' status
-	Aa->>Q: Queue action
-    Q->>Ar: Retrieve Queue item
-	activate Ar
-	Ar->>S: Move action to 'STARTING' status
-	Ar->>R: Run action
-	R->>J: Launch Job
-	R->>Ar: Return Runner Job Info
-	Ar->>S: Save Runner Job Info
-	deactivate Ar
-	loop status report
-		J->>Aa: Use hook /async/status to report
-		activate Aa
-		Aa->>S: Update status from report
-		deactivate Aa
-	end
-```
+import ReferenceDiagram from "@site/src/components/ReferenceDiagram";
+
+<ReferenceDiagram id="async-queued" />
 
 Flow with local run and http hook status
 
-```mermaid
-sequenceDiagram
-    participant S as Store
-    participant Ar as AsyncActionService Worker
-	participant R as Runner
-	participant J as Job
-    Ar->>S: Create new action in 'QUEUED' status
-	activate Ar
-	Ar->>S: Move action to 'STARTING' status
-	Ar->>R: Run action
-	R->>J: Launch Job
-	R->>Ar: Return Runner Job Info
-	Ar->>S: Save Runner Job Info
-	deactivate Ar
-	loop status report
-		J->>Ar: Use hook /async/status to report
-		activate Ar
-		Ar->>S: Update status from report
-		deactivate Ar
-	end
-```
+<ReferenceDiagram id="async-local-hook" />
 
 Flow with local run with WebdaAction only
 
-```mermaid
-sequenceDiagram
-    participant S as Store
-    participant Ar as AsyncActionService Worker
-	participant R as Runner
-	participant J as Job
-    Ar->>S: Create new action in 'QUEUED' status
-	activate Ar
-	Ar->>S: Move action to 'STARTING' status
-	Ar->>R: Run action
-	R->>J: Launch Job
-	R->>Ar: Return Runner Job Info
-	Ar->>S: Save Runner Job Info
-	deactivate Ar
-	loop status report
-		J->>S: Update status direclty in Store
-	end
-```
+<ReferenceDiagram id="async-local-store" />
 
 ## Runner
 

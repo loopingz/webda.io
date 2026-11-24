@@ -3,18 +3,9 @@
 `KubernetesOperator` reconciles models stored in a [Kubernetes store](./KubernetesStore.md), like a Kubernetes
 controller: when an object's spec changes, it calls its `reconcile()` method and reports the result in its status.
 
-```mermaid
-stateDiagram-v2
-  [*] --> Watching: started (leader)
-  Watching --> Queued: added / spec changed / resync
-  Queued --> Reconciling: one at a time per object
-  Reconciling --> UpdateStatus: success
-  Reconciling --> Backoff: error
-  Backoff --> Queued
-  UpdateStatus --> Watching: observedGeneration, Ready condition
-  Watching --> Finalizing: deletionTimestamp set
-  Finalizing --> [*]: finalize(), finalizer removed
-```
+import ReferenceDiagram from "@site/src/components/ReferenceDiagram";
+
+<ReferenceDiagram id="kubernetes-operator" />
 
 ## Model
 

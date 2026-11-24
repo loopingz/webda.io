@@ -1,0 +1,128 @@
+{
+  "oidc-trust": {
+    "title": "Application identity across a trust boundary",
+    "alt": "App A obtains an audience-bound token from its issuer or an external issuer. App B resolves the Bearer token, verifies it with trusted issuer keys, creates a stateless application session, and checks IAM permissions.",
+    "height": 787,
+    "caption": "A caller obtains an audience-bound token; the callee verifies it before authorization."
+  },
+  "oidc-verification": {
+    "title": "From bearer token to an authorization decision",
+    "alt": "From bearer token to an authorization decision. Obtain token: OIDCClient.getToken(audience), Cache until expiry minus margin. Resolve bearer: SessionManager tries access token, Then delegates to OIDCVerifier. Match trusted issuer: Decode iss to select configuration, Exact trustedIssuers match. Resolve verification keys: Discovery → jwks_uri → JWKS, Fetch on cache miss / unknown kid. Verify token: Signature, allowed alg, iss, aud, Time claims and configured rules. Authorize operation: Stateless application session, IAM evaluates app principals. IAM evaluates app:<id>, app-issuer:<issuer>, and authenticated-app principals. Issuer selection alone is not authentication: signature and claim verification must succeed.",
+    "height": 787,
+    "caption": "A successful OIDC request creates a stateless application session."
+  },
+  "compiler-build": {
+    "title": "From TypeScript to an application contract",
+    "alt": "From TypeScript to an application contract. TypeScript source: src/**/*.ts, Models, services, and operations. Compile: content-mapper build, Emit ES modules to lib/**/*.js. Analyze the program: content-mapper module, Discover model and service metadata. Generate schemas: Model input / output / stored, Service parameter schemas. Write manifest: webda.module.json, Application metadata and schemas. Configuration schema: .webda/config.schema.json, Include dependency manifests. Installed node_modules/**/webda.module.json files also contribute to the configuration schema. Generated artifacts are build outputs: edit the TypeScript source, then rebuild.",
+    "height": 787,
+    "caption": "Compilation and metadata analysis produce the artifacts used at runtime."
+  },
+  "graphql-schema": {
+    "title": "One model definition. A GraphQL schema.",
+    "alt": "One model definition. A GraphQL schema.. TypeScript models: Post, User, Comment, Tag, Define fields and relationships. Compiler metadata: webda.module.json, Model JSON schemas. GraphQLService: Read the compiled metadata, Generate the GraphQL schema. GraphQL SDL: Types, queries, mutations, Describe the exposed API. GraphiQL / clients: Use introspection queries, Explore and call the API. The compiler provides model metadata; GraphQLService builds the GraphQL schema from it.",
+    "height": 761,
+    "caption": "Model metadata drives the schema exposed to GraphQL clients."
+  },
+  "query-translation": {
+    "title": "One query language. Multiple storage backends.",
+    "alt": "One query language. Multiple storage backends.. WQL query: Filter, ordering, pagination, Example: status = published. Parser / validator: @webda/ql · QueryValidator, Build a validated expression tree. Expression AST: AndExpression, ComparisonExpression, and more. MemoryStore: Evaluate expressions per object, In-memory filtering. MongoStore: Translate into a MongoDB filter, Execute against the collection. SQLStore: Translate into SQL predicates, Execute against the database. The three backend paths are alternatives; a query goes to its configured store. Translation support and backend-specific behavior are detailed below.",
+    "height": 787,
+    "caption": "Parse once into expressions; each backend translates or evaluates the result."
+  },
+  "benchmark-pipeline": {
+    "title": "Measure, record, compare.",
+    "alt": "Measure, record, compare.. Your harness: Create the service under test, Choose its configuration. Shared benchmark suite: benchStore / benchQueue, benchPubSub. BenchmarkRunner: Execute the selected suite, Collect measurements. Result files: bench-results/*.json, Keep comparable run artifacts. Report / compare: webda-bench report, webda-bench compare. Keep workload and environment settings comparable when interpreting benchmark differences.",
+    "height": 761,
+    "caption": "A repeatable benchmark pipeline for stores, queues, and pub/sub."
+  },
+  "core-architecture": {
+    "title": "Webda runtime: responsibilities and connections",
+    "alt": "Webda runtime: responsibilities and connections. Application layer: Application / UnpackedApplication, Discover modules; load configuration. Core runtime: Lifecycle and dependency graph, InstanceStorage + core events. HTTP / request layer: HttpServer, Router, WebContext, SessionManager and transports. Services layer: Service + typed parameters, Crypto, binary, domain services. Data layer: Repositories and storage backends, MemoryStore + framework Registry. Shared infrastructure: Logging, metrics, caches, Typed errors across the runtime. These are responsibility groups, not a request sequence; shared infrastructure supports every runtime layer. Models own domain behavior; services coordinate integrations and work across models.",
+    "height": 787,
+    "caption": "Application configuration becomes a running graph of services and infrastructure."
+  },
+  "http-request-flow": {
+    "title": "A request through the runtime",
+    "alt": "A request through the runtime. Client → HttpServer: HTTP POST /posts, Receive the request. Router + context: Select the operation handler, Load request identity / session. Operation / domain logic: Validate and authorize input, Invoke model behavior. Repository / store: Persist the model, Return the saved record. Response handling: Write the operation result, Save session state if needed. Client response: HTTP status and response body, 201 Created for a successful create. This illustrates the successful path. Validation, authorization, or persistence errors produce error responses.",
+    "height": 761,
+    "caption": "A successful model-create request, from transport to persistence and response."
+  },
+  "request-context": {
+    "title": "One request. One shared context.",
+    "alt": "One request. One shared context.. Receive request: HttpServer / Router, Headers, cookies, URL, and body. Create WebContext: Attach request and response data, Make context available to handlers. Load session: SessionManager, Resolve the current request identity. Run handler: getInput() / getCurrentUser(), Read the context during execution. Write result: context.write(response), Set status and headers as needed. Finish response: Persist session state if required, Send the HTTP response. Input parsing and validation happen through the context/operation path, not a separate application-wide object.",
+    "height": 761,
+    "caption": "WebContext carries input, identity, and the response through the request lifecycle."
+  },
+  "service-state-machine": {
+    "title": "The states of a service",
+    "alt": "The states of a service. initial: Constructor creates the instance, Synchronous setup only. resolving: resolve() begins, Wire injected dependencies. resolved: resolve() completes, Ready for asynchronous startup. initializing: init() begins, Open connections and start tasks. running: init() completes, Handle requests or background work. stopping: Core.stop() invokes stop(), Release owned resources. stopped: stop() completes, Cleanup has finished. This is the service state machine. Core uses ready for its initialized state and also supports reinitializing. The arrows show ordering, not elapsed time.",
+    "height": 1052,
+    "caption": "Core manages transitions; service hooks perform the work."
+  },
+  "service-startup-order": {
+    "title": "Start in order. Stop together.",
+    "alt": "Start in order. Stop together.. Launch application: CLI creates Core(application), Calls Core.init(). Create + resolve services: Construct service instances, Resolve dependencies on demand. Choose init order: Finalize initOrders, Stores before other services. Initialize services: Await init() in the selected order, Connections and background tasks. Run application: Serve requests and operations, Until shutdown is requested. Stop concurrently: Core invokes service stop() hooks, Await their completion together. Shutdown does not promise a service-by-service order. Do not assume another service is still running. Call super.resolve(), await super.init(), and await super.stop() in the corresponding hooks.",
+    "height": 787,
+    "caption": "The CLI delegates application startup and shutdown to Core."
+  },
+  "model-create-lifecycle": {
+    "title": "Create a model: prepare, authorize, persist.",
+    "alt": "Create a model: prepare, authorize, persist.. Create request: REST transport → domain operation, Load and sanitize the input. Prepare model: Build the model instance, Run prepareCreate(context). Authorize create: Check the model permission, Continue only when allowed. Before persistence: Repository emits Create, Listeners receive the model and key. Persist the record: Underlying repository.create(), Write through the configured backend. After persistence: Repository emits Created, Return the saved model to the client. Create and Created are typed repository events; they surround the underlying create operation. The transport returns a successful create response only after the operation completes.",
+    "height": 787,
+    "caption": "The successful create path with typed repository events around persistence."
+  },
+  "async-queued": {
+    "title": "Queued action execution",
+    "alt": "Queued action execution. Create action: API saves QUEUED in the store. Enqueue: API publishes the action, Worker retrieves the queue item. Start action: Worker saves STARTING, Then asks the runner to execute. Launch job: Runner starts the job, Returns job info to the worker. Save job info: Worker persists runner metadata. Report status repeatedly: Job calls API /async/status, API updates the store. Status callbacks go through the API; the worker handles launch and runner metadata.",
+    "height": 761,
+    "caption": "A queue separates the API from the worker that launches the job."
+  },
+  "async-local-hook": {
+    "title": "Local action with HTTP status",
+    "alt": "Local action with HTTP status. Create action: Worker saves QUEUED. Start action: Worker saves STARTING. Run action: Worker invokes the runner. Launch job: Runner starts the job, Returns job info to the worker. Save job info: Worker persists runner metadata. Report status repeatedly: Job calls worker /async/status, Worker updates the store. No queue is involved in this flow. Status reports return to the worker over HTTP.",
+    "height": 761,
+    "caption": "The worker launches locally and receives the job’s status callbacks."
+  },
+  "async-local-store": {
+    "title": "Local WebdaAction execution",
+    "alt": "Local WebdaAction execution. Create action: Worker saves QUEUED. Start action: Worker saves STARTING. Run action: Worker invokes the runner. Launch job: Runner starts the WebdaAction, Returns job info to the worker. Save job info: Worker persists runner metadata. Report status repeatedly: Job updates the store directly, No HTTP status callback. Direct store reporting is the WebdaAction path; the runner still returns launch metadata to the worker.",
+    "height": 761,
+    "caption": "A WebdaAction can report its progress directly to the store."
+  },
+  "sdk-backends": {
+    "title": "One model client, two backends",
+    "alt": "One model client, two backends. ModelClient: Same model API and hydration. Choose backend: Synced model + offline configured? . RemoteBackend: Otherwise: Transport + EntityCache. OfflineBackend: OfflineClient.collection, Local reads and writes. StorageAdapter: IndexedDB or Memory. Sync loop: SyncTransportAdapter → transports, Pull / Push / Snapshot / Watch. Offline sync uses the SDK’s transports and authentication; custom actions still require the server.",
+    "height": 761,
+    "caption": "Synced models use local storage; other models use remote transports."
+  },
+  "kubernetes-store": {
+    "title": "Models as Kubernetes resources",
+    "alt": "Models as Kubernetes resources. Model definition: Fields and model metadata. Export CRD: webda kubernetes crd export. CRD YAML: CustomResourceDefinition. Application: Model.create / useRepository. KubernetesRepository: CustomObjectsApi. Kubernetes API: kube-apiserver / etcd. Top: install the resource schema. Bottom: create and retrieve model instances at runtime.",
+    "height": 761,
+    "caption": "Export the schema once; use the repository for runtime persistence."
+  },
+  "kubernetes-operator": {
+    "title": "Reconcile desired state",
+    "alt": "Reconcile desired state. Watching: Leader receives changes or resync. Queued: Added or spec changed, One task at a time per object. Reconciling: Run the model’s reconcile(). Finalizing: On deletionTimestamp: finalize(), Remove finalizer to finish deletion. Backoff: On error: delay, then queue again. Update status: Success: observedGeneration + Ready, Return to watching. Success returns to Watching; errors return to Queued after backoff. Deletion follows the finalizer path.",
+    "height": 761,
+    "caption": "The leader watches changes and serializes reconciliation per object."
+  },
+  "bazel-deployment": {
+    "title": "From source to Kubernetes",
+    "alt": "Source and configuration are compiled with webdac. The deployment is applied during packaging. @webda/oci writes app-layer.tar with production files and deployed configuration. oci_image combines it with a pinned Node base. The pod receives environment configuration from a ConfigMap.",
+    "height": 761,
+    "caption": "Bazel compiles and packages Webda; @webda/oci writes the application layer."
+  },
+  "traefik-mtls": {
+    "title": "Client certificates through Traefik",
+    "alt": "Client certificates through Traefik. Client certificate: Client starts the TLS handshake. Traefik verifies: Validate against the client CA, Forward the verified certificate. HttpServer checks proxy: Accept only trustedProxies, Reject untrusted forwarding: 400. SessionManager: Read certificate from HttpContext, No Bearer + verified certificate. CertificateProvider: Resolve the user and ident. Stateless session: provider: certificate, amr: mtls. Traefik forwards X-Forwarded-Tls-Client-Cert. Restrict access to the application to trusted proxies.",
+    "height": 761,
+    "caption": "A verified certificate becomes a Webda identity across a trusted proxy boundary."
+  },
+  "content-mapper-architecture": {
+    "title": "One transform, two hosts",
+    "alt": "One transform, two hosts. Generators + edit plan: accessors / loadParameters, Shared transform implementation. Content mapper: Resident TypeScript Program. Two-pass build: Virtual filesystem. Editor tooling: Hover / rename / diagnostics. Runtime output: .js + .d.ts. Content mappers support the editor. The two-pass build emits JavaScript and declarations for runtime use.",
+    "height": 1026,
+    "caption": "Shared generators serve editor tooling and the runtime build."
+  }
+}

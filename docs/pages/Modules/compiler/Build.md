@@ -9,28 +9,9 @@ sidebar_label: Build
 
 ## What it does
 
-```mermaid
-flowchart TD
-    TS["TypeScript source\nsrc/**/*.ts"]
-    TSC["@webda/content-mapper build\n(TypeScript 7.1 → ES modules)"]
-    LIB["lib/**/*.js\n(compiled output)"]
-    Module["@webda/content-mapper module\n(analyze the program)"]
-    Models["Model schemas\n(input/output/stored)"]
-    Services["Service schemas\n(parameters)"]
-    Manifest["webda.module.json"]
-    ConfigSchema[".webda/config.schema.json"]
-    DepModules["node_modules/**/webda.module.json\n(dependency manifests)"]
+import ReferenceDiagram from "@site/src/components/ReferenceDiagram";
 
-    TS --> TSC
-    TSC --> LIB
-    LIB --> Module
-    Module --> Models
-    Module --> Services
-    Models --> Manifest
-    Services --> Manifest
-    Manifest --> ConfigSchema
-    DepModules --> ConfigSchema
-```
+<ReferenceDiagram id="compiler-build" />
 
 **Step-by-step:**
 
@@ -60,11 +41,11 @@ webdac build --appPath /path/to/my-app
 
 ## Options
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--watch` / `-w` | `false` | Watch for file changes and rebuild |
-| `--force` / `-f` | `false` | Recompile even when the cache reports nothing changed |
-| `--appPath` | `.` | Path to the application root (must contain `tsconfig.json`) |
+| Flag             | Default | Description                                                 |
+| ---------------- | ------- | ----------------------------------------------------------- |
+| `--watch` / `-w` | `false` | Watch for file changes and rebuild                          |
+| `--force` / `-f` | `false` | Recompile even when the cache reports nothing changed       |
+| `--appPath`      | `.`     | Path to the application root (must contain `tsconfig.json`) |
 
 ## Real build output (blog-system)
 

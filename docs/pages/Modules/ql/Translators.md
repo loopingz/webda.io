@@ -9,21 +9,9 @@ Each Webda Store backend provides a repository whose `query()` method translates
 
 ## Translation overview
 
-```mermaid
-flowchart LR
-    WQL["WQL string\n'status = \\'published\\' LIMIT 10'"]
-    Parser["@webda/ql\nQueryValidator"]
-    AST["Expression AST\nAndExpression / ComparisonExpression"]
-    Memory["MemoryStore\neval() per object"]
-    Mongo["MongoStore\nMongoDB filter object"]
-    SQL["SQLStore (Postgres)\nSQL WHERE clause"]
+import ReferenceDiagram from "@site/src/components/ReferenceDiagram";
 
-    WQL --> Parser
-    Parser --> AST
-    AST --> Memory
-    AST --> Mongo
-    AST --> SQL
-```
+<ReferenceDiagram id="query-translation" />
 
 ## In-memory (MemoryStore)
 
@@ -37,6 +25,7 @@ const results = Object.values(this.storage).filter(obj => query.filter.eval(obj)
 ```
 
 **Characteristics:**
+
 - No translation overhead — pure JS object inspection
 - Supports all WQL operators exactly as specified
 - LIMIT and OFFSET are applied post-filter (slice)
@@ -44,14 +33,14 @@ const results = Object.values(this.storage).filter(obj => query.filter.eval(obj)
 
 **Example:**
 
-| WQL | In-memory behavior |
-|-----|-------------------|
-| `status = 'published'` | `obj.status === 'published'` |
-| `viewCount >= 100` | `obj.viewCount >= 100` |
-| `tags CONTAINS 'ts'` | `Array.isArray(obj.tags) && obj.tags.includes('ts')` |
-| `title LIKE 'Intro%'` | `ComparisonExpression.likeToRegex('Intro%').test(obj.title)` |
-| `deletedAt IS NULL` | `obj.deletedAt === undefined \|\| obj.deletedAt === null` |
-| `deletedAt IS NOT NULL` | `obj.deletedAt !== undefined && obj.deletedAt !== null` |
+| WQL                     | In-memory behavior                                           |
+| ----------------------- | ------------------------------------------------------------ |
+| `status = 'published'`  | `obj.status === 'published'`                                 |
+| `viewCount >= 100`      | `obj.viewCount >= 100`                                       |
+| `tags CONTAINS 'ts'`    | `Array.isArray(obj.tags) && obj.tags.includes('ts')`         |
+| `title LIKE 'Intro%'`   | `ComparisonExpression.likeToRegex('Intro%').test(obj.title)` |
+| `deletedAt IS NULL`     | `obj.deletedAt === undefined \|\| obj.deletedAt === null`    |
+| `deletedAt IS NOT NULL` | `obj.deletedAt !== undefined && obj.deletedAt !== null`      |
 
 ---
 
@@ -61,21 +50,21 @@ The MongoDB store (`packages/mongodb/src/mongodb.service.ts`) translates the WQL
 
 **Translation table:**
 
-| WQL operator | MongoDB equivalent |
-|-------------|-------------------|
-| `field = value` | `{ field: value }` |
-| `field != value` | `{ field: { $ne: value } }` |
-| `field > value` | `{ field: { $gt: value } }` |
-| `field >= value` | `{ field: { $gte: value } }` |
-| `field < value` | `{ field: { $lt: value } }` |
-| `field <= value` | `{ field: { $lte: value } }` |
-| `field IN [a, b]` | `{ field: { $in: [a, b] } }` |
-| `field LIKE "pattern"` | `{ field: /regex/ }` (via `ComparisonExpression.likeToRegex`) |
+| WQL operator           | MongoDB equivalent                                                            |
+| ---------------------- | ----------------------------------------------------------------------------- |
+| `field = value`        | `{ field: value }`                                                            |
+| `field != value`       | `{ field: { $ne: value } }`                                                   |
+| `field > value`        | `{ field: { $gt: value } }`                                                   |
+| `field >= value`       | `{ field: { $gte: value } }`                                                  |
+| `field < value`        | `{ field: { $lt: value } }`                                                   |
+| `field <= value`       | `{ field: { $lte: value } }`                                                  |
+| `field IN [a, b]`      | `{ field: { $in: [a, b] } }`                                                  |
+| `field LIKE "pattern"` | `{ field: /regex/ }` (via `ComparisonExpression.likeToRegex`)                 |
 | `field CONTAINS value` | `{ field: { $elemMatch: { $eq: value } } }` (only an array holding the value) |
-| `field IS NULL` | `{ field: null }` (matches null and missing fields) |
-| `field IS NOT NULL` | `{ field: { $ne: null } }` |
-| `A AND B` | `{ $and: [A, B] }` (a single non-empty child is returned as is) |
-| `A OR B` | `{ $or: [A, B] }` |
+| `field IS NULL`        | `{ field: null }` (matches null and missing fields)                           |
+| `field IS NOT NULL`    | `{ field: { $ne: null } }`                                                    |
+| `A AND B`              | `{ $and: [A, B] }` (a single non-empty child is returned as is)               |
+| `A OR B`               | `{ $or: [A, B] }`                                                             |
 
 **Code reference (simplified):**
 
@@ -134,21 +123,21 @@ The PostgreSQL store uses the SQL repository shared with SQLite (`packages/sql/s
 
 **Translation table:**
 
-| WQL operator | SQL equivalent |
-|-------------|---------------|
-| `field = 'value'` | `field = 'value'` |
-| `field != value` | `field IS DISTINCT FROM value` (null-safe) |
-| `field > value` | `field > value` |
-| `field >= value` | `field >= value` |
-| `field < value` | `field < value` |
-| `field <= value` | `field <= value` |
-| `field IN [a, b]` | `field = 'a' OR field = 'b'` (expanded to OR) |
+| WQL operator           | SQL equivalent                                                                                            |
+| ---------------------- | --------------------------------------------------------------------------------------------------------- |
+| `field = 'value'`      | `field = 'value'`                                                                                         |
+| `field != value`       | `field IS DISTINCT FROM value` (null-safe)                                                                |
+| `field > value`        | `field > value`                                                                                           |
+| `field >= value`       | `field >= value`                                                                                          |
+| `field < value`        | `field < value`                                                                                           |
+| `field <= value`       | `field <= value`                                                                                          |
+| `field IN [a, b]`      | `field = 'a' OR field = 'b'` (expanded to OR)                                                             |
 | `field CONTAINS value` | `(CASE WHEN jsonb_typeof(field) = 'array' THEN field END) @> '["value"]'::jsonb` (JSONB array membership) |
-| `field LIKE "Intro%"` | `field LIKE 'Intro%'` |
-| `field IS NULL` | `data#>>'{field}' IS NULL` (missing key or JSON null) |
-| `field IS NOT NULL` | `data#>>'{field}' IS NOT NULL` |
-| `A AND B` | `A AND B` |
-| `A OR B` | `A OR B` |
+| `field LIKE "Intro%"`  | `field LIKE 'Intro%'`                                                                                     |
+| `field IS NULL`        | `data#>>'{field}' IS NULL` (missing key or JSON null)                                                     |
+| `field IS NOT NULL`    | `data#>>'{field}' IS NOT NULL`                                                                            |
+| `A AND B`              | `A AND B`                                                                                                 |
+| `A OR B`               | `A OR B`                                                                                                  |
 
 Note: `IN` is expanded to an OR chain of equality comparisons. `CONTAINS` uses PostgreSQL's `@>` JSONB operator, on arrays only, to check array membership.
 
@@ -177,6 +166,7 @@ DynamoDB's filter expressions are more restricted than SQL or MongoDB (no full t
 > The exact translation logic is in `packages/aws/src/services/dynamodb.service.ts`. Consult the source for the current implementation.
 
 **Key differences:**
+
 - Queries on non-key attributes require a scan, which is costly
 - DynamoDB does not support `LIKE` natively — the store may evaluate LIKE in-memory after the DynamoDB query
 - `IS NULL` becomes `attribute_not_exists(field) OR attribute_type(field, NULL)` and `IS NOT NULL` its negation; on a GSI sort key they are evaluated in memory. Empty strings are not stored, so they match `IS NULL`

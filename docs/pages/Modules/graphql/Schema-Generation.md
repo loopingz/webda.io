@@ -9,21 +9,12 @@ sidebar_label: Schema Generation
 
 ## How it works
 
-```mermaid
-flowchart TD
-    Models["TypeScript Models\nPost, User, Comment, Tag"]
-    Compiler["@webda/compiler\nwebda.module.json\n+ JSON Schemas"]
-    GraphQL["GraphQLService\ngenerateSchema()"]
-    SDL["GraphQL SDL\ntype Post { ... }\ntype Query { ... }\ntype Mutation { ... }"]
-    Introspect["GraphiQL / clients\n introspection queries"]
+import ReferenceDiagram from "@site/src/components/ReferenceDiagram";
 
-    Models --> Compiler
-    Compiler --> GraphQL
-    GraphQL --> SDL
-    SDL --> Introspect
-```
+<ReferenceDiagram id="graphql-schema" />
 
 At startup, `GraphQLService.generateSchema()`:
+
 1. Reads all models registered in the application
 2. Skips non-final models (base classes shadowed by app-specific subclasses)
 3. Converts each model's JSON Schema to a `GraphQLObjectType` + `GraphQLInputObjectType`
@@ -35,15 +26,15 @@ At startup, `GraphQLService.generateSchema()`:
 
 TypeScript / JSON Schema types are mapped to GraphQL scalar types:
 
-| TypeScript / JSON Schema | GraphQL type |
-|--------------------------|-------------|
-| `string` (default) | `String` |
-| `string` + `format: "date-time"` | `Date` (custom scalar) |
-| `number` / `integer` | `Long` (custom scalar — handles numbers up to 2^52) |
-| `boolean` | `Boolean` |
-| `T[]` | `[T]` (GraphQL List) |
-| `object` with properties | Anonymous `GraphQLObjectType` |
-| `object` without properties | `Object` (custom scalar — JSON map) |
+| TypeScript / JSON Schema         | GraphQL type                                        |
+| -------------------------------- | --------------------------------------------------- |
+| `string` (default)               | `String`                                            |
+| `string` + `format: "date-time"` | `Date` (custom scalar)                              |
+| `number` / `integer`             | `Long` (custom scalar — handles numbers up to 2^52) |
+| `boolean`                        | `Boolean`                                           |
+| `T[]`                            | `[T]` (GraphQL List)                                |
+| `object` with properties         | Anonymous `GraphQLObjectType`                       |
+| `object` without properties      | `Object` (custom scalar — JSON map)                 |
 
 ## Blog-system model → GraphQL types
 
@@ -53,15 +44,15 @@ The `Post` model from `sample-apps/blog-system/src/models/Post.model.ts`:
 export class Post extends Model {
   [WEBDA_PRIMARY_KEY] = ["slug"] as const;
 
-  title!: string;          // → String
-  slug!: string;           // → String (primary key — becomes arg in queries)
-  content!: string;        // → String
-  status!: "draft" | "published" | "archived";  // → String (enum collapsed)
-  viewCount!: number;      // → Long
-  createdAt!: Date;        // → Date
+  title!: string; // → String
+  slug!: string; // → String (primary key — becomes arg in queries)
+  content!: string; // → String
+  status!: "draft" | "published" | "archived"; // → String (enum collapsed)
+  viewCount!: number; // → Long
+  createdAt!: Date; // → Date
   author!: ManyToOne<User>; // → User (resolved through relation)
   comments!: Contains<Comment>; // → [Comment]
-  tags!: ManyToMany<Tag>;  // → [Tag]
+  tags!: ManyToMany<Tag>; // → [Tag]
 }
 ```
 
@@ -116,10 +107,19 @@ The full schema is always available via GraphQL's standard introspection:
 ```graphql
 {
   __schema {
-    queryType { name }
-    mutationType { name }
-    subscriptionType { name }
-    types { name kind }
+    queryType {
+      name
+    }
+    mutationType {
+      name
+    }
+    subscriptionType {
+      name
+    }
+    types {
+      name
+      kind
+    }
   }
 }
 ```
@@ -143,6 +143,7 @@ async publish(destination: "linkedin" | "twitter"): Promise<string> {
 ```
 
 This becomes:
+
 ```graphql
 mutation {
   postPublish(slug: "my-post", destination: "linkedin")

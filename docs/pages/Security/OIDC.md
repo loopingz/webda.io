@@ -2,61 +2,37 @@
 
 `@webda/oidc` lets Webda applications call each other **without a shared secret**. The caller presents a short-lived
 JWT signed with its own asymmetric key. The callee verifies it against the caller's public JWKS, found through standard
-OpenID Connect discovery, and turns the caller into an *application principal* that IAM policies can target.
+OpenID Connect discovery, and turns the caller into an _application principal_ that IAM policies can target.
 
 The same verifier accepts tokens from any OIDC issuer that publishes discovery and JWKS: Kubernetes service accounts,
 GitHub Actions, GCP service accounts...
 
 It is about **workloads** (applications, jobs, CI), not users: user login stays with `@webda/auth`.
 
-```mermaid
-flowchart LR
-  subgraph A["App A (caller)"]
-    A_CS[CryptoService<br/>RS256/ES256 keys]
-    A_ISS[OIDCIssuer]
-    A_CLI["OIDCClient<br/>getToken(audience)"]
-    A_ISS --> A_CS
-    A_CLI --> A_ISS
-  end
-  subgraph EXT["External issuers"]
-    K8S[Kubernetes SA]
-    GHA[GitHub Actions]
-    GCP[GCP metadata]
-  end
-  subgraph B["App B (callee)"]
-    B_SM[CookieSessionManager<br/>Bearer → loadFromToken]
-    B_VER[OIDCVerifier<br/>trustedIssuers + JWKS cache]
-    B_IAM[IAMService<br/>principals app:*]
-    B_SM --> B_VER
-    B_VER --> B_IAM
-  end
-  A_CLI -- "Authorization: Bearer jwt (aud=B)" --> B_SM
-  B_VER -. "GET /.well-known/openid-configuration + jwks_uri" .-> A_ISS
-  B_VER -. discovery/JWKS .-> EXT
-  K8S -. projected token .-> A_CLI
-  GCP -. identity token .-> A_CLI
-```
+import ReferenceDiagram from "@site/src/components/ReferenceDiagram";
+
+<ReferenceDiagram id="oidc-trust" />
 
 ## Services
 
-| Service              | Role                                                                                       |
-| -------------------- | ------------------------------------------------------------------------------------------ |
-| `Webda/OIDCIssuer`   | Publishes `/.well-known/openid-configuration` and mints audience-scoped workload tokens    |
+| Service              | Role                                                                                        |
+| -------------------- | ------------------------------------------------------------------------------------------- |
+| `Webda/OIDCIssuer`   | Publishes `/.well-known/openid-configuration` and mints audience-scoped workload tokens     |
 | `Webda/OIDCVerifier` | Trusts a list of issuers, turns a valid `Authorization: Bearer` into an application session |
-| `Webda/OIDCClient`   | Gets a token for a target audience and calls other applications with it                    |
+| `Webda/OIDCClient`   | Gets a token for a target audience and calls other applications with it                     |
 
 ### OIDCIssuer
 
 The issuer signs with the `CryptoService` asymmetric keys and publishes them through the `CryptoService` JWKS route,
 so the `CryptoService` needs an `url`.
 
-| Parameter   | Default                  | Description                                                                         |
-| ----------- | ------------------------ | ----------------------------------------------------------------------------------- |
-| `issuer`    | required                 | Public URL, `https` (plain `http` is only accepted for `localhost`), no query       |
-| `name`      | application package name | Tokens carry `sub: app:<name>` and `webda_app: <name>`                               |
-| `tokenTtl`  | `300`                    | Token lifetime in seconds                                                           |
+| Parameter   | Default                  | Description                                                                               |
+| ----------- | ------------------------ | ----------------------------------------------------------------------------------------- |
+| `issuer`    | required                 | Public URL, `https` (plain `http` is only accepted for `localhost`), no query             |
+| `name`      | application package name | Tokens carry `sub: app:<name>` and `webda_app: <name>`                                    |
+| `tokenTtl`  | `300`                    | Token lifetime in seconds                                                                 |
 | `algorithm` | `RS256`                  | `RS256`, `RS384`, `RS512`, `PS256` or `ES256` (EC keys). Symmetric algorithms are refused |
-| `audiences` | `["*"]`                  | Audiences this application may mint tokens for (globs, `*` does not cross `/`)      |
+| `audiences` | `["*"]`                  | Audiences this application may mint tokens for (globs, `*` does not cross `/`)            |
 
 `useOIDCIssuer().mint(audience, extraClaims?)` returns `{ token, expiresAt }`. Extra claims cannot override `iss`,
 `sub`, `aud`, `exp`, `nbf`, `iat`, `jti` nor `webda_app`.
@@ -73,41 +49,41 @@ The JWKS published by the `CryptoService`:
 
 ### OIDCVerifier
 
-| Parameter        | Default | Description                                                     |
-| ---------------- | ------- | --------------------------------------------------------------- |
+| Parameter        | Default  | Description                                                    |
+| ---------------- | -------- | -------------------------------------------------------------- |
 | `audience`       | required | Default expected audience, usually this application public URL |
-| `trustedIssuers` | `[]`    | See below                                                       |
-| `clockTolerance` | `30`    | Clock skew in seconds                                           |
-| `maxTokenAge`    | `3600`  | Max lifetime (`exp - iat`) in seconds                            |
-| `jwksCacheTtl`   | `600`   | Discovery and JWKS cache in seconds                             |
-| `requestTimeout` | `5000`  | Discovery and JWKS request timeout in milliseconds              |
+| `trustedIssuers` | `[]`     | See below                                                      |
+| `clockTolerance` | `30`     | Clock skew in seconds                                          |
+| `maxTokenAge`    | `3600`   | Max lifetime (`exp - iat`) in seconds                          |
+| `jwksCacheTtl`   | `600`    | Discovery and JWKS cache in seconds                            |
+| `requestTimeout` | `5000`   | Discovery and JWKS request timeout in milliseconds             |
 
 Each trusted issuer:
 
-| Field         | Default                                   | Description                                                            |
-| ------------- | ----------------------------------------- | ---------------------------------------------------------------------- |
-| `issuer`      | required                                  | Compared **exactly** to the token `iss`                                |
-| `jwksUri`     | discovered                                | Skip discovery, useful for issuers that are not URLs                   |
-| `audiences`   | `[audience]`                              | Accepted audiences                                                     |
-| `algorithms`  | `["RS256", "ES256"]`                      | Never `none` nor `HS*`                                                 |
-| `claims`      | `{}`                                      | Conditions on claims, all must match. Values are globs (`*` does not cross `/`), a list means any of |
-| `principal`   | `${sub}`                                  | Template over the claims. A leading `app:` is removed                   |
-| `groups`      | `[]`                                      | Static groups, seen by IAM as `app-group:<group>`                       |
-| `maxTokenAge` | the verifier `maxTokenAge`                | Per-issuer max lifetime                                                |
-| `session`     | `application`                             | `application` (workload tokens) or `user`, see [User sessions](#user-sessions) |
+| Field         | Default                    | Description                                                                                          |
+| ------------- | -------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `issuer`      | required                   | Compared **exactly** to the token `iss`                                                              |
+| `jwksUri`     | discovered                 | Skip discovery, useful for issuers that are not URLs                                                 |
+| `audiences`   | `[audience]`               | Accepted audiences                                                                                   |
+| `algorithms`  | `["RS256", "ES256"]`       | Never `none` nor `HS*`                                                                               |
+| `claims`      | `{}`                       | Conditions on claims, all must match. Values are globs (`*` does not cross `/`), a list means any of |
+| `principal`   | `${sub}`                   | Template over the claims. A leading `app:` is removed                                                |
+| `groups`      | `[]`                       | Static groups, seen by IAM as `app-group:<group>`                                                    |
+| `maxTokenAge` | the verifier `maxTokenAge` | Per-issuer max lifetime                                                                              |
+| `session`     | `application`              | `application` (workload tokens) or `user`, see [User sessions](#user-sessions)                       |
 
 `useOIDCVerifier().verify(token)` returns the `AppIdentity` or `undefined`, `verifyOrFail(token)` throws an
 `OIDCTokenInvalid` (401).
 
 ### OIDCClient
 
-| Parameter       | Default      | Description                                                         |
-| --------------- | ------------ | ------------------------------------------------------------------- |
-| `source`        | `self`       | `self`, `file`, `gcp-metadata` or `github-actions`                  |
-| `tokenFile`     |              | For `file`: the projected token path                                |
-| `issuerService` | `OIDCIssuer` | For `self`: the issuer service name                                 |
-| `refreshMargin` | `60`         | Seconds before expiration when a cached token is renewed            |
-| `requestTimeout`| `5000`       | Token request timeout in milliseconds                               |
+| Parameter        | Default      | Description                                              |
+| ---------------- | ------------ | -------------------------------------------------------- |
+| `source`         | `self`       | `self`, `file`, `gcp-metadata` or `github-actions`       |
+| `tokenFile`      |              | For `file`: the projected token path                     |
+| `issuerService`  | `OIDCIssuer` | For `self`: the issuer service name                      |
+| `refreshMargin`  | `60`         | Seconds before expiration when a cached token is renewed |
+| `requestTimeout` | `5000`       | Token request timeout in milliseconds                    |
 
 Sources:
 
@@ -132,26 +108,7 @@ const res = await useOIDCClient().fetch("https://billing.example.com/invoices", 
 
 ## Request flow
 
-```mermaid
-sequenceDiagram
-  participant A as App A (OIDCClient)
-  participant B as App B (SessionManager)
-  participant V as OIDCVerifier (B)
-  participant D as A /.well-known
-  participant I as IAMService (B)
-  A->>A: getToken("https://b.example.com") (cached until exp - margin)
-  A->>B: GET /orders  Authorization: Bearer eyJ...
-  B->>B: TokenService.verifyAccess(jwt) → undefined (aud ≠ webda-access)
-  B->>V: resolveBearer(jwt)
-  V->>V: decode iss, find trusted issuer (exact match)
-  alt JWKS not cached or kid unknown
-    V->>D: GET openid-configuration → jwks_uri → GET jwks
-  end
-  V->>V: verify sig, alg allow-list, iss, aud, exp/nbf/iat, claim rules
-  V-->>B: application session (stateless)
-  B->>I: checkOperation → principals [app:a, app-issuer:..., authenticated-app]
-  I-->>B: allow / deny
-```
+<ReferenceDiagram id="oidc-verification" />
 
 The `SessionManager` tries the `TokenService` access tokens first, then every registered `BearerTokenResolver`
 (`registerBearerResolver()` in `@webda/core`). A Bearer that nobody accepts gives an anonymous session: the cookie is
@@ -199,12 +156,12 @@ local access token: `userId` is `sub`, with the `ident`, `provider`, `amr`, MFA 
 
 `IAMService` gives an application session these principals:
 
-| Principal               | Meaning                                       |
-| ----------------------- | --------------------------------------------- |
-| `app:<principal>`       | The application                               |
-| `app-issuer:<issuer>`   | Any application of this issuer                |
-| `app-group:<group>`     | The static groups of its trusted issuer       |
-| `authenticated-app`     | Any verified application                      |
+| Principal             | Meaning                                 |
+| --------------------- | --------------------------------------- |
+| `app:<principal>`     | The application                         |
+| `app-issuer:<issuer>` | Any application of this issuer          |
+| `app-group:<group>`   | The static groups of its trusted issuer |
+| `authenticated-app`   | Any verified application                |
 
 Users keep `user:<id>`, `group:<name>`, `authenticated`; neither side gets the other's principals. Conditions can read
 `r.ctx.application` (`principal`, `issuer`, `subject`, `groups`, `claims`).

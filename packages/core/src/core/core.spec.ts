@@ -592,4 +592,54 @@ class AdditionalCoreDirectoryCoverageTest extends WebdaInternalTest {
     await callOperation(callCtx, "BadSubject.Op");
     delete useInstanceStorage().operations["BadSubject.Op"];
   }
+
+  @test
+  async createServiceWarnsOnInvalidSchemaParameters() {
+    const { registerSchema } = await import("../schemas/hooks.js");
+    const { ServiceParameters } = await import("../services/serviceparameters.js");
+    const typeName = "Test/SchemaValidatedService";
+    const schema = {
+      type: "object",
+      required: ["to"],
+      additionalProperties: false,
+      properties: {
+        type: { type: "string" },
+        to: { type: "string" }
+      }
+    };
+    registerSchema(typeName, schema);
+    const { useCore } = await import("./hooks.js");
+    const core = useCore() as any;
+    const origGetSchema = core.application.getSchema.bind(core.application);
+    core.application.getSchema = (id: string) => (id === typeName ? schema : origGetSchema(id));
+    const prevModda = core.moddas["badSvc"];
+    const prevCfg = core.configuration["badSvc"];
+    const logs: any[] = [];
+    const origLog = core.log.bind(core);
+    core.log = (level: string, ...args: any[]) => {
+      logs.push([level, ...args]);
+      return origLog(level, ...args);
+    };
+    try {
+      core.moddas["badSvc"] = class extends (await import("../services/service.js")).Service<any> {
+        static createConfiguration(cfg: any) {
+          return new ServiceParameters().load(cfg);
+        }
+      };
+      core.configuration["badSvc"] = { type: typeName, too: "wrong" };
+      core.createService("badSvc");
+      assert.ok(
+        logs.some(l => l[0] === "WARN" && String(l[1]).includes("Invalid configuration for service badSvc")),
+        "Expected WARN log for invalid service parameters"
+      );
+    } finally {
+      core.log = origLog;
+      core.application.getSchema = origGetSchema;
+      if (prevModda === undefined) delete core.moddas["badSvc"];
+      else core.moddas["badSvc"] = prevModda;
+      if (prevCfg === undefined) delete core.configuration["badSvc"];
+      else core.configuration["badSvc"] = prevCfg;
+      delete core.services["badSvc"];
+    }
+  }
 }

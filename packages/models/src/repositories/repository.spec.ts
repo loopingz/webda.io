@@ -604,6 +604,19 @@ export class CovRepositoryTest {
     const res5 = await repo.query("ORDER BY role ASC LIMIT 10");
     assert.strictEqual(res5.results.length, 10);
     assert.ok(res5.continuationToken);
+
+    // ORDER BY without LIMIT returns all sorted results (#1163)
+    const resAll = await repo.query("ORDER BY order ASC");
+    assert.strictEqual(resAll.results.length, 1000);
+    assert.strictEqual(resAll.results[0].order, 0);
+    assert.strictEqual(resAll.results[999].order, 999);
+    assert.strictEqual(resAll.continuationToken, undefined);
+
+    // ORDER BY with OFFSET and no LIMIT
+    const resOffset = await repo.query("ORDER BY order ASC OFFSET '995'");
+    assert.strictEqual(resOffset.results.length, 5);
+    assert.strictEqual(resOffset.results[0].order, 995);
+    assert.strictEqual(resOffset.continuationToken, undefined);
   }
 
   @test

@@ -136,17 +136,22 @@ export class Duration {
 
     // Support composite durations like "1d2h30m" or with spaces "1 d 2 m".
     let totalSeconds = 0;
-    const re = /([+-]?\d+(?:\.\d+)?)([a-zA-Z]+)?/g;
+    const re = /([+-]?\d+(?:\.\d+)?)\s*([a-zA-Z]+)?/g;
     let matched = false;
+    let lastIndex = 0;
     let m: RegExpExecArray | null;
     while ((m = re.exec(raw)) !== null) {
+      if (raw.slice(lastIndex, m.index).trim()) {
+        throw new Error(`Invalid duration format: ${raw}`);
+      }
       matched = true;
+      lastIndex = re.lastIndex;
       const num = parseFloat(m[1]);
       const unit = m[2] ?? "s"; // default to seconds if unit omitted
       const factor = this.unitToSeconds(unit);
       totalSeconds += num * factor;
     }
-    if (!matched) {
+    if (!matched || raw.slice(lastIndex).trim()) {
       throw new Error(`Invalid duration format: ${raw}`);
     }
     return totalSeconds;

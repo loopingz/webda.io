@@ -235,13 +235,21 @@ export function emitProject(
 ): EmitReport {
   const result = runTwoPass({ configFile, rootDir, emit: true, ...options });
   const conflicts = result.conflicts.map(c => `${c.fileName}: overlapping edits from ${c.a.source} and ${c.b.source}`);
-  const diagnostics =
+  const generatedErrors = result.generated
+    .filter(d => d.severity !== "warning")
+    .map(d => formatGeneratedDiagnostic(d, dirname(configFile)));
+  const diagnostics = [
     formatDiagnostics(result.diagnostics, {
       getCanonicalFileName: name => name,
       getCurrentDirectory: () => dirname(configFile),
       getNewLine: () => "\n"
-    }) + conflicts.join("\n");
-  const diagnosticCount = result.diagnostics.length + conflicts.length;
+    }),
+    ...conflicts,
+    ...generatedErrors
+  ]
+    .filter(Boolean)
+    .join("\n");
+  const diagnosticCount = result.diagnostics.length + conflicts.length + generatedErrors.length;
   let written = 0;
   if (diagnosticCount === 0) {
     for (const [path, text] of result.emitted) {

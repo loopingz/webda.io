@@ -76,6 +76,19 @@ class WaiterTest {
       assert.strictEqual(consoleSpy.calledWith("DEBUG", "[3/3]", "title"), false);
       assert.deepStrictEqual(res, { myobject: "test" });
       consoleSpy.resetHistory();
+      // Returning true without calling resolve() must still settle the promise (#1147)
+      let trueCalls = 0;
+      await WaitFor(
+        async () => {
+          trueCalls++;
+          return trueCalls >= 3;
+        },
+        5,
+        "trueOnly",
+        undefined,
+        WaitLinearDelay(1)
+      );
+      assert.strictEqual(trueCalls, 3);
       // The default delayer waits 1s then 2s: run it on a fake clock
       const clock = sinon.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] });
       try {

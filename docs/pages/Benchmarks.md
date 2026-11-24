@@ -13,13 +13,9 @@ Every built-in backend has a benchmark: Memory, File, PostgreSQL, MongoDB, AMQP,
 Firestore / Pub/Sub (emulators). The [Benchmarks workflow](https://github.com/loopingz/webda.io/actions/workflows/bench.yml)
 runs them every night and on pull requests labelled `benchmark`; the history is kept on the `benchmarks` branch.
 
-```mermaid
-flowchart LR
-  H["your harness<br/>(how to create the service)"] --> S["benchStore / benchQueue / benchPubSub"]
-  S --> R["BenchmarkRunner"]
-  R --> J["bench-results/*.json"]
-  J --> C["webda-bench report / compare"]
-```
+import ReferenceDiagram from "@site/src/components/ReferenceDiagram";
+
+<ReferenceDiagram id="benchmark-pipeline" />
 
 ## Benchmark your own service
 

@@ -9,14 +9,14 @@ sidebar_label: Relationships
 
 ## Relationship types at a glance
 
-| Type | Cardinality | Ownership | Blog-system example |
-|------|-------------|-----------|---------------------|
-| `BelongTo<T>` | Many-to-one | No | `Comment.author → User` |
-| `Contains<T>` | One-to-many | Yes (cascade delete) | `Post.comments → [Comment]` |
-| `OneToMany<T, Owner, Field>` | One-to-many | No | `User.posts → [Post]` (via `Post.author`) |
-| `ManyToMany<T>` | Many-to-many | Via join table | `Post.tags ↔ [Tag]` (via `PostTag`) |
-| `RelateTo<T>` | Soft reference | No | — |
-| `ModelLinksAny<K, T>` | Polymorphic references | No | `Report.links → [Task, PullRequest, ...]` |
+| Type                         | Cardinality            | Ownership            | Blog-system example                       |
+| ---------------------------- | ---------------------- | -------------------- | ----------------------------------------- |
+| `BelongTo<T>`                | Many-to-one            | No                   | `Comment.author → User`                   |
+| `Contains<T>`                | One-to-many            | Yes (cascade delete) | `Post.comments → [Comment]`               |
+| `OneToMany<T, Owner, Field>` | One-to-many            | No                   | `User.posts → [Post]` (via `Post.author`) |
+| `ManyToMany<T>`              | Many-to-many           | Via join table       | `Post.tags ↔ [Tag]` (via `PostTag`)       |
+| `RelateTo<T>`                | Soft reference         | No                   | —                                         |
+| `ModelLinksAny<K, T>`        | Polymorphic references | No                   | `Report.links → [Task, PullRequest, ...]` |
 
 ## BelongTo — Many-to-one reference
 
@@ -30,12 +30,13 @@ import type { Post } from "./Post";
 export class Comment extends UuidModel {
   content!: string;
 
-  post!: BelongTo<Post>;    // Comment belongs to a Post
-  author!: BelongTo<User>;  // Comment belongs to a User
+  post!: BelongTo<Post>; // Comment belongs to a Post
+  author!: BelongTo<User>; // Comment belongs to a User
 }
 ```
 
 REST implications:
+
 - `Comment.postId` (the raw FK) is stored in the document
 - `GET /comments/:uuid` includes the `postId` field
 - Resolving the Post requires a separate `GET /posts/:slug`
@@ -55,11 +56,12 @@ export class Post extends Model {
   title!: string;
   content!: string;
 
-  comments!: Contains<Comment>;   // Post contains/owns Comments
+  comments!: Contains<Comment>; // Post contains/owns Comments
 }
 ```
 
 REST implications:
+
 - `PUT /posts/:slug/comments` — query the comments of this post (WQL in the body)
 - `POST /posts/:slug/comments` — create a comment on this post
 - Deleting the Post cascades to its Comments
@@ -89,6 +91,7 @@ export class User extends UuidModel {
 ```
 
 REST implications:
+
 - `GET /users/:uuid/posts` — list all posts by this user (queryable with WQL)
 
 ## ManyToMany — Many-to-many via join table
@@ -126,6 +129,7 @@ export class PostTag extends Model {
 ```
 
 REST implications:
+
 - `GET /posts/:slug/tags` — list all tags for a post
 - `POST /posts/:slug/tags/:tagSlug` — add a tag to a post
 - `DELETE /posts/:slug/tags/:tagSlug` — remove a tag from a post
@@ -170,44 +174,9 @@ const { results: comments } = await post.comments.query(`ORDER BY createdAt DESC
 
 ## Relationship graph diagram (blog-system)
 
-```mermaid
-erDiagram
-    Post {
-        string slug PK
-        string title
-        string status
-    }
-    User {
-        string uuid PK
-        string username
-        string email
-    }
-    Comment {
-        string uuid PK
-        string content
-    }
-    Tag {
-        string slug PK
-        string name
-    }
-    PostTag {
-        string post FK
-        string tag FK
-    }
-    UserFollow {
-        string follower FK
-        string following FK
-    }
+import BlogModelSchema from "@site/src/components/BlogModelSchema";
 
-    Post }o--|| User : "author (BelongTo)"
-    Post ||--o{ Comment : "comments (Contains)"
-    Comment }o--|| User : "author (BelongTo)"
-    Post }o--o{ Tag : "tags (ManyToMany via PostTag)"
-    PostTag }o--|| Post : "post"
-    PostTag }o--|| Tag : "tag"
-    User ||--o{ UserFollow : "followers"
-    User ||--o{ UserFollow : "following"
-```
+<BlogModelSchema />
 
 ## Verify
 
@@ -282,8 +251,12 @@ GraphQL exposes each reference's `model`, `key`, and custom fields, plus a `targ
       rel
       target {
         __typename
-        ... on Task { uuid }
-        ... on PullRequest { uuid }
+        ... on Task {
+          uuid
+        }
+        ... on PullRequest {
+          uuid
+        }
       }
     }
   }

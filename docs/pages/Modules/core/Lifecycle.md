@@ -9,17 +9,9 @@ Every Webda service follows a strict lifecycle managed by `Core`. Understanding 
 
 ## Lifecycle state machine
 
-```mermaid
-stateDiagram-v2
-    [*] --> initial : new Service(name, params)
-    initial --> resolving : resolve()
-    resolving --> resolved : resolve() complete
-    resolved --> initializing : init()
-    initializing --> running : init() complete
-    running --> stopping : Core.stop()
-    stopping --> stopped : stop() complete
-    stopped --> [*]
-```
+import ReferenceDiagram from "@site/src/components/ReferenceDiagram";
+
+<ReferenceDiagram id="service-state-machine" />
 
 (`Core` itself transitions through `initial` → `resolving` → `resolved` → `initializing` → `ready` → `stopping` → `stopped`, plus `reinitializing` on config reload.)
 
@@ -43,6 +35,7 @@ export class MyService extends Service<MyServiceParameters> {
 ### 2. `resolve(): this`
 
 Called immediately when each service is instantiated on first use (dependencies first), before `init()`. **Synchronous** — `resolve()` returns `this`, not a Promise. Use it to:
+
 - Manually validate `this.parameters` (service parameters are not automatically validated against JSON Schema at startup; unknown keys are filtered, and you should check required values here)
 - Read `@Inject` dependencies (populated during the service's own `resolve()`, which resolves dependencies on demand)
 - Wire up cross-service references that don't require I/O
@@ -67,6 +60,7 @@ resolve(): this {
 ### 3. `init(): Promise<this>`
 
 Called after `resolve()`. Use `init()` for async initialization:
+
 - Open database connections
 - Start background tasks
 - Register event handlers
@@ -162,31 +156,7 @@ export class EmailService extends Service<EmailServiceParameters> {
 
 ## Sequence diagram
 
-```mermaid
-sequenceDiagram
-    participant Launcher as webda CLI
-    participant Core
-    participant ServiceA
-    participant ServiceB
-
-    Launcher->>Core: new Core(application)
-    Launcher->>Core: init()
-    Core->>Core: resolve()
-    Core->>ServiceA: new ServiceA() + resolve()
-    note right of ServiceA: @Inject dependencies resolved on demand
-    Core->>ServiceB: new ServiceB() + resolve()
-    note right of Core: initOrders: Stores first, then creation order
-    Core->>ServiceA: init()
-    note right of ServiceA: connect to DB, start timers
-    Core->>ServiceB: init()
-    Launcher->>Core: (running — handling requests)
-    Launcher->>Core: stop()
-    par Stop services in parallel
-        Core->>ServiceA: stop()
-    and
-        Core->>ServiceB: stop()
-    end
-```
+<ReferenceDiagram id="service-startup-order" />
 
 ## Key rules
 

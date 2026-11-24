@@ -7,22 +7,9 @@ This page sets up [client certificate authentication](../../Security/ClientCerti
 - Webda trusts the forwarded certificate only from Traefik (`trustedProxies`) and maps it to a user with
   `CertificateProvider`.
 
-```mermaid
-sequenceDiagram
-  participant Cl as Client
-  participant Tr as Traefik
-  participant Hs as HttpServer
-  participant Sm as SessionManager
-  participant Cp as CertificateProvider
-  Cl->>Tr: TLS handshake with client cert
-  Tr->>Tr: verify against the client CA
-  Tr->>Hs: request + X-Forwarded-Tls-Client-Cert
-  Hs->>Hs: from trustedProxies? else 400
-  Hs->>Sm: certificate on the HttpContext
-  Sm->>Cp: no Bearer token, verified certificate
-  Cp-->>Sm: user and ident
-  Sm-->>Hs: stateless session, provider certificate, amr mtls
-```
+import ReferenceDiagram from "@site/src/components/ReferenceDiagram";
+
+<ReferenceDiagram id="traefik-mtls" />
 
 ## cert-manager
 

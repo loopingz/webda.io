@@ -4,14 +4,9 @@
 can be read and edited with `kubectl` or a GitOps tool. Pair it with the [Kubernetes operator](./KubernetesOperator.md)
 to reconcile them.
 
-```mermaid
-flowchart LR
-  M["@Model class"] --> C["webda kubernetes crd export"]
-  C --> CRD["CustomResourceDefinition YAML"]
-  CRD -. kubectl apply .-> API[(kube-apiserver / etcd)]
-  APP["Model.create / useRepository"] --> KR["KubernetesRepository"]
-  KR -->|CustomObjectsApi| API
-```
+import ReferenceDiagram from "@site/src/components/ReferenceDiagram";
+
+<ReferenceDiagram id="kubernetes-store" />
 
 ## Is it a good fit?
 

@@ -164,26 +164,9 @@ See [Permissions](./Permissions.md) for the checks each operation runs.
 
 ## Sequence diagram
 
-```mermaid
-sequenceDiagram
-    participant Client
-    participant RESTService
-    participant Store
-    participant Model
-    participant Listeners
+import ReferenceDiagram from "@site/src/components/ReferenceDiagram";
 
-    Client->>RESTService: POST /posts (body)
-    RESTService->>Model: new Post().load(sanitized body)
-    RESTService->>Model: prepareCreate(context)
-    RESTService->>Model: static canAct(context, "create", post)
-    Model-->>RESTService: true
-    RESTService->>Store: save(post)
-    Store->>Listeners: emit("Create", { object_id, object })
-    Store->>Store: persist to backend
-    Store->>Listeners: emit("Created", { object_id, object })
-    Store-->>RESTService: saved post
-    RESTService-->>Client: 201 Created
-```
+<ReferenceDiagram id="model-create-lifecycle" />
 
 ## Verify
 

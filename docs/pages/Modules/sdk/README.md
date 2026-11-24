@@ -220,15 +220,9 @@ api.Task.on("change", rerender); // local writes and pulled server changes
 await api.offline.conflicts(); // OfflineClient surface: sync(), start(), stop(), status, resolve(), discard()
 ```
 
-```mermaid
-flowchart LR
-    MC[ModelClient Task] --> B{backend}
-    B -->|synced model + offline configured| OB[OfflineBackend<br/>OfflineClient.collection]
-    B -->|otherwise| RB[RemoteBackend<br/>Transport + EntityCache]
-    OB --> ST[(StorageAdapter<br/>IndexedDB / Memory)]
-    OB --> OC[OfflineClient sync loop]
-    OC --> SA[SyncTransportAdapter] --> T[SDK transports<br/>Sync.Pull / Push / Snapshot / Watch]
-```
+import ReferenceDiagram from "@site/src/components/ReferenceDiagram";
+
+<ReferenceDiagram id="sdk-backends" />
 
 - `ModelClient` delegates to a `ModelBackend`: `OfflineBackend` for the synced models, `RemoteBackend` (transports and
   cache) for the others. Hydration is the same, so the UI does not know which backend answers.

@@ -1,0 +1,147 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 761" role="img" aria-labelledby="title description">
+<title id="title">Models as Kubernetes resources</title>
+<desc id="description">Models as Kubernetes resources. Model definition: Fields and model metadata. Export CRD: webda kubernetes crd export. CRD YAML: CustomResourceDefinition. Application: Model.create / useRepository. KubernetesRepository: CustomObjectsApi. Kubernetes API: kube-apiserver / etcd. Top: install the resource schema. Bottom: create and retrieve model instances at runtime.</desc>
+<defs><path id="piece" d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z"/><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto-start-reverse"><path d="M1 1 L7 4 L1 7" fill="none" stroke="var(--line)" stroke-width="1.3"/></marker></defs>
+<style>
+:root{--ink:#202b40;--muted:#52627a;--line:#71829c;--surface:#fff;--pale:#eef3f9}
+@media(prefers-color-scheme:dark){:root{--ink:#f1f5ff;--muted:#b0bfda;--line:#899bb8;--surface:#1b1b1d;--pale:#282d38}}
+text{font-family:Inter,system-ui,-apple-system,sans-serif;fill:var(--ink)}.title{font-size:31px;font-weight:650}.label{font-size:22px;font-weight:650}.detail{font-size:18px;fill:var(--muted)}.line{fill:none;stroke:var(--line);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+</style>
+<text x="48" y="56" class="title" text-anchor="start">Models as Kubernetes resources</text>
+<text x="48" y="91" class="detail" text-anchor="start">Export the schema once; use the repository for runtime persistence.</text>
+<path d="M330 215 H480" class="line" marker-end="url(#arrow)"/>
+<path d="M720 215 H870" class="line" marker-end="url(#arrow)"/>
+<path d="M990 385 V425" class="line" marker-end="url(#arrow)"/>
+<text x="1006" y="405.0" class="detail" text-anchor="start">kubectl apply</text>
+<path d="M330 480 H480" class="line" marker-end="url(#arrow)"/>
+<path d="M720 480 H870" class="line" marker-end="url(#arrow)"/>
+<text x="795.0" y="460" class="detail" text-anchor="middle">persist</text>
+<g transform="translate(237 230)">
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -62)" fill="#435f7e"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -63)" fill="#435f7e"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -64)" fill="#435f7e"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -65)" fill="#435f7e"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -66)" fill="#435f7e"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -67)" fill="#435f7e"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -68)" fill="#435f7e"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -69)" fill="#435f7e"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -70)" fill="#435f7e"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -71)" fill="#435f7e"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -72)" fill="#435f7e"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -73)" fill="#435f7e"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -74)" fill="#435f7e"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -75)" fill="#435f7e"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -76)" fill="#435f7e"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -77)" fill="#435f7e"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -78)" fill="#8cbbeb"/>
+<g transform="translate(-52 -47)" stroke="#16213b" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="0" y="0" width="50" height="50" rx="6"/><path d="M13 15 L6 25 L13 35 M37 15 L44 25 L37 35 M29 13 L21 37"/></g></g>
+<text x="210" y="303" class="label" text-anchor="middle">Model definition</text>
+<text x="210" y="334" class="detail" text-anchor="middle">Fields and model metadata</text>
+<g transform="translate(627 230)">
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -62)" fill="#426747"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -63)" fill="#426747"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -64)" fill="#426747"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -65)" fill="#426747"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -66)" fill="#426747"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -67)" fill="#426747"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -68)" fill="#426747"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -69)" fill="#426747"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -70)" fill="#426747"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -71)" fill="#426747"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -72)" fill="#426747"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -73)" fill="#426747"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -74)" fill="#426747"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -75)" fill="#426747"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -76)" fill="#426747"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -77)" fill="#426747"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -78)" fill="#81bf6b"/>
+<g transform="translate(-52 -47)" stroke="#16213b" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M4 0 H34 L47 13 V50 H4Z M34 0 V13 H47 M14 23 H35 M14 33 H35 M14 43 H27"/></g></g>
+<text x="600" y="303" class="label" text-anchor="middle">Export CRD</text>
+<text x="600" y="334" class="detail" text-anchor="middle">webda kubernetes crd export</text>
+<g transform="translate(1017 230)">
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -62)" fill="#926336"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -63)" fill="#926336"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -64)" fill="#926336"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -65)" fill="#926336"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -66)" fill="#926336"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -67)" fill="#926336"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -68)" fill="#926336"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -69)" fill="#926336"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -70)" fill="#926336"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -71)" fill="#926336"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -72)" fill="#926336"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -73)" fill="#926336"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -74)" fill="#926336"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -75)" fill="#926336"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -76)" fill="#926336"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -77)" fill="#926336"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -78)" fill="#f4aa58"/>
+<g transform="translate(-52 -47)" stroke="#16213b" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M4 0 H34 L47 13 V50 H4Z M34 0 V13 H47 M14 23 H35 M14 33 H35 M14 43 H27"/></g></g>
+<text x="990" y="303" class="label" text-anchor="middle">CRD YAML</text>
+<text x="990" y="334" class="detail" text-anchor="middle">CustomResourceDefinition</text>
+<g transform="translate(237 495)">
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -62)" fill="#68578a"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -63)" fill="#68578a"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -64)" fill="#68578a"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -65)" fill="#68578a"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -66)" fill="#68578a"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -67)" fill="#68578a"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -68)" fill="#68578a"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -69)" fill="#68578a"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -70)" fill="#68578a"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -71)" fill="#68578a"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -72)" fill="#68578a"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -73)" fill="#68578a"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -74)" fill="#68578a"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -75)" fill="#68578a"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -76)" fill="#68578a"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -77)" fill="#68578a"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -78)" fill="#b4a0ed"/>
+<g transform="translate(-52 -47)" stroke="#16213b" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="0" y="0" width="50" height="50" rx="6"/><path d="M13 15 L6 25 L13 35 M37 15 L44 25 L37 35 M29 13 L21 37"/></g></g>
+<text x="210" y="568" class="label" text-anchor="middle">Application</text>
+<text x="210" y="599" class="detail" text-anchor="middle">Model.create / useRepository</text>
+<g transform="translate(627 495)">
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -62)" fill="#435f7e"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -63)" fill="#435f7e"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -64)" fill="#435f7e"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -65)" fill="#435f7e"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -66)" fill="#435f7e"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -67)" fill="#435f7e"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -68)" fill="#435f7e"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -69)" fill="#435f7e"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -70)" fill="#435f7e"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -71)" fill="#435f7e"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -72)" fill="#435f7e"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -73)" fill="#435f7e"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -74)" fill="#435f7e"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -75)" fill="#435f7e"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -76)" fill="#435f7e"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -77)" fill="#435f7e"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -78)" fill="#8cbbeb"/>
+<g transform="translate(-52 -47)" stroke="#16213b" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M0 10 V40 C0 54 50 54 50 40 V10"/><ellipse cx="25" cy="10" rx="25" ry="10"/><path d="M0 25 C0 39 50 39 50 25"/></g></g>
+<text x="600" y="568" class="label" text-anchor="middle">KubernetesRepository</text>
+<text x="600" y="599" class="detail" text-anchor="middle">CustomObjectsApi</text>
+<g transform="translate(1017 495)">
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -62)" fill="#426747"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -63)" fill="#426747"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -64)" fill="#426747"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -65)" fill="#426747"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -66)" fill="#426747"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -67)" fill="#426747"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -68)" fill="#426747"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -69)" fill="#426747"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -70)" fill="#426747"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -71)" fill="#426747"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -72)" fill="#426747"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -73)" fill="#426747"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -74)" fill="#426747"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -75)" fill="#426747"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -76)" fill="#426747"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -77)" fill="#426747"/>
+<use href="#piece" transform="matrix(.43 .248 -.43 .248 0 -78)" fill="#81bf6b"/>
+<g transform="translate(-52 -47)" stroke="#16213b" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="0" y="0" width="50" height="20" rx="4"/><rect x="0" y="30" width="50" height="20" rx="4"/><path d="M9 10 H12 M9 40 H12 M22 10 H40 M22 40 H40"/></g></g>
+<text x="990" y="568" class="label" text-anchor="middle">Kubernetes API</text>
+<text x="990" y="599" class="detail" text-anchor="middle">kube-apiserver / etcd</text>
+<path d="M48 675 H1152" class="line" opacity=".3"/>
+<text x="48" y="710" class="detail" text-anchor="start">Top: install the resource schema. Bottom: create and retrieve model instances at runtime.</text>
+</svg>

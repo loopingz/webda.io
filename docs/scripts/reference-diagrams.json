@@ -1,0 +1,1036 @@
+[
+  {
+    "id": "oidc-trust",
+    "page": "Security/OIDC.md",
+    "title": "Application identity across a trust boundary",
+    "subtitle": "A caller obtains an audience-bound token; the callee verifies it before authorization.",
+    "nodes": [
+      {
+        "title": "Issuer / key material",
+        "lines": ["OIDCIssuer + CryptoService", "or a trusted external issuer"],
+        "icon": "key"
+      },
+      {
+        "title": "App A · OIDCClient",
+        "lines": ["getToken(audience)", "Token is addressed to App B"],
+        "icon": "code"
+      },
+      {
+        "title": "App B · SessionManager",
+        "lines": ["Authorization: Bearer JWT", "Select the bearer resolver"],
+        "icon": "server"
+      },
+      {
+        "title": "OIDCVerifier",
+        "lines": ["Exact trusted issuer + audience", "Verify signature and claims"],
+        "icon": "shield"
+      },
+      {
+        "title": "Application session",
+        "lines": ["Stateless workload identity", "Principal names for IAM"],
+        "icon": "user"
+      },
+      {
+        "title": "IAMService",
+        "lines": ["Application principals", "Allow or deny the operation"],
+        "icon": "shield"
+      }
+    ],
+    "notes": [
+      "External issuers can include Kubernetes service accounts, GitHub Actions, and GCP metadata.",
+      "Verifier fetches and caches trusted issuer discovery / JWKS; discovery itself does not grant trust."
+    ],
+    "alt": "App A obtains an audience-bound token from its issuer or an external issuer. App B resolves the Bearer token, verifies it with trusted issuer keys, creates a stateless application session, and checks IAM permissions.",
+    "caption": "A caller obtains an audience-bound token; the callee verifies it before authorization.",
+    "edges": [
+      [0, 1, "issue token"],
+      [1, 2, "request"],
+      [2, 3, "resolve"],
+      [3, 4, "verified"],
+      [4, 5, "authorize"]
+    ],
+    "numbered": false,
+    "height": 787
+  },
+  {
+    "id": "oidc-verification",
+    "page": "Security/OIDC.md",
+    "title": "From bearer token to an authorization decision",
+    "subtitle": "A successful OIDC request creates a stateless application session.",
+    "nodes": [
+      {
+        "title": "Obtain token",
+        "lines": ["OIDCClient.getToken(audience)", "Cache until expiry minus margin"],
+        "icon": "key"
+      },
+      {
+        "title": "Resolve bearer",
+        "lines": ["SessionManager tries access token", "Then delegates to OIDCVerifier"],
+        "icon": "server"
+      },
+      {
+        "title": "Match trusted issuer",
+        "lines": ["Decode iss to select configuration", "Exact trustedIssuers match"],
+        "icon": "shield"
+      },
+      {
+        "title": "Resolve verification keys",
+        "lines": ["Discovery → jwks_uri → JWKS", "Fetch on cache miss / unknown kid"],
+        "icon": "key"
+      },
+      {
+        "title": "Verify token",
+        "lines": ["Signature, allowed alg, iss, aud", "Time claims and configured rules"],
+        "icon": "shield"
+      },
+      {
+        "title": "Authorize operation",
+        "lines": ["Stateless application session", "IAM evaluates app principals"],
+        "icon": "check"
+      }
+    ],
+    "notes": [
+      "IAM evaluates app:<id>, app-issuer:<issuer>, and authenticated-app principals.",
+      "Issuer selection alone is not authentication: signature and claim verification must succeed."
+    ],
+    "alt": "From bearer token to an authorization decision. Obtain token: OIDCClient.getToken(audience), Cache until expiry minus margin. Resolve bearer: SessionManager tries access token, Then delegates to OIDCVerifier. Match trusted issuer: Decode iss to select configuration, Exact trustedIssuers match. Resolve verification keys: Discovery → jwks_uri → JWKS, Fetch on cache miss / unknown kid. Verify token: Signature, allowed alg, iss, aud, Time claims and configured rules. Authorize operation: Stateless application session, IAM evaluates app principals. IAM evaluates app:<id>, app-issuer:<issuer>, and authenticated-app principals. Issuer selection alone is not authentication: signature and claim verification must succeed.",
+    "caption": "A successful OIDC request creates a stateless application session.",
+    "height": 787
+  },
+  {
+    "id": "compiler-build",
+    "page": "Modules/compiler/Build.md",
+    "title": "From TypeScript to an application contract",
+    "subtitle": "Compilation and metadata analysis produce the artifacts used at runtime.",
+    "nodes": [
+      {
+        "title": "TypeScript source",
+        "lines": ["src/**/*.ts", "Models, services, and operations"],
+        "icon": "code"
+      },
+      {
+        "title": "Compile",
+        "lines": ["content-mapper build", "Emit ES modules to lib/**/*.js"],
+        "icon": "code"
+      },
+      {
+        "title": "Analyze the program",
+        "lines": ["content-mapper module", "Discover model and service metadata"],
+        "icon": "graph"
+      },
+      {
+        "title": "Generate schemas",
+        "lines": ["Model input / output / stored", "Service parameter schemas"],
+        "icon": "file"
+      },
+      {
+        "title": "Write manifest",
+        "lines": ["webda.module.json", "Application metadata and schemas"],
+        "icon": "file"
+      },
+      {
+        "title": "Configuration schema",
+        "lines": [".webda/config.schema.json", "Include dependency manifests"],
+        "icon": "file"
+      }
+    ],
+    "notes": [
+      "Installed node_modules/**/webda.module.json files also contribute to the configuration schema.",
+      "Generated artifacts are build outputs: edit the TypeScript source, then rebuild."
+    ],
+    "alt": "From TypeScript to an application contract. TypeScript source: src/**/*.ts, Models, services, and operations. Compile: content-mapper build, Emit ES modules to lib/**/*.js. Analyze the program: content-mapper module, Discover model and service metadata. Generate schemas: Model input / output / stored, Service parameter schemas. Write manifest: webda.module.json, Application metadata and schemas. Configuration schema: .webda/config.schema.json, Include dependency manifests. Installed node_modules/**/webda.module.json files also contribute to the configuration schema. Generated artifacts are build outputs: edit the TypeScript source, then rebuild.",
+    "caption": "Compilation and metadata analysis produce the artifacts used at runtime.",
+    "height": 787
+  },
+  {
+    "id": "graphql-schema",
+    "page": "Modules/graphql/Schema-Generation.md",
+    "title": "One model definition. A GraphQL schema.",
+    "subtitle": "Model metadata drives the schema exposed to GraphQL clients.",
+    "nodes": [
+      {
+        "title": "TypeScript models",
+        "lines": ["Post, User, Comment, Tag", "Define fields and relationships"],
+        "icon": "code"
+      },
+      {
+        "title": "Compiler metadata",
+        "lines": ["webda.module.json", "Model JSON schemas"],
+        "icon": "file"
+      },
+      {
+        "title": "GraphQLService",
+        "lines": ["Read the compiled metadata", "Generate the GraphQL schema"],
+        "icon": "graph"
+      },
+      {
+        "title": "GraphQL SDL",
+        "lines": ["Types, queries, mutations", "Describe the exposed API"],
+        "icon": "file"
+      },
+      {
+        "title": "GraphiQL / clients",
+        "lines": ["Use introspection queries", "Explore and call the API"],
+        "icon": "user"
+      }
+    ],
+    "notes": ["The compiler provides model metadata; GraphQLService builds the GraphQL schema from it."],
+    "alt": "One model definition. A GraphQL schema.. TypeScript models: Post, User, Comment, Tag, Define fields and relationships. Compiler metadata: webda.module.json, Model JSON schemas. GraphQLService: Read the compiled metadata, Generate the GraphQL schema. GraphQL SDL: Types, queries, mutations, Describe the exposed API. GraphiQL / clients: Use introspection queries, Explore and call the API. The compiler provides model metadata; GraphQLService builds the GraphQL schema from it.",
+    "caption": "Model metadata drives the schema exposed to GraphQL clients.",
+    "height": 761
+  },
+  {
+    "id": "query-translation",
+    "page": "Modules/ql/Translators.md",
+    "title": "One query language. Multiple storage backends.",
+    "subtitle": "Parse once into expressions; each backend translates or evaluates the result.",
+    "nodes": [
+      {
+        "title": "WQL query",
+        "lines": ["Filter, ordering, pagination", "Example: status = published"],
+        "icon": "code",
+        "row": 0,
+        "col": 0
+      },
+      {
+        "title": "Parser / validator",
+        "lines": ["@webda/ql · QueryValidator", "Build a validated expression tree"],
+        "icon": "shield",
+        "row": 0,
+        "col": 1
+      },
+      {
+        "title": "Expression AST",
+        "lines": ["AndExpression", "ComparisonExpression, and more"],
+        "icon": "graph",
+        "row": 0,
+        "col": 2
+      },
+      {
+        "title": "MemoryStore",
+        "lines": ["Evaluate expressions per object", "In-memory filtering"],
+        "icon": "database",
+        "row": 1,
+        "col": 0
+      },
+      {
+        "title": "MongoStore",
+        "lines": ["Translate into a MongoDB filter", "Execute against the collection"],
+        "icon": "database",
+        "row": 1,
+        "col": 1
+      },
+      {
+        "title": "SQLStore",
+        "lines": ["Translate into SQL predicates", "Execute against the database"],
+        "icon": "database",
+        "row": 1,
+        "col": 2
+      }
+    ],
+    "notes": [
+      "The three backend paths are alternatives; a query goes to its configured store.",
+      "Translation support and backend-specific behavior are detailed below."
+    ],
+    "alt": "One query language. Multiple storage backends.. WQL query: Filter, ordering, pagination, Example: status = published. Parser / validator: @webda/ql · QueryValidator, Build a validated expression tree. Expression AST: AndExpression, ComparisonExpression, and more. MemoryStore: Evaluate expressions per object, In-memory filtering. MongoStore: Translate into a MongoDB filter, Execute against the collection. SQLStore: Translate into SQL predicates, Execute against the database. The three backend paths are alternatives; a query goes to its configured store. Translation support and backend-specific behavior are detailed below.",
+    "caption": "Parse once into expressions; each backend translates or evaluates the result.",
+    "edges": [
+      [0, 1, "parse"],
+      [1, 2, "validate"],
+      [2, 3, ""],
+      [2, 4, ""],
+      [2, 5, ""]
+    ],
+    "numbered": false,
+    "height": 787
+  },
+  {
+    "id": "benchmark-pipeline",
+    "page": "Benchmarks.md",
+    "title": "Measure, record, compare.",
+    "subtitle": "A repeatable benchmark pipeline for stores, queues, and pub/sub.",
+    "nodes": [
+      {
+        "title": "Your harness",
+        "lines": ["Create the service under test", "Choose its configuration"],
+        "icon": "code"
+      },
+      {
+        "title": "Shared benchmark suite",
+        "lines": ["benchStore / benchQueue", "benchPubSub"],
+        "icon": "clock"
+      },
+      {
+        "title": "BenchmarkRunner",
+        "lines": ["Execute the selected suite", "Collect measurements"],
+        "icon": "server"
+      },
+      {
+        "title": "Result files",
+        "lines": ["bench-results/*.json", "Keep comparable run artifacts"],
+        "icon": "file"
+      },
+      {
+        "title": "Report / compare",
+        "lines": ["webda-bench report", "webda-bench compare"],
+        "icon": "graph"
+      }
+    ],
+    "notes": ["Keep workload and environment settings comparable when interpreting benchmark differences."],
+    "alt": "Measure, record, compare.. Your harness: Create the service under test, Choose its configuration. Shared benchmark suite: benchStore / benchQueue, benchPubSub. BenchmarkRunner: Execute the selected suite, Collect measurements. Result files: bench-results/*.json, Keep comparable run artifacts. Report / compare: webda-bench report, webda-bench compare. Keep workload and environment settings comparable when interpreting benchmark differences.",
+    "caption": "A repeatable benchmark pipeline for stores, queues, and pub/sub.",
+    "height": 761
+  },
+  {
+    "id": "core-architecture",
+    "page": "Modules/core/Architecture.md",
+    "title": "Webda runtime: responsibilities and connections",
+    "subtitle": "Application configuration becomes a running graph of services and infrastructure.",
+    "nodes": [
+      {
+        "title": "Application layer",
+        "lines": ["Application / UnpackedApplication", "Discover modules; load configuration"],
+        "icon": "file",
+        "row": 0,
+        "col": 0
+      },
+      {
+        "title": "Core runtime",
+        "lines": ["Lifecycle and dependency graph", "InstanceStorage + core events"],
+        "icon": "graph",
+        "row": 0,
+        "col": 1
+      },
+      {
+        "title": "HTTP / request layer",
+        "lines": ["HttpServer, Router, WebContext", "SessionManager and transports"],
+        "icon": "server",
+        "row": 0,
+        "col": 2
+      },
+      {
+        "title": "Services layer",
+        "lines": ["Service + typed parameters", "Crypto, binary, domain services"],
+        "icon": "code",
+        "row": 1,
+        "col": 1
+      },
+      {
+        "title": "Data layer",
+        "lines": ["Repositories and storage backends", "MemoryStore + framework Registry"],
+        "icon": "database",
+        "row": 1,
+        "col": 0
+      },
+      {
+        "title": "Shared infrastructure",
+        "lines": ["Logging, metrics, caches", "Typed errors across the runtime"],
+        "icon": "graph",
+        "row": 1,
+        "col": 2
+      }
+    ],
+    "notes": [
+      "These are responsibility groups, not a request sequence; shared infrastructure supports every runtime layer.",
+      "Models own domain behavior; services coordinate integrations and work across models."
+    ],
+    "alt": "Webda runtime: responsibilities and connections. Application layer: Application / UnpackedApplication, Discover modules; load configuration. Core runtime: Lifecycle and dependency graph, InstanceStorage + core events. HTTP / request layer: HttpServer, Router, WebContext, SessionManager and transports. Services layer: Service + typed parameters, Crypto, binary, domain services. Data layer: Repositories and storage backends, MemoryStore + framework Registry. Shared infrastructure: Logging, metrics, caches, Typed errors across the runtime. These are responsibility groups, not a request sequence; shared infrastructure supports every runtime layer. Models own domain behavior; services coordinate integrations and work across models.",
+    "caption": "Application configuration becomes a running graph of services and infrastructure.",
+    "edges": [
+      [0, 1, "configure"],
+      [1, 2, "serve"],
+      [1, 3, "manage"],
+      [3, 4, "persist"],
+      [3, 5, "use"],
+      [2, 5, "use"]
+    ],
+    "numbered": false,
+    "height": 787
+  },
+  {
+    "id": "http-request-flow",
+    "page": "Modules/core/Architecture.md",
+    "title": "A request through the runtime",
+    "subtitle": "A successful model-create request, from transport to persistence and response.",
+    "nodes": [
+      {
+        "title": "Client → HttpServer",
+        "lines": ["HTTP POST /posts", "Receive the request"],
+        "icon": "user"
+      },
+      {
+        "title": "Router + context",
+        "lines": ["Select the operation handler", "Load request identity / session"],
+        "icon": "graph"
+      },
+      {
+        "title": "Operation / domain logic",
+        "lines": ["Validate and authorize input", "Invoke model behavior"],
+        "icon": "shield"
+      },
+      {
+        "title": "Repository / store",
+        "lines": ["Persist the model", "Return the saved record"],
+        "icon": "database"
+      },
+      {
+        "title": "Response handling",
+        "lines": ["Write the operation result", "Save session state if needed"],
+        "icon": "server"
+      },
+      {
+        "title": "Client response",
+        "lines": ["HTTP status and response body", "201 Created for a successful create"],
+        "icon": "check"
+      }
+    ],
+    "notes": [
+      "This illustrates the successful path. Validation, authorization, or persistence errors produce error responses."
+    ],
+    "alt": "A request through the runtime. Client → HttpServer: HTTP POST /posts, Receive the request. Router + context: Select the operation handler, Load request identity / session. Operation / domain logic: Validate and authorize input, Invoke model behavior. Repository / store: Persist the model, Return the saved record. Response handling: Write the operation result, Save session state if needed. Client response: HTTP status and response body, 201 Created for a successful create. This illustrates the successful path. Validation, authorization, or persistence errors produce error responses.",
+    "caption": "A successful model-create request, from transport to persistence and response.",
+    "height": 761
+  },
+  {
+    "id": "request-context",
+    "page": "Modules/core/Context.md",
+    "title": "One request. One shared context.",
+    "subtitle": "WebContext carries input, identity, and the response through the request lifecycle.",
+    "nodes": [
+      {
+        "title": "Receive request",
+        "lines": ["HttpServer / Router", "Headers, cookies, URL, and body"],
+        "icon": "server"
+      },
+      {
+        "title": "Create WebContext",
+        "lines": ["Attach request and response data", "Make context available to handlers"],
+        "icon": "file"
+      },
+      {
+        "title": "Load session",
+        "lines": ["SessionManager", "Resolve the current request identity"],
+        "icon": "user"
+      },
+      {
+        "title": "Run handler",
+        "lines": ["getInput() / getCurrentUser()", "Read the context during execution"],
+        "icon": "code"
+      },
+      {
+        "title": "Write result",
+        "lines": ["context.write(response)", "Set status and headers as needed"],
+        "icon": "file"
+      },
+      {
+        "title": "Finish response",
+        "lines": ["Persist session state if required", "Send the HTTP response"],
+        "icon": "check"
+      }
+    ],
+    "notes": [
+      "Input parsing and validation happen through the context/operation path, not a separate application-wide object."
+    ],
+    "alt": "One request. One shared context.. Receive request: HttpServer / Router, Headers, cookies, URL, and body. Create WebContext: Attach request and response data, Make context available to handlers. Load session: SessionManager, Resolve the current request identity. Run handler: getInput() / getCurrentUser(), Read the context during execution. Write result: context.write(response), Set status and headers as needed. Finish response: Persist session state if required, Send the HTTP response. Input parsing and validation happen through the context/operation path, not a separate application-wide object.",
+    "caption": "WebContext carries input, identity, and the response through the request lifecycle.",
+    "height": 761
+  },
+  {
+    "id": "service-state-machine",
+    "page": "Modules/core/Lifecycle.md",
+    "title": "The states of a service",
+    "subtitle": "Core manages transitions; service hooks perform the work.",
+    "nodes": [
+      {
+        "title": "initial",
+        "lines": ["Constructor creates the instance", "Synchronous setup only"],
+        "icon": "code"
+      },
+      {
+        "title": "resolving",
+        "lines": ["resolve() begins", "Wire injected dependencies"],
+        "icon": "graph"
+      },
+      {
+        "title": "resolved",
+        "lines": ["resolve() completes", "Ready for asynchronous startup"],
+        "icon": "check"
+      },
+      {
+        "title": "initializing",
+        "lines": ["init() begins", "Open connections and start tasks"],
+        "icon": "server"
+      },
+      {
+        "title": "running",
+        "lines": ["init() completes", "Handle requests or background work"],
+        "icon": "code"
+      },
+      {
+        "title": "stopping",
+        "lines": ["Core.stop() invokes stop()", "Release owned resources"],
+        "icon": "clock"
+      },
+      {
+        "title": "stopped",
+        "lines": ["stop() completes", "Cleanup has finished"],
+        "icon": "check"
+      }
+    ],
+    "notes": [
+      "This is the service state machine. Core uses ready for its initialized state and also supports reinitializing.",
+      "The arrows show ordering, not elapsed time."
+    ],
+    "alt": "The states of a service. initial: Constructor creates the instance, Synchronous setup only. resolving: resolve() begins, Wire injected dependencies. resolved: resolve() completes, Ready for asynchronous startup. initializing: init() begins, Open connections and start tasks. running: init() completes, Handle requests or background work. stopping: Core.stop() invokes stop(), Release owned resources. stopped: stop() completes, Cleanup has finished. This is the service state machine. Core uses ready for its initialized state and also supports reinitializing. The arrows show ordering, not elapsed time.",
+    "caption": "Core manages transitions; service hooks perform the work.",
+    "height": 1052
+  },
+  {
+    "id": "service-startup-order",
+    "page": "Modules/core/Lifecycle.md",
+    "title": "Start in order. Stop together.",
+    "subtitle": "The CLI delegates application startup and shutdown to Core.",
+    "nodes": [
+      {
+        "title": "Launch application",
+        "lines": ["CLI creates Core(application)", "Calls Core.init()"],
+        "icon": "code"
+      },
+      {
+        "title": "Create + resolve services",
+        "lines": ["Construct service instances", "Resolve dependencies on demand"],
+        "icon": "graph"
+      },
+      {
+        "title": "Choose init order",
+        "lines": ["Finalize initOrders", "Stores before other services"],
+        "icon": "file"
+      },
+      {
+        "title": "Initialize services",
+        "lines": ["Await init() in the selected order", "Connections and background tasks"],
+        "icon": "server"
+      },
+      {
+        "title": "Run application",
+        "lines": ["Serve requests and operations", "Until shutdown is requested"],
+        "icon": "code"
+      },
+      {
+        "title": "Stop concurrently",
+        "lines": ["Core invokes service stop() hooks", "Await their completion together"],
+        "icon": "clock"
+      }
+    ],
+    "notes": [
+      "Shutdown does not promise a service-by-service order. Do not assume another service is still running.",
+      "Call super.resolve(), await super.init(), and await super.stop() in the corresponding hooks."
+    ],
+    "alt": "Start in order. Stop together.. Launch application: CLI creates Core(application), Calls Core.init(). Create + resolve services: Construct service instances, Resolve dependencies on demand. Choose init order: Finalize initOrders, Stores before other services. Initialize services: Await init() in the selected order, Connections and background tasks. Run application: Serve requests and operations, Until shutdown is requested. Stop concurrently: Core invokes service stop() hooks, Await their completion together. Shutdown does not promise a service-by-service order. Do not assume another service is still running. Call super.resolve(), await super.init(), and await super.stop() in the corresponding hooks.",
+    "caption": "The CLI delegates application startup and shutdown to Core.",
+    "height": 787
+  },
+  {
+    "id": "model-create-lifecycle",
+    "page": "Modules/models/Lifecycle.md",
+    "title": "Create a model: prepare, authorize, persist.",
+    "subtitle": "The successful create path with typed repository events around persistence.",
+    "nodes": [
+      {
+        "title": "Create request",
+        "lines": ["REST transport → domain operation", "Load and sanitize the input"],
+        "icon": "user"
+      },
+      {
+        "title": "Prepare model",
+        "lines": ["Build the model instance", "Run prepareCreate(context)"],
+        "icon": "code"
+      },
+      {
+        "title": "Authorize create",
+        "lines": ["Check the model permission", "Continue only when allowed"],
+        "icon": "shield"
+      },
+      {
+        "title": "Before persistence",
+        "lines": ["Repository emits Create", "Listeners receive the model and key"],
+        "icon": "graph"
+      },
+      {
+        "title": "Persist the record",
+        "lines": ["Underlying repository.create()", "Write through the configured backend"],
+        "icon": "database"
+      },
+      {
+        "title": "After persistence",
+        "lines": ["Repository emits Created", "Return the saved model to the client"],
+        "icon": "check"
+      }
+    ],
+    "notes": [
+      "Create and Created are typed repository events; they surround the underlying create operation.",
+      "The transport returns a successful create response only after the operation completes."
+    ],
+    "alt": "Create a model: prepare, authorize, persist.. Create request: REST transport → domain operation, Load and sanitize the input. Prepare model: Build the model instance, Run prepareCreate(context). Authorize create: Check the model permission, Continue only when allowed. Before persistence: Repository emits Create, Listeners receive the model and key. Persist the record: Underlying repository.create(), Write through the configured backend. After persistence: Repository emits Created, Return the saved model to the client. Create and Created are typed repository events; they surround the underlying create operation. The transport returns a successful create response only after the operation completes.",
+    "caption": "The successful create path with typed repository events around persistence.",
+    "height": 787
+  },
+  {
+    "id": "async-queued",
+    "page": "Modules/async/AsyncActions.md",
+    "title": "Queued action execution",
+    "subtitle": "A queue separates the API from the worker that launches the job.",
+    "nodes": [
+      {
+        "title": "Create action",
+        "lines": ["API saves QUEUED in the store"],
+        "icon": "database"
+      },
+      {
+        "title": "Enqueue",
+        "lines": ["API publishes the action", "Worker retrieves the queue item"],
+        "icon": "queue"
+      },
+      {
+        "title": "Start action",
+        "lines": ["Worker saves STARTING", "Then asks the runner to execute"],
+        "icon": "server"
+      },
+      {
+        "title": "Launch job",
+        "lines": ["Runner starts the job", "Returns job info to the worker"],
+        "icon": "code"
+      },
+      {
+        "title": "Save job info",
+        "lines": ["Worker persists runner metadata"],
+        "icon": "database"
+      },
+      {
+        "title": "Report status repeatedly",
+        "lines": ["Job calls API /async/status", "API updates the store"],
+        "icon": "clock"
+      }
+    ],
+    "notes": ["Status callbacks go through the API; the worker handles launch and runner metadata."],
+    "alt": "Queued action execution. Create action: API saves QUEUED in the store. Enqueue: API publishes the action, Worker retrieves the queue item. Start action: Worker saves STARTING, Then asks the runner to execute. Launch job: Runner starts the job, Returns job info to the worker. Save job info: Worker persists runner metadata. Report status repeatedly: Job calls API /async/status, API updates the store. Status callbacks go through the API; the worker handles launch and runner metadata.",
+    "caption": "A queue separates the API from the worker that launches the job.",
+    "height": 761
+  },
+  {
+    "id": "async-local-hook",
+    "page": "Modules/async/AsyncActions.md",
+    "title": "Local action with HTTP status",
+    "subtitle": "The worker launches locally and receives the job’s status callbacks.",
+    "nodes": [
+      {
+        "title": "Create action",
+        "lines": ["Worker saves QUEUED"],
+        "icon": "database"
+      },
+      {
+        "title": "Start action",
+        "lines": ["Worker saves STARTING"],
+        "icon": "server"
+      },
+      {
+        "title": "Run action",
+        "lines": ["Worker invokes the runner"],
+        "icon": "code"
+      },
+      {
+        "title": "Launch job",
+        "lines": ["Runner starts the job", "Returns job info to the worker"],
+        "icon": "code"
+      },
+      {
+        "title": "Save job info",
+        "lines": ["Worker persists runner metadata"],
+        "icon": "database"
+      },
+      {
+        "title": "Report status repeatedly",
+        "lines": ["Job calls worker /async/status", "Worker updates the store"],
+        "icon": "clock"
+      }
+    ],
+    "notes": ["No queue is involved in this flow. Status reports return to the worker over HTTP."],
+    "alt": "Local action with HTTP status. Create action: Worker saves QUEUED. Start action: Worker saves STARTING. Run action: Worker invokes the runner. Launch job: Runner starts the job, Returns job info to the worker. Save job info: Worker persists runner metadata. Report status repeatedly: Job calls worker /async/status, Worker updates the store. No queue is involved in this flow. Status reports return to the worker over HTTP.",
+    "caption": "The worker launches locally and receives the job’s status callbacks.",
+    "height": 761
+  },
+  {
+    "id": "async-local-store",
+    "page": "Modules/async/AsyncActions.md",
+    "title": "Local WebdaAction execution",
+    "subtitle": "A WebdaAction can report its progress directly to the store.",
+    "nodes": [
+      {
+        "title": "Create action",
+        "lines": ["Worker saves QUEUED"],
+        "icon": "database"
+      },
+      {
+        "title": "Start action",
+        "lines": ["Worker saves STARTING"],
+        "icon": "server"
+      },
+      {
+        "title": "Run action",
+        "lines": ["Worker invokes the runner"],
+        "icon": "code"
+      },
+      {
+        "title": "Launch job",
+        "lines": ["Runner starts the WebdaAction", "Returns job info to the worker"],
+        "icon": "code"
+      },
+      {
+        "title": "Save job info",
+        "lines": ["Worker persists runner metadata"],
+        "icon": "database"
+      },
+      {
+        "title": "Report status repeatedly",
+        "lines": ["Job updates the store directly", "No HTTP status callback"],
+        "icon": "clock"
+      }
+    ],
+    "notes": [
+      "Direct store reporting is the WebdaAction path; the runner still returns launch metadata to the worker."
+    ],
+    "alt": "Local WebdaAction execution. Create action: Worker saves QUEUED. Start action: Worker saves STARTING. Run action: Worker invokes the runner. Launch job: Runner starts the WebdaAction, Returns job info to the worker. Save job info: Worker persists runner metadata. Report status repeatedly: Job updates the store directly, No HTTP status callback. Direct store reporting is the WebdaAction path; the runner still returns launch metadata to the worker.",
+    "caption": "A WebdaAction can report its progress directly to the store.",
+    "height": 761
+  },
+  {
+    "id": "sdk-backends",
+    "page": "Modules/sdk/README.md",
+    "title": "One model client, two backends",
+    "subtitle": "Synced models use local storage; other models use remote transports.",
+    "nodes": [
+      {
+        "title": "ModelClient",
+        "lines": ["Same model API and hydration"],
+        "icon": "code",
+        "row": 0,
+        "col": 0
+      },
+      {
+        "title": "Choose backend",
+        "lines": ["Synced model + offline configured? "],
+        "icon": "graph",
+        "row": 0,
+        "col": 1
+      },
+      {
+        "title": "RemoteBackend",
+        "lines": ["Otherwise: Transport + EntityCache"],
+        "icon": "server",
+        "row": 0,
+        "col": 2
+      },
+      {
+        "title": "OfflineBackend",
+        "lines": ["OfflineClient.collection", "Local reads and writes"],
+        "icon": "database",
+        "row": 1,
+        "col": 1
+      },
+      {
+        "title": "StorageAdapter",
+        "lines": ["IndexedDB or Memory"],
+        "icon": "database",
+        "row": 1,
+        "col": 0
+      },
+      {
+        "title": "Sync loop",
+        "lines": ["SyncTransportAdapter → transports", "Pull / Push / Snapshot / Watch"],
+        "icon": "queue",
+        "row": 1,
+        "col": 2
+      }
+    ],
+    "notes": ["Offline sync uses the SDK’s transports and authentication; custom actions still require the server."],
+    "alt": "One model client, two backends. ModelClient: Same model API and hydration. Choose backend: Synced model + offline configured? . RemoteBackend: Otherwise: Transport + EntityCache. OfflineBackend: OfflineClient.collection, Local reads and writes. StorageAdapter: IndexedDB or Memory. Sync loop: SyncTransportAdapter → transports, Pull / Push / Snapshot / Watch. Offline sync uses the SDK’s transports and authentication; custom actions still require the server.",
+    "caption": "Synced models use local storage; other models use remote transports.",
+    "numbered": false,
+    "edges": [
+      [0, 1, ""],
+      [1, 2, "otherwise"],
+      [1, 3, "synced + offline"],
+      [3, 4, "local data"],
+      [3, 5, "synchronize"]
+    ],
+    "height": 761
+  },
+  {
+    "id": "kubernetes-store",
+    "page": "Modules/kubernetes/KubernetesStore.md",
+    "title": "Models as Kubernetes resources",
+    "subtitle": "Export the schema once; use the repository for runtime persistence.",
+    "nodes": [
+      {
+        "title": "Model definition",
+        "lines": ["Fields and model metadata"],
+        "icon": "code",
+        "row": 0,
+        "col": 0
+      },
+      {
+        "title": "Export CRD",
+        "lines": ["webda kubernetes crd export"],
+        "icon": "file",
+        "row": 0,
+        "col": 1
+      },
+      {
+        "title": "CRD YAML",
+        "lines": ["CustomResourceDefinition"],
+        "icon": "file",
+        "row": 0,
+        "col": 2
+      },
+      {
+        "title": "Application",
+        "lines": ["Model.create / useRepository"],
+        "icon": "code",
+        "row": 1,
+        "col": 0
+      },
+      {
+        "title": "KubernetesRepository",
+        "lines": ["CustomObjectsApi"],
+        "icon": "database",
+        "row": 1,
+        "col": 1
+      },
+      {
+        "title": "Kubernetes API",
+        "lines": ["kube-apiserver / etcd"],
+        "icon": "server",
+        "row": 1,
+        "col": 2
+      }
+    ],
+    "notes": ["Top: install the resource schema. Bottom: create and retrieve model instances at runtime."],
+    "alt": "Models as Kubernetes resources. Model definition: Fields and model metadata. Export CRD: webda kubernetes crd export. CRD YAML: CustomResourceDefinition. Application: Model.create / useRepository. KubernetesRepository: CustomObjectsApi. Kubernetes API: kube-apiserver / etcd. Top: install the resource schema. Bottom: create and retrieve model instances at runtime.",
+    "caption": "Export the schema once; use the repository for runtime persistence.",
+    "numbered": false,
+    "edges": [
+      [0, 1, ""],
+      [1, 2, ""],
+      [2, 5, "kubectl apply"],
+      [3, 4, ""],
+      [4, 5, "persist"]
+    ],
+    "height": 761
+  },
+  {
+    "id": "kubernetes-operator",
+    "page": "Modules/kubernetes/KubernetesOperator.md",
+    "title": "Reconcile desired state",
+    "subtitle": "The leader watches changes and serializes reconciliation per object.",
+    "nodes": [
+      {
+        "title": "Watching",
+        "lines": ["Leader receives changes or resync"],
+        "icon": "clock",
+        "row": 0,
+        "col": 0
+      },
+      {
+        "title": "Queued",
+        "lines": ["Added or spec changed", "One task at a time per object"],
+        "icon": "queue",
+        "row": 0,
+        "col": 1
+      },
+      {
+        "title": "Reconciling",
+        "lines": ["Run the model’s reconcile()"],
+        "icon": "code",
+        "row": 0,
+        "col": 2
+      },
+      {
+        "title": "Finalizing",
+        "lines": ["On deletionTimestamp: finalize()", "Remove finalizer to finish deletion"],
+        "icon": "shield",
+        "row": 1,
+        "col": 0
+      },
+      {
+        "title": "Backoff",
+        "lines": ["On error: delay, then queue again"],
+        "icon": "clock",
+        "row": 1,
+        "col": 1
+      },
+      {
+        "title": "Update status",
+        "lines": ["Success: observedGeneration + Ready", "Return to watching"],
+        "icon": "check",
+        "row": 1,
+        "col": 2
+      }
+    ],
+    "notes": [
+      "Success returns to Watching; errors return to Queued after backoff. Deletion follows the finalizer path."
+    ],
+    "alt": "Reconcile desired state. Watching: Leader receives changes or resync. Queued: Added or spec changed, One task at a time per object. Reconciling: Run the model’s reconcile(). Finalizing: On deletionTimestamp: finalize(), Remove finalizer to finish deletion. Backoff: On error: delay, then queue again. Update status: Success: observedGeneration + Ready, Return to watching. Success returns to Watching; errors return to Queued after backoff. Deletion follows the finalizer path.",
+    "caption": "The leader watches changes and serializes reconciliation per object.",
+    "numbered": false,
+    "edges": [
+      [0, 1, "change"],
+      [1, 2, "dequeue"],
+      [0, 3, "deletion"],
+      [2, 4, "error"],
+      [2, 5, "success"]
+    ],
+    "height": 761
+  },
+  {
+    "id": "bazel-deployment",
+    "page": "Deployments/Bazel.md",
+    "title": "From source to Kubernetes",
+    "subtitle": "Bazel compiles and packages Webda; @webda/oci writes the application layer.",
+    "nodes": [
+      {
+        "title": "Application source",
+        "lines": ["src/ + webda.config.jsonc"],
+        "icon": "code"
+      },
+      {
+        "title": "Compile",
+        "lines": ["webdac build", "lib/ + .webda/ + webda.module.json"],
+        "icon": "graph"
+      },
+      {
+        "title": "Package configuration",
+        "lines": ["Deployment JSON + build output", "config-only → $packaged config"],
+        "icon": "file"
+      },
+      {
+        "title": "Application layer",
+        "lines": ["@webda/oci → app-layer.tar", "Production files + deployed config"],
+        "icon": "queue"
+      },
+      {
+        "title": "Container image",
+        "lines": ["oci_image: base + app layer", "Stable /app runtime layout"],
+        "icon": "server"
+      },
+      {
+        "title": "Kubernetes pod",
+        "lines": ["Image + environment ConfigMap"],
+        "icon": "server"
+      }
+    ],
+    "notes": [
+      "Packaging uses deployments/kubernetes.json. Environment-specific values enter through the pod’s ConfigMap."
+    ],
+    "alt": "Source and configuration are compiled with webdac. The deployment is applied during packaging. @webda/oci writes app-layer.tar with production files and deployed configuration. oci_image combines it with a pinned Node base. The pod receives environment configuration from a ConfigMap.",
+    "caption": "Bazel compiles and packages Webda; @webda/oci writes the application layer.",
+    "height": 761
+  },
+  {
+    "id": "traefik-mtls",
+    "page": "Deployments/Kubernetes/Traefik-mTLS.md",
+    "title": "Client certificates through Traefik",
+    "subtitle": "A verified certificate becomes a Webda identity across a trusted proxy boundary.",
+    "nodes": [
+      {
+        "title": "Client certificate",
+        "lines": ["Client starts the TLS handshake"],
+        "icon": "key"
+      },
+      {
+        "title": "Traefik verifies",
+        "lines": ["Validate against the client CA", "Forward the verified certificate"],
+        "icon": "shield"
+      },
+      {
+        "title": "HttpServer checks proxy",
+        "lines": ["Accept only trustedProxies", "Reject untrusted forwarding: 400"],
+        "icon": "server"
+      },
+      {
+        "title": "SessionManager",
+        "lines": ["Read certificate from HttpContext", "No Bearer + verified certificate"],
+        "icon": "key"
+      },
+      {
+        "title": "CertificateProvider",
+        "lines": ["Resolve the user and ident"],
+        "icon": "user"
+      },
+      {
+        "title": "Stateless session",
+        "lines": ["provider: certificate", "amr: mtls"],
+        "icon": "check"
+      }
+    ],
+    "notes": ["Traefik forwards X-Forwarded-Tls-Client-Cert. Restrict access to the application to trusted proxies."],
+    "alt": "Client certificates through Traefik. Client certificate: Client starts the TLS handshake. Traefik verifies: Validate against the client CA, Forward the verified certificate. HttpServer checks proxy: Accept only trustedProxies, Reject untrusted forwarding: 400. SessionManager: Read certificate from HttpContext, No Bearer + verified certificate. CertificateProvider: Resolve the user and ident. Stateless session: provider: certificate, amr: mtls. Traefik forwards X-Forwarded-Tls-Client-Cert. Restrict access to the application to trusted proxies.",
+    "caption": "A verified certificate becomes a Webda identity across a trusted proxy boundary.",
+    "height": 761
+  },
+  {
+    "id": "content-mapper-architecture",
+    "page": "../contribute/TypeScript 7 Content Mappers.md",
+    "title": "One transform, two hosts",
+    "subtitle": "Shared generators serve editor tooling and the runtime build.",
+    "nodes": [
+      {
+        "title": "Generators + edit plan",
+        "lines": ["accessors / loadParameters", "Shared transform implementation"],
+        "icon": "code",
+        "row": 0,
+        "col": 1
+      },
+      {
+        "title": "Content mapper",
+        "lines": ["Resident TypeScript Program"],
+        "icon": "graph",
+        "row": 1,
+        "col": 0
+      },
+      {
+        "title": "Two-pass build",
+        "lines": ["Virtual filesystem"],
+        "icon": "server",
+        "row": 1,
+        "col": 2
+      },
+      {
+        "title": "Editor tooling",
+        "lines": ["Hover / rename / diagnostics"],
+        "icon": "code",
+        "row": 2,
+        "col": 0
+      },
+      {
+        "title": "Runtime output",
+        "lines": [".js + .d.ts"],
+        "icon": "file",
+        "row": 2,
+        "col": 2
+      }
+    ],
+    "notes": [
+      "Content mappers support the editor. The two-pass build emits JavaScript and declarations for runtime use."
+    ],
+    "alt": "One transform, two hosts. Generators + edit plan: accessors / loadParameters, Shared transform implementation. Content mapper: Resident TypeScript Program. Two-pass build: Virtual filesystem. Editor tooling: Hover / rename / diagnostics. Runtime output: .js + .d.ts. Content mappers support the editor. The two-pass build emits JavaScript and declarations for runtime use.",
+    "caption": "Shared generators serve editor tooling and the runtime build.",
+    "numbered": false,
+    "edges": [
+      [0, 1, "editor host"],
+      [0, 2, "build host"],
+      [1, 3, ""],
+      [2, 4, ""]
+    ],
+    "height": 1026
+  }
+]

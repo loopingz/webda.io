@@ -123,25 +123,9 @@ context.getSession().login(user.getUUID(), identUuid);
 
 ## Request lifecycle
 
-```mermaid
-sequenceDiagram
-    participant Client
-    participant Router
-    participant SessionManager
-    participant Service
+import ReferenceDiagram from "@site/src/components/ReferenceDiagram";
 
-    Client->>Router: HTTP Request
-    Router->>Router: parse headers, cookies, body
-    Router->>Router: create WebContext
-    Router->>SessionManager: loadSession(context)
-    SessionManager-->>Router: session loaded
-    Router->>Service: handler(context)
-    Service->>Service: context.getInput()
-    Service->>Service: context.getCurrentUser()
-    Service-->>Router: context.write(response)
-    Router->>SessionManager: saveSession(context)
-    Router-->>Client: HTTP Response
-```
+<ReferenceDiagram id="request-context" />
 
 ## Running code as system
 

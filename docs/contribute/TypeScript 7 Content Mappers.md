@@ -207,16 +207,9 @@ The two halves share one implementation of the transform. The generators and the
 (`Edit` = `[start, end) -> text`) are the stable core; the mapper and the build are thin
 hosts around it.
 
-```mermaid
-flowchart LR
-  G["generators + plan<br/>(accessors, loadParameters)"]
-  M["content mapper process<br/>resident Program"]
-  B["two-pass build<br/>virtual filesystem"]
-  E["editor<br/>hover / rename / diagnostics"]
-  J[".js + .d.ts"]
-  G --> M --> E
-  G --> B --> J
-```
+import ReferenceDiagram from "@site/src/components/ReferenceDiagram";
+
+<ReferenceDiagram id="content-mapper-architecture" />
 
 ### The resident program
 

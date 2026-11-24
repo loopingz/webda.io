@@ -29,12 +29,14 @@ describe("emitProject", () => {
     }
   });
 
-  it("logs the generator warnings without failing the build", () => {
+  it("reports generator errors (WQL9001/WQL9003) and keeps generator warnings separate (#1149)", () => {
     const report = emitProject(join(fixture, "tsconfig.json"), join(fixture, "src"), {
       storageModule: "./runtime.js",
       qlModule: "./runtime.js"
     });
-    expect(report.diagnosticCount).toBe(0);
+    expect(report.diagnosticCount).toBeGreaterThan(0);
+    expect(report.diagnostics).toContain("WQL9001");
+    expect(report.written).toBe(0);
     expect(report.warnings.length).toBeGreaterThan(0);
     expect(report.warnings.every(line => /^src\/sealed\.model\.ts\(\d+,\d+\): warning WQL9004: /.test(line))).toBe(
       true

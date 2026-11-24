@@ -541,7 +541,12 @@ export function accessorsGenerator(options: AccessorOptions = {}): Generator {
             const initializer = (m as any).initializer;
             const defaultExpr = initializer ? ctx.textOf(sf, initializer) : undefined;
 
+            const typeStart = (m.type as any).getStart?.() ?? (m.type as any).pos;
+            const isOptional =
+              Boolean((m as any).questionToken) ||
+              (typeof typeStart === "number" && sf.text.slice(m.name.end, typeStart).includes("?"));
             const typeText = ctx.textOf(sf, m.type);
+            const getterType = isOptional && !/\bundefined\b/.test(typeText) ? `${typeText} | undefined` : typeText;
             const start = (m as any).getStart();
             const indent = indentAt(sf.text, start);
             const head = /^([A-Za-z_$][\w$]*)/.exec(typeText)?.[1] ?? typeText;
@@ -550,11 +555,15 @@ export function accessorsGenerator(options: AccessorOptions = {}): Generator {
 
             const builtin = BUILTINS[head];
             if (builtin) {
+              const setterType =
+                isOptional && !/\bundefined\b/.test(builtin.setterType)
+                  ? `${builtin.setterType} | undefined`
+                  : builtin.setterType;
               resolved = {
                 name,
-                typeText,
+                typeText: getterType,
                 kind: "builtin",
-                setterType: builtin.setterType,
+                setterType,
                 coerce: builtin.coerce,
                 defaultExpr,
                 start,
@@ -582,11 +591,15 @@ export function accessorsGenerator(options: AccessorOptions = {}): Generator {
                 const param = autoSetterParamType(ctx, m.type);
                 const ctor = param && runtimeClass ? constructorArguments(ctx, m.type, "set-method") : undefined;
                 if (param && runtimeClass && ctor) {
+                  const setterType =
+                    isOptional && !/\bundefined\b/.test(typeText)
+                      ? `${param} | ${typeText} | undefined`
+                      : `${param} | ${typeText}`;
                   resolved = {
                     name,
-                    typeText,
+                    typeText: getterType,
                     kind: "set-method",
-                    setterType: `${param} | ${typeText}`,
+                    setterType,
                     runtimeClass,
                     ctorArg: ctor.text,
                     ctorValues: ctor.values,

@@ -84,4 +84,40 @@ describe("runTwoPass generator diagnostics", () => {
     expect(sealed.every(d => d.fileName.endsWith("sealed.model.ts") && d.severity === "warning")).toBe(true);
     expect(result.generated.some(d => d.code === 9001 && d.severity === undefined)).toBe(true);
   });
+
+  it("preserves | undefined on optional Date accessors (#1152)", async () => {
+    const { mkdtempSync, writeFileSync, rmSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const dir = mkdtempSync(join(tmpdir(), "webda-opt-date-"));
+    try {
+      writeFileSync(
+        join(dir, "tsconfig.json"),
+        JSON.stringify({
+          compilerOptions: { target: "es2022", module: "nodenext", moduleResolution: "nodenext", strict: true },
+          include: ["src/**/*"]
+        })
+      );
+      const { mkdirSync } = await import("node:fs");
+      mkdirSync(join(dir, "src"), { recursive: true });
+      writeFileSync(
+        join(dir, "src", "runtime.ts"),
+        `export const WEBDA_STORAGE = Symbol("WEBDA_STORAGE"); export class Model { [WEBDA_STORAGE]: any = {}; }`
+      );
+      writeFileSync(
+        join(dir, "src", "task.model.ts"),
+        `import { Model } from "./runtime.js";\nexport class Task extends Model {\n  due?: Date;\n}\n`
+      );
+      const res = runTwoPass({
+        configFile: join(dir, "tsconfig.json"),
+        rootDir: join(dir, "src"),
+        storageModule: "./runtime.js",
+        qlModule: "./runtime.js"
+      });
+      const text = res.injected.get(join(dir, "src", "task.model.ts"));
+      expect(text).toContain("get due(): Date | undefined");
+      expect(text).toContain("set due(value: string | number | Date | undefined)");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });

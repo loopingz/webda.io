@@ -1744,7 +1744,8 @@ function findClass(ctx: AnalysisContext, fileName: string, className: string): C
  */
 function jsTarget(fileName: string, options: DiscoveryOptions): string {
   // TypeScript file names always use "/", even on Windows
-  if (!fileName.startsWith(options.appPath.replace(/\\/g, "/"))) {
+  const normalized = fileName.replace(/\\/g, "/");
+  if (!normalized.startsWith(options.appPath.replace(/\\/g, "/")) || normalized.includes("/node_modules/")) {
     let folder = fileName;
     let libPath = "node_modules/";
     for (;;) {

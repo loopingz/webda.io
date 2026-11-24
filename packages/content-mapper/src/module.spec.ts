@@ -918,4 +918,42 @@ describe("module primary key separator", () => {
       rmSync(tmpDir, { recursive: true, force: true });
     }
   });
+
+  it("resolves inherited node_modules ServiceParameters without .d suffix (#1164)", () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), "webda-bean-params-"));
+    try {
+      mkdirSync(join(tmpDir, "src"), { recursive: true });
+      mkdirSync(join(tmpDir, "node_modules/@webda/core/lib"), { recursive: true });
+      writeFileSync(
+        join(tmpDir, "node_modules/@webda/core/package.json"),
+        JSON.stringify({ name: "@webda/core", main: "lib/index.js", types: "lib/index.d.ts" })
+      );
+      writeFileSync(
+        join(tmpDir, "node_modules/@webda/core/lib/index.d.ts"),
+        `export class ServiceParameters {}\nexport class Service<T extends ServiceParameters = ServiceParameters> { parameters!: T; }\n`
+      );
+      writeFileSync(
+        join(tmpDir, "tsconfig.json"),
+        JSON.stringify({
+          compilerOptions: { target: "es2022", module: "nodenext", moduleResolution: "nodenext", outDir: "lib" },
+          include: ["src/**/*"]
+        })
+      );
+      writeFileSync(
+        join(tmpDir, "src/mybean.service.ts"),
+        `import { Service } from "@webda/core";\nconst Bean = (_c: any) => {};\n@Bean\nexport class MyBeanService extends Service {}\n`
+      );
+      const session = openSession(join(tmpDir, "tsconfig.json"), tmpDir);
+      try {
+        const res = generateWebdaModule(session.ctx, { appPath: tmpDir, namespace: "Test" });
+        const config = res.module.beans["Test/MyBeanService"]?.Configuration;
+        expect(config).toBe("node_modules/@webda/core/lib/index:ServiceParameters");
+        expect(config).not.toContain(".d:");
+      } finally {
+        session.dispose();
+      }
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
 });

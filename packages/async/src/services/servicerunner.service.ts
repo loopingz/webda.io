@@ -171,18 +171,21 @@ export default class ServiceRunner<T extends ServiceRunnerParameters = ServiceRu
           this.parameters.logSaveDelay,
           this.parameters.logFormat
         );
+        let results: any;
         if (action instanceof AsyncWebdaAction) {
           if (!action.serviceName || !action.method) throw new Error("Action service and method are required");
           const service = useDynamicService(action.serviceName);
           if (!service) throw new Error(`Service ${action.serviceName} was not found`);
-          await (service as any)[action.method](...(action.arguments || []));
+          results = await (service as any)[action.method](...(action.arguments || []));
         } else {
           if (!action.operationId) throw new Error("Operation id is required");
-          await callOperation(this.getOperationContext(action.context, action.system), action.operationId);
+          const ctx = this.getOperationContext(action.context, action.system);
+          await callOperation(ctx, action.operationId);
+          results = ctx.getOutput();
         }
         await logger.saveAndClose();
 
-        await action.patch({ status: "SUCCESS" });
+        await action.patch({ status: "SUCCESS", ...(results !== undefined ? { results } : {}) });
         this.log("INFO", "Job", action.uuid, "finished");
       } catch (err: unknown) {
         await logger?.saveAndClose();

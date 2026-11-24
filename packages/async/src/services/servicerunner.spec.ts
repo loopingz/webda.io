@@ -55,6 +55,7 @@ class FakeRunner extends Runner {
   @Operation()
   operation() {
     this.log("INFO", "Logging test");
+    return { done: true };
   }
 }
 
@@ -156,6 +157,20 @@ class ServiceRunnerTest extends AsyncTest {
     await action.refresh();
     // Unknown operation
     assert.strictEqual(action.status, "ERROR");
+
+    // Method return value is persisted on action.results (#1155)
+    const methodAction = new AsyncWebdaAction("calledRunner", "operation");
+    await methodAction.save();
+    const launched = await runner.launchAction(methodAction, {
+      JOB_HOOK: "",
+      JOB_ID: methodAction.uuid,
+      JOB_ORCHESTRATOR: "test",
+      JOB_SECRET_KEY: ""
+    });
+    await launched.promise;
+    await methodAction.refresh();
+    assert.strictEqual(methodAction.status, "SUCCESS");
+    assert.deepStrictEqual(methodAction.results, { done: true });
   }
 
   @test

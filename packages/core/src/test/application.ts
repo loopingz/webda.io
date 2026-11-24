@@ -2,6 +2,8 @@ import { ConsoleLogger, useWorkerOutput, WorkerLogLevel } from "@webda/workout";
 import { register } from "prom-client";
 
 import { PrometheusService } from "../services/prometheus.service.js";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { FileUtils, sleep, DeepPartial } from "@webda/utils";
 
 // Separation on purpose to keep application import separated
@@ -46,7 +48,15 @@ export class WebdaApplicationTest extends WebdaAsyncStorageTest {
    * @returns absolute path to configuration file
    */
   getTestConfiguration(): string | Partial<UnpackedConfiguration> | undefined {
-    return FileUtils.load(process.cwd() + "/test/config.json");
+    const testConfig = join(process.cwd(), "test", "config.json");
+    if (existsSync(testConfig)) {
+      return FileUtils.load(testConfig);
+    }
+    const rootConfig = join(process.cwd(), "webda.config.json");
+    if (existsSync(rootConfig)) {
+      return FileUtils.load(rootConfig);
+    }
+    throw new Error(`No test configuration found (checked ${testConfig} and ${rootConfig})`);
   }
 
   /**

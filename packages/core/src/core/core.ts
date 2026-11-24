@@ -573,7 +573,7 @@ export class Core implements ICore {
         try {
           validateSchema(type, rawConfig);
         } catch (err: any) {
-          this.log("WARN", `Invalid configuration for service ${service} (${type}): ${err?.message ?? err}`);
+          this.log("WARN", `Invalid configuration for service ${service} (${type}): ${err.message}`);
         }
       }
       const params = serviceConstructor.createConfiguration

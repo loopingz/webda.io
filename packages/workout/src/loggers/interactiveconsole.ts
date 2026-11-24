@@ -219,6 +219,7 @@ export class InteractiveConsoleLogger extends ConsoleLogger {
    * @param output - WorkerOutput instance to listen to
    * @param level - Minimum log level to display (default: LOG_LEVEL env var or "INFO")
    * @param format - sprintf format string for log lines
+   * @param logStream - Stream for log lines (default: stdout)
    */
   constructor(
     output: WorkerOutput,

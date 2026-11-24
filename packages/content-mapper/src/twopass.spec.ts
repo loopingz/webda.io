@@ -113,7 +113,7 @@ describe("runTwoPass generator diagnostics", () => {
         storageModule: "./runtime.js",
         qlModule: "./runtime.js"
       });
-      const text = res.injected.get(join(dir, "src", "task.model.ts"));
+      const text = res.injected.get(join(dir, "src", "task.model.ts").replace(/\\/g, "/"));
       expect(text).toContain("get due(): Date | undefined");
       expect(text).toContain("set due(value: string | number | Date | undefined)");
     } finally {

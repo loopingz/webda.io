@@ -174,13 +174,6 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
   }
 
   /**
-   * @override
-   */
-  loadParameters(params: any) {
-    return new ProxyParameters(params);
-  }
-
-  /**
    * Register an HTTP upgrade listener for WebSocket proxying
    * @returns this instance for chaining
    */

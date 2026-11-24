@@ -172,15 +172,6 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
   }
 
   /**
-   * @override
-   */
-  loadParameters(params: any): ServiceParameters {
-    this.emitterId = getMachineId();
-    this.log("DEBUG", `Cluster emitterId ${this.emitterId}`);
-    return new ClusterServiceParameters(params);
-  }
-
-  /**
    * Add a prometheus gauge for members in the cluster
    */
   initMetrics() {
@@ -352,6 +343,11 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
    * @returns this instance for chaining
    */
   resolve(): this {
+    this.parameters.keepAlive ??= 30000;
+    this.parameters.ttl ??= this.parameters.keepAlive * 2;
+    this.parameters.pubsub ??= "PubSub";
+    this.emitterId = getMachineId();
+    this.log("DEBUG", `Cluster emitterId ${this.emitterId}`);
     super.resolve();
     const packageInfo = useApplication().getPackageDescription();
     // By default we will send the package name and version and any CLUSTER_* variables

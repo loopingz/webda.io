@@ -281,15 +281,6 @@ export class InvitationService<
   model: any;
 
   /**
-   * Load and validate invitation service parameters
-   * @param params - raw partial configuration
-   * @returns initialized InvitationParameters instance
-   */
-  loadParameters(params: any) {
-    return <T>new InvitationParameters().load(params);
-  }
-
-  /**
    * Register invitation routes and event listeners on the authentication service
    * @returns this instance for chaining
    */

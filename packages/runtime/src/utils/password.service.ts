@@ -121,13 +121,6 @@ CryptoService.registerEncrypter("password", encrypter);
  */
 export class PasswordEncryptionService extends Service {
   /**
-   * @override
-   */
-  loadParameters(params: any): ServiceParameters {
-    return new ServiceParameters().load(params);
-  }
-
-  /**
    * Encrypt a string using AES-256-CTR with a password-derived key
    * @param data - plaintext to encrypt
    * @param key - optional password (prompts interactively if omitted)

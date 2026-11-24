@@ -172,6 +172,15 @@ export class DurationSpec {
     const d = new (Duration as any)("30");
     assert.strictEqual(d.toSeconds(), 30);
   }
+
+  @test
+  async parses_durations_with_spaces() {
+    assert.strictEqual(new (Duration as any)("1 d 2 m").toSeconds(), 86400 + 120);
+    assert.strictEqual(new (Duration as any)("1 h 30 m").toSeconds(), 5400);
+    assert.throws(() => new (Duration as any)("2 weeks"), /Unsupported duration unit: weeks/);
+    assert.throws(() => new (Duration as any)("1h @ 30m"), /Invalid duration format/);
+    assert.throws(() => new (Duration as any)("1h trailing"), /Invalid duration format/);
+  }
 }
 
 export default DurationSpec;

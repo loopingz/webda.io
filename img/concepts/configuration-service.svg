@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 850" role="img" aria-labelledby="title description">
+<title id="title">Dynamic configuration: refresh, compare, apply</title>
+<desc id="description">Provider notifications or a polling interval trigger a refresh. ConfigurationService reads sources in order, merges defaults and compares the result with the previous configuration. Unchanged values wait for the next refresh. Changed values are decrypted and passed to Core, which loads changed service parameters while preserving service types.</desc>
+<defs>
+<!-- Canonical outline from WebdaJigsaw.tsx. --><path id="config-jigsaw" d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z"/>
+
+<style>
+:root{--ink:#202b40;--label:#33445c;--muted:#52627a;--surface:#fff;--line:#71829c;--sync:#355f99;--async:#9c5f13;--run:#347449;--stop:#68578a;--pale:#eef3f9}
+@media(prefers-color-scheme:dark){:root{--ink:#f1f5ff;--label:#c5d0e7;--muted:#9fafd0;--surface:#1b1b1d;--line:#71829c;--sync:#8cbbeb;--async:#f4aa58;--run:#81bf8c;--stop:#b4a0ed;--pale:#282d38}}
+text{font-family:Inter,system-ui,-apple-system,sans-serif;fill:var(--ink)}.label{font-size:23px;font-weight:600}.detail{font-size:19px;fill:var(--label)}.small{font-size:17px;fill:var(--muted)}.hook{font:600 22px ui-monospace,SFMono-Regular,monospace}.line{fill:none;stroke:var(--line);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+</style>
+<filter id="soft-shadow" x="-50%" y="-100%" width="200%" height="300%"><feGaussianBlur stdDeviation="12"/></filter>
+<marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto-start-reverse"><path d="M1 1 L7 4 L1 7" fill="none" stroke="var(--line)" stroke-width="1.3"/></marker>
+</defs>
+<text x="48" y="57" font-size="32" font-weight="650">Fresh configuration. Only when it changes.</text>
+<text x="48" y="92" class="detail" text-anchor="start">Two refresh triggers, one shared update pipeline.</text>
+<rect x="48" y="126" width="526" height="102" rx="16" fill="var(--pale)" stroke="var(--run)" stroke-width="1.5"/>
+<text x="72" y="164" class="label" text-anchor="start">Provider notification</text>
+<text x="72" y="199" class="small" text-anchor="start">When a source supports change notifications</text>
+<rect x="626" y="126" width="526" height="102" rx="16" fill="var(--pale)" stroke="var(--async)" stroke-width="1.5"/>
+<text x="650" y="164" class="label" text-anchor="start">Polling interval</text>
+<text x="650" y="199" class="small" text-anchor="start">Fallback when any source cannot notify</text>
+<path d="M311 228 V256 H586 V292" class="line" marker-end="url(#arrow)"/>
+<path d="M889 228 V256 H606 V292" class="line" marker-end="url(#arrow)"/>
+<text x="596" y="320" class="hook" text-anchor="middle">Refresh</text>
+<!-- Icons share a visual center (-33, -26) and a 60-unit height; their local bounds differ. -->
+<g transform="translate(200 424)">
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -77)" fill="#435f7e"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -78)" fill="#435f7e"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -79)" fill="#435f7e"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -80)" fill="#435f7e"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -81)" fill="#435f7e"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -82)" fill="#435f7e"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -83)" fill="#435f7e"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -84)" fill="#435f7e"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -85)" fill="#435f7e"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -86)" fill="#435f7e"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -87)" fill="#435f7e"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -88)" fill="#435f7e"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -89)" fill="#435f7e"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -90)" fill="#435f7e"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -91)" fill="#435f7e"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -92)" fill="#435f7e"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -93)" fill="#435f7e"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -94)" fill="#435f7e"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -95)" fill="#8cbbeb"/>
+<g transform="translate(-33 -26) scale(0.967742) translate(-24.5 -23)" stroke="#16213b" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M2 -8 H33 L47 6 V54 H2Z"/><path d="M33 -8 V6 H47 M12 20 H36 M12 31 H36 M12 42 H27"/></g></g>
+<g transform="translate(596 424)">
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -77)" fill="#426747"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -78)" fill="#426747"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -79)" fill="#426747"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -80)" fill="#426747"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -81)" fill="#426747"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -82)" fill="#426747"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -83)" fill="#426747"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -84)" fill="#426747"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -85)" fill="#426747"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -86)" fill="#426747"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -87)" fill="#426747"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -88)" fill="#426747"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -89)" fill="#426747"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -90)" fill="#426747"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -91)" fill="#426747"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -92)" fill="#426747"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -93)" fill="#426747"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -94)" fill="#426747"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -95)" fill="#81bf6b"/>
+<g transform="translate(-33 -26) scale(1.111111) translate(-24.5 -25)" stroke="#16213b" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M0 4 H49 M0 25 H49 M0 46 H49"/><circle cx="14" cy="4" r="6" fill="#81bf6b"/><circle cx="36" cy="25" r="6" fill="#81bf6b"/><circle cx="20" cy="46" r="6" fill="#81bf6b"/></g></g>
+<g transform="translate(1000 424)">
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -77)" fill="#926336"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -78)" fill="#926336"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -79)" fill="#926336"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -80)" fill="#926336"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -81)" fill="#926336"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -82)" fill="#926336"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -83)" fill="#926336"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -84)" fill="#926336"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -85)" fill="#926336"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -86)" fill="#926336"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -87)" fill="#926336"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -88)" fill="#926336"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -89)" fill="#926336"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -90)" fill="#926336"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -91)" fill="#926336"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -92)" fill="#926336"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -93)" fill="#926336"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -94)" fill="#926336"/>
+<use href="#config-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -95)" fill="#f4aa58"/>
+<g transform="translate(-33 -26) translate(-23 -22)" stroke="#16213b" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="0" y="0" width="46" height="44" rx="6"/><path d="M-8 10 H0 M-8 33 H0 M46 10 H54 M46 33 H54 M12 -8 V0 M34 -8 V0 M12 44 V52 M34 44 V52 M13 15 L8 22 L13 29 M33 15 L38 22 L33 29"/></g></g>
+<path d="M316 397 H448" class="line" marker-end="url(#arrow)"/>
+<text x="382" y="376" class="small" text-anchor="middle">read + merge</text>
+<path d="M722 397 H852" class="line" marker-end="url(#arrow)"/>
+<text x="787" y="366" class="small" text-anchor="middle">changed</text>
+<text x="787" y="391" class="small" text-anchor="middle">decrypt values</text>
+<text x="180" y="513" class="label" text-anchor="middle">Configuration providers</text>
+<text x="180" y="548" class="detail" text-anchor="middle">Read each sourceId</text>
+<text x="180" y="578" class="small" text-anchor="middle">Files, stores, and secret providers</text>
+<text x="576" y="513" class="label" text-anchor="middle">ConfigurationService</text>
+<text x="576" y="548" class="detail" text-anchor="middle">Merge sources + compare values</text>
+<text x="576" y="578" class="small" text-anchor="middle">Defaults first · sources in order</text>
+<text x="980" y="513" class="label" text-anchor="middle">Webda Core</text>
+<text x="980" y="548" class="detail" text-anchor="middle">Apply new configuration</text>
+<text x="980" y="578" class="small" text-anchor="middle">Load changed service parameters</text>
+<path d="M576 600 V650 H180 V606" class="line" marker-end="url(#arrow)" stroke-dasharray="7 7"/>
+<text x="378" y="641" class="small" text-anchor="middle">unchanged · wait for next refresh</text>
+<path d="M48 697 H1152" class="line" opacity=".35"/>
+<text x="48" y="738" class="label" text-anchor="start">Sources</text>
+<text x="48" y="774" class="small" text-anchor="start">Files · Kubernetes Secrets / ConfigMaps</text>
+<text x="48" y="805" class="small" text-anchor="start">AWS Secrets Manager · Azure Key Vault</text>
+<text x="660" y="738" class="label" text-anchor="start">Stable services, updated values</text>
+<text x="660" y="774" class="small" text-anchor="start">Service types remain unchanged.</text>
+<text x="660" y="805" class="small" text-anchor="start">No service restart is implied by this flow.</text>
+</svg>

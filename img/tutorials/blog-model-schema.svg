@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 900" role="img" aria-labelledby="title description">
+<title id="title">Blog models and their relationships</title>
+<desc id="description">A User authors many Posts and Comments. A Post has many Comments. Posts and Tags have a many-to-many relationship through PostTag. UserFollow connects two User roles, follower and following. Lines show relationships, not inheritance. One and N indicate one and many.</desc>
+<defs>
+<!-- Canonical Webda piece from docs/src/components/WebdaJigsaw.tsx (JIGSAW_PATH). -->
+<path id="webda-jigsaw" d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z"/>
+ <filter id="shadow" x="-40%" y="-80%" width="180%" height="260%"><feGaussianBlur stdDeviation="10"/></filter>
+ <style>
+:root{--ink:#202b40;--label:#33445c;--muted:#52627a;--surface:#fff;--content-link:#a46216;--join-link:#7856b0;--social-link:#39824b;--author-link:#357c7c}
+@media(prefers-color-scheme:dark){:root{--ink:#f1f5ff;--label:#c5d0e7;--muted:#9fafd0;--surface:#1b1b1d;--content-link:#f4aa58;--join-link:#b4a0ed;--social-link:#81bf8c;--author-link:#7dbbba}}
+text{font-family:Inter,system-ui,-apple-system,sans-serif} .name{font-size:29px;font-weight:650;fill:var(--ink);text-anchor:middle}.label{font-size:20px;fill:var(--label);text-anchor:middle}.cardinality{font-size:19px;font-weight:700;fill:var(--ink);text-anchor:middle}.key{font:17px ui-monospace,SFMono-Regular,monospace;fill:var(--muted);text-anchor:middle}.wire{fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}</style>
+</defs>
+<text x="48" y="57" fill="var(--ink)" font-size="30" font-weight="650">A blog. Six connected models.</text>
+<text x="48" y="91" fill="var(--muted)" font-size="18">Content, tagging, and a social graph</text>
+<text x="1032" y="60" text-anchor="end" fill="var(--label)" font-size="18">1 = one · N = many</text>
+<!-- Comment authorship is a second relationship to User, not ownership inherited from Post. -->
+<path d="M97 320 H42 V160 H1038 V320 H941" class="wire" stroke="var(--author-link)" stroke-dasharray="6 7"/>
+<rect x="403" y="135" width="274" height="42" rx="21" fill="var(--surface)"/>
+<text x="540" y="162" class="label">also authors comments</text>
+<text x="59" y="296" class="cardinality">1</text><text x="1023" y="296" class="cardinality">N</text>
+<!-- Core content relationships. -->
+<path d="M220 320 H457 M580 320 H817" class="wire" stroke="var(--content-link)"/>
+<text x="305" y="345" class="cardinality">1</text><text x="415" y="345" class="cardinality">N</text>
+<text x="360" y="300" class="label">authors</text>
+<text x="665" y="345" class="cardinality">1</text><text x="775" y="345" class="cardinality">N</text>
+<text x="720" y="300" class="label">has</text>
+<!-- Join model: each link belongs to one post and one tag. -->
+<path d="M540 346 V650 M580 700 H817" class="wire" stroke="var(--join-link)"/>
+<text x="561" y="427" class="cardinality">1</text><text x="561" y="640" class="cardinality">N</text>
+<rect x="463" y="480" width="154" height="40" rx="20" fill="var(--surface)"/>
+<text x="540" y="507" class="label">tagged via</text>
+<text x="665" y="726" class="cardinality">N</text><text x="775" y="726" class="cardinality">1</text>
+<text x="720" y="680" class="label">tag</text>
+<!-- Both roles point back to the very same User model. -->
+<path d="M138 340 V680 M222 318 V680" class="wire" stroke="var(--social-link)"/>
+<text x="118" y="416" class="cardinality">1</text><text x="242" y="416" class="cardinality">1</text>
+<text x="118" y="640" class="cardinality">N</text><text x="242" y="640" class="cardinality">N</text>
+<rect x="54" y="465" width="252" height="69" rx="12" fill="var(--surface)"/>
+<text x="119" y="494" class="label">follower</text><text x="244" y="494" class="label">following</text>
+<text x="180" y="520" text-anchor="middle" fill="var(--muted)" font-size="16">two roles · same User</text>
+
+<g transform="translate(180 320)"><ellipse cx="-17" cy="24" rx="76" ry="27" fill="#030815" opacity=".18" filter="url(#shadow)"/>
+<rect x="-116" y="-136" width="232" height="44" rx="16" fill="var(--surface)"/><text y="-105" class="name">User</text>
+<g fill="#435a71"><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -52)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -53)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -54)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -55)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -56)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -57)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -58)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -59)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -60)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -61)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -62)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -63)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -64)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -65)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -66)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -67)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -68)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -69)"/></g><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -70)" fill="#8cbbeb" stroke="#8cbbeb" stroke-width="2"/>
+<g transform="translate(-43.4 -46.4) scale(1.1)" fill="none" stroke="#16213b" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="24" cy="16" r="8"/><path d="M9 41 V36 C9 24 39 24 39 36 V41Z"/>
+</g>
+</g>
+<g transform="translate(540 320)"><ellipse cx="-17" cy="24" rx="76" ry="27" fill="#030815" opacity=".18" filter="url(#shadow)"/>
+<rect x="-116" y="-136" width="232" height="44" rx="16" fill="var(--surface)"/><text y="-105" class="name">Post</text>
+<g fill="#75522a"><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -52)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -53)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -54)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -55)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -56)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -57)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -58)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -59)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -60)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -61)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -62)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -63)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -64)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -65)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -66)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -67)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -68)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -69)"/></g><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -70)" fill="#f4aa58" stroke="#f4aa58" stroke-width="2"/>
+<g transform="translate(-43.4 -46.4) scale(1.1)" fill="none" stroke="#16213b" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+<rect x="9" y="5" width="30" height="39" rx="3"/><path d="M16 15 H32 M16 24 H32 M16 33 H27"/>
+</g>
+</g>
+<g transform="translate(900 320)"><ellipse cx="-17" cy="24" rx="76" ry="27" fill="#030815" opacity=".18" filter="url(#shadow)"/>
+<rect x="-116" y="-136" width="232" height="44" rx="16" fill="var(--surface)"/><text y="-105" class="name">Comment</text>
+<g fill="#75522a"><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -52)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -53)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -54)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -55)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -56)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -57)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -58)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -59)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -60)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -61)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -62)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -63)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -64)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -65)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -66)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -67)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -68)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -69)"/></g><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -70)" fill="#f4aa58" stroke="#f4aa58" stroke-width="2"/>
+<g transform="translate(-43.4 -46.4) scale(1.1)" fill="none" stroke="#16213b" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+<path d="M7 9 H41 V34 H25 L14 44 V34 H7Z"/><path d="M14 18 H34 M14 26 H28"/>
+</g>
+</g>
+<g transform="translate(180 700)"><ellipse cx="-17" cy="24" rx="76" ry="27" fill="#030815" opacity=".18" filter="url(#shadow)"/>
+<rect x="-116" y="-136" width="232" height="44" rx="16" fill="var(--surface)"/><text y="-105" class="name">UserFollow</text>
+<g fill="#3e5c43"><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -52)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -53)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -54)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -55)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -56)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -57)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -58)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -59)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -60)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -61)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -62)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -63)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -64)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -65)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -66)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -67)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -68)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -69)"/></g><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -70)" fill="#81bf8c" stroke="#81bf8c" stroke-width="2"/>
+<g transform="translate(-43.4 -46.4) scale(1.1)" fill="none" stroke="#16213b" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+<rect x="3" y="10" width="22" height="29" rx="7"/><rect x="23" y="10" width="22" height="29" rx="7"/><path d="M16 24 H33"/>
+</g>
+<text y="102" class="key">follower + following</text>
+</g>
+<g transform="translate(540 700)"><ellipse cx="-17" cy="24" rx="76" ry="27" fill="#030815" opacity=".18" filter="url(#shadow)"/>
+<rect x="-116" y="-136" width="232" height="44" rx="16" fill="var(--surface)"/><text y="-105" class="name">PostTag</text>
+<g fill="#564d72"><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -52)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -53)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -54)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -55)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -56)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -57)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -58)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -59)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -60)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -61)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -62)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -63)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -64)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -65)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -66)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -67)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -68)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -69)"/></g><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -70)" fill="#b4a0ed" stroke="#b4a0ed" stroke-width="2"/>
+<g transform="translate(-43.4 -46.4) scale(1.1)" fill="none" stroke="#16213b" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+<rect x="3" y="10" width="22" height="29" rx="7"/><rect x="23" y="10" width="22" height="29" rx="7"/><path d="M16 24 H33"/>
+</g>
+<text y="102" class="key">post + tag</text>
+</g>
+<g transform="translate(900 700)"><ellipse cx="-17" cy="24" rx="76" ry="27" fill="#030815" opacity=".18" filter="url(#shadow)"/>
+<rect x="-116" y="-136" width="232" height="44" rx="16" fill="var(--surface)"/><text y="-105" class="name">Tag</text>
+<g fill="#564d72"><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -52)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -53)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -54)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -55)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -56)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -57)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -58)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -59)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -60)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -61)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -62)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -63)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -64)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -65)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -66)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -67)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -68)"/><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -69)"/></g><use href="#webda-jigsaw" transform="matrix(.34 .196 -.34 .196 0 -70)" fill="#b4a0ed" stroke="#b4a0ed" stroke-width="2"/>
+<g transform="translate(-43.4 -46.4) scale(1.1)" fill="none" stroke="#16213b" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+<path d="M6 9 H28 L44 25 L25 44 L6 25Z"/><circle cx="16" cy="18" r="3"/>
+</g>
+</g>
+<text x="180" y="836" class="label">Self-referential join</text><text x="720" y="836" class="label">Post ↔ Tag · many-to-many</text>
+<text x="540" y="878" text-anchor="middle" fill="var(--muted)" font-size="16">Relationships between models — not class inheritance</text></svg>

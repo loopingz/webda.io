@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 820" role="img" aria-labelledby="title description">
+<title id="title">The lifecycle of one Webda service</title>
+<desc id="description">Core creates a service from configuration. The constructor and resolve are synchronous; resolve supplies injected dependencies. Init opens resources asynchronously. The running service handles requests and background work. Stop releases resources asynchronously. The same service instance moves through these phases.</desc>
+<defs>
+<!-- Canonical outline from WebdaJigsaw.tsx. --><path id="lifecycle-jigsaw" d="M191.08,189.7c1.53-11.46,11.31-14.06,19.26-5.96,4.28,4.28,7.8,9.94,18.34,9.94,11.77,0,26.75-11.92,26.75-32.25s-14.98-32.25-26.75-32.25c-10.55,0-14.06,5.66-18.34,9.94-8.1,8.1-17.88,5.5-19.26-5.96h0c-.15-.92-.15-1.99-.15-3.21v-65.43h-65.58c-3.52,0-6.27-.61-8.41-1.68-6.73-3.36-7.34-11.16-.61-17.73,4.28-4.28,9.94-7.8,9.94-18.34C126.26,15.13,114.34.15,94.16,0c-20.18.15-32.1,14.98-32.1,26.75,0,10.55,5.66,14.06,9.94,18.34,8.87,8.71,5.04,19.57-9.17,19.57H0v173.81c0,8.44,6.84,15.29,15.29,15.29h175.64v-60.84c0-1.07,0-2.14.15-3.21Z"/>
+
+<style>
+:root{--ink:#202b40;--label:#33445c;--muted:#52627a;--surface:#fff;--line:#71829c;--sync:#355f99;--async:#9c5f13;--run:#347449;--stop:#68578a;--pale:#eef3f9}
+@media(prefers-color-scheme:dark){:root{--ink:#f1f5ff;--label:#c5d0e7;--muted:#9fafd0;--surface:#1b1b1d;--line:#71829c;--sync:#8cbbeb;--async:#f4aa58;--run:#81bf8c;--stop:#b4a0ed;--pale:#282d38}}
+text{font-family:Inter,system-ui,-apple-system,sans-serif;fill:var(--ink)}.label{font-size:23px;font-weight:600}.detail{font-size:19px;fill:var(--label)}.small{font-size:17px;fill:var(--muted)}.hook{font:600 22px ui-monospace,SFMono-Regular,monospace}.line{fill:none;stroke:var(--line);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+</style>
+<filter id="soft-shadow" x="-50%" y="-100%" width="200%" height="300%"><feGaussianBlur stdDeviation="12"/></filter>
+<marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto-start-reverse"><path d="M1 1 L7 4 L1 7" fill="none" stroke="var(--line)" stroke-width="1.3"/></marker>
+</defs>
+<text x="48" y="57" font-size="32" font-weight="650">One service. A complete lifecycle.</text>
+<text x="48" y="92" class="detail">Created, connected, initialized, used, and released by Core.</text>
+<!-- The same instance stays at the heart of the diagram. -->
+<g transform="translate(596 297)">
+<ellipse cx="-18" cy="30" rx="126" ry="36" fill="#030815" opacity=".18" filter="url(#soft-shadow)"/>
+
+<use href="#lifecycle-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -80)" fill="#435f7e"/>
+<use href="#lifecycle-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -81)" fill="#435f7e"/>
+<use href="#lifecycle-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -82)" fill="#435f7e"/>
+<use href="#lifecycle-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -83)" fill="#435f7e"/>
+<use href="#lifecycle-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -84)" fill="#435f7e"/>
+<use href="#lifecycle-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -85)" fill="#435f7e"/>
+<use href="#lifecycle-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -86)" fill="#435f7e"/>
+<use href="#lifecycle-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -87)" fill="#435f7e"/>
+<use href="#lifecycle-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -88)" fill="#435f7e"/>
+<use href="#lifecycle-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -89)" fill="#435f7e"/>
+<use href="#lifecycle-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -90)" fill="#435f7e"/>
+<use href="#lifecycle-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -91)" fill="#435f7e"/>
+<use href="#lifecycle-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -92)" fill="#435f7e"/>
+<use href="#lifecycle-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -93)" fill="#435f7e"/>
+<use href="#lifecycle-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -94)" fill="#435f7e"/>
+<use href="#lifecycle-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -95)" fill="#435f7e"/>
+<use href="#lifecycle-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -96)" fill="#435f7e"/>
+<use href="#lifecycle-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -97)" fill="#435f7e"/>
+<use href="#lifecycle-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -98)" fill="#435f7e"/>
+<use href="#lifecycle-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -99)" fill="#435f7e"/>
+<use href="#lifecycle-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -100)" fill="#435f7e"/>
+<use href="#lifecycle-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -101)" fill="#435f7e"/>
+<use href="#lifecycle-jigsaw" transform="matrix(.52 .3 -.52 .3 0 -102)" fill="#8cbbeb"/>
+<g transform="translate(-44 -59)" stroke="#16213b" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+<rect x="0" y="0" width="44" height="40" rx="6"/><path d="M-7 10 H0 M-7 29 H0 M44 10 H51 M44 29 H51 M12 -7 V0 M31 -7 V0 M12 40 V47 M31 40 V47"/><path d="M13 14 L8 20 L13 26 M31 14 L36 20 L31 26 M25 11 L19 29"/>
+</g></g>
+<text x="575" y="383" class="label" text-anchor="middle">One service instance</text>
+<!-- Inputs arrive before execution; resources open and close on async hooks. -->
+<g transform="translate(87 190)" stroke="var(--sync)" stroke-width="3" fill="var(--pale)" stroke-linejoin="round">
+<path d="M0 0 H65 L88 23 V106 H0Z"/><path d="M65 0 V23 H88" fill="none"/><path d="M18 39 H58 M18 54 H69 M18 69 H59 M18 84 H46" fill="none"/>
+</g>
+<text x="132" y="330" text-anchor="middle" class="hook">webda.config</text>
+<path d="M199 257 H446" class="line" marker-end="url(#arrow)"/>
+<text x="316" y="239" class="detail" text-anchor="middle">parameters</text>
+<path d="M340 370 V307 H446" class="line" marker-end="url(#arrow)"/>
+<rect x="268" y="369" width="144" height="45" rx="12" fill="var(--pale)" stroke="var(--sync)"/>
+<text x="340" y="398" class="hook" text-anchor="middle">@Inject</text>
+<text x="340" y="439" class="small" text-anchor="middle">available in resolve()</text>
+<path d="M730 257 H913" class="line" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+<text x="821" y="239" class="detail" text-anchor="middle">open / close</text>
+<g transform="translate(937 192)" stroke="var(--async)" stroke-width="3" fill="var(--pale)">
+<path d="M0 16 V85 C0 107 92 107 92 85 V16"/><ellipse cx="46" cy="16" rx="46" ry="16"/><path d="M0 48 C0 69 92 69 92 48 M0 75 C0 96 92 96 92 75" fill="none"/>
+</g>
+<text x="984" y="330" class="label" text-anchor="middle">Resources</text>
+<text x="984" y="359" class="small" text-anchor="middle">connections · tasks</text>
+<!-- Six numbered steps. No artificial dates or implied phase durations. -->
+<path d="M48 505 H558" stroke="var(--sync)" stroke-width="3"/>
+<text x="303" y="486" text-anchor="middle" class="small">SYNCHRONOUS SETUP</text>
+<path d="M608 505 H792" stroke="var(--async)" stroke-width="3"/>
+<text x="700" y="486" text-anchor="middle" class="small">ASYNC STARTUP</text>
+<path d="M842 505 H1152" stroke="var(--run)" stroke-width="3"/>
+<text x="997" y="486" text-anchor="middle" class="small">RUN &amp; SHUT DOWN</text>
+
+<path d="M125 560 H271" class="line" marker-end="url(#arrow)"/>
+<path d="M325 560 H471" class="line" marker-end="url(#arrow)"/>
+<path d="M525 560 H671" class="line" marker-end="url(#arrow)"/>
+<path d="M725 560 H871" class="line" marker-end="url(#arrow)"/>
+<path d="M925 560 H1071" class="line" marker-end="url(#arrow)"/>
+<circle cx="100" cy="560" r="22" fill="var(--surface)" stroke="var(--sync)" stroke-width="3"/><text x="100" y="567" text-anchor="middle" font-size="20" font-weight="650">1</text><text x="100" y="612" text-anchor="middle" class="hook">Configure</text><text x="100" y="649" text-anchor="middle" class="detail">Read service</text><text x="100" y="677" text-anchor="middle" class="small">parameters</text>
+<circle cx="300" cy="560" r="22" fill="var(--surface)" stroke="var(--sync)" stroke-width="3"/><text x="300" y="567" text-anchor="middle" font-size="20" font-weight="650">2</text><text x="300" y="612" text-anchor="middle" class="hook">constructor()</text><text x="300" y="649" text-anchor="middle" class="detail">Create instance</text><text x="300" y="677" text-anchor="middle" class="small">Synchronous only</text>
+<circle cx="500" cy="560" r="22" fill="var(--surface)" stroke="var(--sync)" stroke-width="3"/><text x="500" y="567" text-anchor="middle" font-size="20" font-weight="650">3</text><text x="500" y="612" text-anchor="middle" class="hook">resolve()</text><text x="500" y="649" text-anchor="middle" class="detail">Inject dependencies</text><text x="500" y="677" text-anchor="middle" class="small">Wire references</text>
+<circle cx="700" cy="560" r="22" fill="var(--surface)" stroke="var(--async)" stroke-width="3"/><text x="700" y="567" text-anchor="middle" font-size="20" font-weight="650">4</text><text x="700" y="612" text-anchor="middle" class="hook">init()</text><text x="700" y="649" text-anchor="middle" class="detail">Open connections</text><text x="700" y="677" text-anchor="middle" class="small">Start async work</text>
+<circle cx="900" cy="560" r="22" fill="var(--surface)" stroke="var(--run)" stroke-width="3"/><text x="900" y="567" text-anchor="middle" font-size="20" font-weight="650">5</text><text x="900" y="612" text-anchor="middle" class="hook">Running</text><text x="900" y="649" text-anchor="middle" class="detail">Handle requests</text><text x="900" y="677" text-anchor="middle" class="small">Run background work</text>
+<circle cx="1100" cy="560" r="22" fill="var(--surface)" stroke="var(--stop)" stroke-width="3"/><text x="1100" y="567" text-anchor="middle" font-size="20" font-weight="650">6</text><text x="1100" y="612" text-anchor="middle" class="hook">stop()</text><text x="1100" y="649" text-anchor="middle" class="detail">Release resources</text><text x="1100" y="677" text-anchor="middle" class="small">Await cleanup</text>
+<path d="M48 721 H1152" stroke="var(--line)" stroke-opacity=".35"/>
+<text x="48" y="758" class="detail">No I/O in constructor() or resolve(). Start it in init(); release it in stop().</text>
+<text x="48" y="790" class="small">Core stops services concurrently. This is execution order, not a duration chart.</text>
+</svg>

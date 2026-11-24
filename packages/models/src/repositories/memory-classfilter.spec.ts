@@ -434,4 +434,15 @@ class MemoryRepositoryClassFilterTest {
     const fromBlogUuids = fromBlog.results.map((r: any) => r.uuid).sort();
     assert.deepStrictEqual(fromBlogUuids, ["and-bp"], "BlogPost.query AND title excludes the pure Post row");
   }
+
+  @test
+  async duplicateModelClassWithSameNameThrows() {
+    this.setupSharedRepos();
+    // Simulate a second copy of BlogPost loaded by another module loader (e.g. Vitest .ts vs .js) (#1158)
+    const DuplicateBlogPost = class BlogPost extends Post {};
+    assert.throws(
+      () => useRepository(DuplicateBlogPost as any),
+      /Model class "BlogPost" is not the registered instance/
+    );
+  }
 }

@@ -1456,9 +1456,7 @@ async function runCommandLine(options: RunCliOptions, applicationCli: boolean): 
         } else {
           // Fallback for synthetic test fixtures where operations.json is mocked without Core registration
           const methodName =
-            dot >= 0
-              ? call.id.substring(dot + 1, dot + 2).toLowerCase() + call.id.substring(dot + 2)
-              : call.id;
+            dot >= 0 ? call.id.substring(dot + 1, dot + 2).toLowerCase() + call.id.substring(dot + 2) : call.id;
           const services = core.getServices();
           let service = services[serviceName];
           if (!service) {

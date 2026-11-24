@@ -71,7 +71,7 @@ class SimpleProgress {
   /** Timestamp (ms) when the progress was started */
   started: number;
   /** Timestamp (ms) when the progress was stopped */
-  stopped: number;
+  stopped?: number;
 
   /**
    * Create a new progress indicator
@@ -121,7 +121,8 @@ class SimpleProgress {
    * Hides cursor and begins spinner interval
    */
   start() {
-    this.started ??= Date.now();
+    this.started = Date.now();
+    this.stopped = undefined;
     this.hideCursor();
     this.interval ??= setInterval(() => {
       this.spinnerState++;

@@ -412,4 +412,27 @@ describe("InteractiveConsoleLoggerTest", () => {
       vi.resetModules();
     }
   });
+
+  it("testActivityRestartResetsElapsedTime", async () => {
+    const clock = sinon.useFakeTimers();
+    try {
+      output.startActivity("Build 1");
+      await clock.tickAsync(5000);
+      output.stopActivity("success", "Build 1 done");
+      await clock.tickAsync(10);
+
+      // Simulate idle watch wait before second rebuild
+      await clock.tickAsync(8000);
+
+      output.startActivity("Build 2");
+      await clock.tickAsync(300);
+      output.stopActivity("success", "Build 2 done");
+      await clock.tickAsync(10);
+
+      // Elapsed for Build 2 must be ~300ms, not ~13s (#1151)
+      assert.strictEqual(logger.spinner.getElapsed(), 300);
+    } finally {
+      clock.restore();
+    }
+  });
 });

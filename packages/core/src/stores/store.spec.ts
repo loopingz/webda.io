@@ -1506,4 +1506,27 @@ class StoreSlowQueryTest extends WebdaApplicationTest {
       Store.computeStores();
     }
   }
+
+  @test
+  async memoryStorePersistCreatesMissingDirectoryAtomically() {
+    const { mkdtempSync, readdirSync, existsSync, rmSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const { MemoryStore, MemoryStoreParameters } = await import("./memory.service.js");
+    const dir = mkdtempSync(join(tmpdir(), "webda-mem-persist-"));
+    try {
+      const target = join(dir, "nested", "sub", "data.ndjson");
+      const store = new MemoryStore(
+        "memPersist",
+        new MemoryStoreParameters().load({ persistence: { path: target, delay: 10000 } })
+      );
+      (store as any).storage.set("k1", JSON.stringify({ uuid: "k1" }));
+      await store.persist();
+      assert.strictEqual(existsSync(target), true);
+      const files = readdirSync(join(dir, "nested", "sub"));
+      assert.deepStrictEqual(files, ["data.ndjson"]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
 }

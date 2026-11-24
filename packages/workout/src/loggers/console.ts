@@ -40,6 +40,10 @@ class ConsoleLogger extends WorkerLogger {
   static defaultFormat = "%(d)s [%(l)s] %(m)s";
   /** Extended format string that also prints caller file, line, column and function */
   static defaultFormatWithLine = "%(d)s [%(l)s] %(m)s (%(f)s:%(ll)d:%(c)d %(ff)s)";
+  /** Streams that have already errored with EPIPE or been closed */
+  private static closedStreams = new WeakSet<NodeJS.WritableStream>();
+  /** Streams that already have an EPIPE error listener attached */
+  private static guardedStreams = new WeakSet<NodeJS.WritableStream>();
   /** Active sprintf format string used for output */
   format: string;
   /** Stream receiving the log lines */
@@ -126,11 +130,39 @@ class ConsoleLogger extends WorkerLogger {
   }
 
   /**
+   * Write to a stream while ignoring EPIPE when a downstream pipe closes (e.g. `| head -1`).
+   */
+  static safeWrite(stream: NodeJS.WritableStream, chunk: string) {
+    if (ConsoleLogger.closedStreams.has(stream) || (stream as any).destroyed || (stream as any).writableEnded) {
+      return;
+    }
+    if (!ConsoleLogger.guardedStreams.has(stream) && typeof (stream as any).on === "function") {
+      ConsoleLogger.guardedStreams.add(stream);
+      (stream as any).on("error", (err: NodeJS.ErrnoException) => {
+        if (err?.code === "EPIPE") {
+          ConsoleLogger.closedStreams.add(stream);
+          return;
+        }
+        throw err;
+      });
+    }
+    try {
+      stream.write(chunk);
+    } catch (err: any) {
+      if (err?.code === "EPIPE") {
+        ConsoleLogger.closedStreams.add(stream);
+        return;
+      }
+      throw err;
+    }
+  }
+
+  /**
    * Write a raw output message, unformatted, to stdout
    * @param msg - Output message to write
    */
   static writeOutput(msg: WorkerMessage) {
-    process.stdout.write(`${msg.data ?? ""}\n`);
+    ConsoleLogger.safeWrite(process.stdout, `${msg.data ?? ""}\n`);
   }
 
   /**
@@ -147,7 +179,7 @@ class ConsoleLogger extends WorkerLogger {
     format: string = ConsoleLogger.defaultFormat,
     stream: NodeJS.WritableStream = process.stdout
   ) {
-    stream.write(`${this.getColor(msg.log?.level ?? "INFO")(this.format(msg, format))}\n`);
+    ConsoleLogger.safeWrite(stream, `${this.getColor(msg.log?.level ?? "INFO")(this.format(msg, format))}\n`);
   }
 
   /**

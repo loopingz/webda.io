@@ -159,6 +159,7 @@ export async function WaitFor<T = any>(
         if (logger) {
           logger.logProgressUpdate(retries, uuid, title ?? "");
         }
+        mainResolve(undefined as T);
         return;
       }
       await sleep(delayer(tries));

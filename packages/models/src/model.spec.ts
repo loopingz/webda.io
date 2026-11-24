@@ -267,10 +267,28 @@ class ModelTest {
       createdAt: "",
       age: 10
     } as any);
-    await model.patch({ name: "Patched" } as any);
+    await model.patch({ name: "Patched" });
     assert.strictEqual(model.name, "Patched");
     const fromRepo = await repo1.get("patch-test");
     assert.strictEqual(fromRepo.name, "Patched");
+
+    // Calling this.patch({ ... }) from inside a subclass method must type-check without casting (#1150)
+    class PatchableModel extends UuidModel {
+      done: boolean = false;
+      async complete() {
+        await this.patch({ done: true });
+      }
+    }
+    const { registerSerializer } = await import("@webda/serialize");
+    registerSerializer(PatchableModel, {
+      serializer: (obj: PatchableModel) => obj.toJSON(),
+      deserializer: (data: any) => Object.assign(new PatchableModel(), data)
+    });
+    const patchRepo = new MemoryRepository<typeof PatchableModel>(PatchableModel, ["uuid"]);
+    registerRepository(PatchableModel, patchRepo);
+    const p = await PatchableModel.ref("p1").create({ done: false });
+    await p.complete();
+    assert.strictEqual(p.done, true);
   }
 
   @test

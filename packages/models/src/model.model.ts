@@ -9,7 +9,7 @@ import {
   ModelClass
 } from "./storable.js";
 import { DirtyState, WEBDA_DIRTY } from "@webda/utils";
-import type { Helpers, SelfDTO, SelfJSONed } from "./types.js";
+import type { Helpers, ModelPatch, SelfDTO, SelfJSONed } from "./types.js";
 import { randomUUID } from "crypto";
 import { type ModelRef, RelationRole } from "./relations.js";
 import type { Repository } from "./repositories/repository.js";
@@ -436,7 +436,7 @@ export abstract class Model extends RepositoryStorageClassMixIn(Object) implemen
    * @param data - the partial data to patch with
    * @returns the patched model instance
    */
-  async patch(data: Partial<SelfJSONed<this>>): Promise<this> {
+  async patch(data: ModelPatch<this>): Promise<this> {
     this.load(data as any);
     const repo = this.getRepository();
     await repo.patch(

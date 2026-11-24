@@ -157,6 +157,13 @@ export type SelfJSONed<T extends object> = {
 };
 
 /**
+ * Partial JSON-safe patch payload for a model, preserving known keys on polymorphic `this`.
+ */
+export type ModelPatch<T extends object> = {
+  [K in keyof T as T[K] extends Function ? never : K extends string ? K : never]?: JSONed<T[K]>;
+};
+
+/**
  * Map of custom deserializers per attribute.
  */
 export type Deserializers<T extends { load: (data: T) => any }> = {

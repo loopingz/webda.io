@@ -778,4 +778,19 @@ class BearerResolverTest extends WebdaApplicationTest {
     assert.ok(!session.isLogged());
     assert.strictEqual(session.userId, undefined);
   }
+
+  @test
+  proxyHandlesNullAndDeleteProperty() {
+    const raw = new Session();
+    (raw as any).nullable = null;
+    raw.userId = "u1";
+    raw.identUsed = "i1";
+    const proxy = raw.getProxy();
+    assert.strictEqual(raw.isDirty(), false);
+    assert.strictEqual((proxy as any).nullable, null);
+    assert.strictEqual(raw.isDirty(), false);
+    proxy.logout();
+    assert.strictEqual(raw.isDirty(), true);
+    assert.strictEqual(proxy.userId, undefined);
+  }
 }

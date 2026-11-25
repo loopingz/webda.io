@@ -119,6 +119,7 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
     let totalDuration = 0;
     let count = 0;
     let error: Error | undefined;
+    let completed = false;
 
     try {
       while (true) {
@@ -133,12 +134,16 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
         }
         totalDuration += performance.now() - start;
         if (step.done) {
+          completed = true;
           break;
         }
         count++;
         yield step.value;
       }
     } finally {
+      if (!completed) {
+        await iterator.return?.().catch(() => {});
+      }
       this.safeOnQuery({
         operation: "iterate",
         model,

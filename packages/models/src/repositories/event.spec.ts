@@ -336,4 +336,28 @@ class EventRepositoryMonitoringTest {
     assert.strictEqual(reports[3].count, 1);
     assert.ok(reports[3].query.includes("UPDATE"));
   }
+
+  @test
+  async iterateCallsReturnOnEarlyBreak() {
+    let cleaned = false;
+    const inner = {
+      model: { name: "MockModel" },
+      iterate() {
+        return (async function* () {
+          try {
+            yield { uuid: "1" } as any;
+            yield { uuid: "2" } as any;
+          } finally {
+            cleaned = true;
+          }
+        })();
+      }
+    } as any;
+    const eventRepo = new EventRepository(inner.model, ["uuid"], inner);
+    for await (const item of eventRepo.iterate()) {
+      assert.strictEqual((item as any).uuid, "1");
+      break;
+    }
+    assert.strictEqual(cleaned, true);
+  }
 }

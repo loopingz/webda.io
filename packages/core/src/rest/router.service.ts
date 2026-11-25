@@ -542,8 +542,8 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
   protected comparePath(a, b): number {
     // Normal node works with localeCompare but not Lambda...
     // Local compare { to a return: 26 on Lambda
-    const bs = b.url.replace(/\{[^{}]+}/, "{}").split("/");
-    const as = a.url.replace(/\{[^{}]+}/, "{}").split("/");
+    const bs = b.url.replace(/\{[^{}]+}/g, "{}").split("/");
+    const as = a.url.replace(/\{[^{}]+}/g, "{}").split("/");
     for (const i in as) {
       if (bs[i] === undefined) return -1;
       if (as[i] === bs[i]) continue;
@@ -551,7 +551,7 @@ export class Router<T extends RouterParameters = RouterParameters> extends Servi
       if (as[i][0] !== "{" && bs[i][0] === "{") return -1;
       return bs[i] < as[i] ? -1 : 1;
     }
-    return 1;
+    return bs.length > as.length ? 1 : 0;
   }
 
   /**

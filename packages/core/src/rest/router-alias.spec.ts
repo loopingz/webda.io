@@ -678,4 +678,16 @@ class RouterAliasTest extends WebdaApplicationTest {
       target: "/users/123?flag=1"
     });
   }
+
+  @test
+  comparePathStrictWeakOrdering() {
+    const router = useRouter() as any;
+    assert.strictEqual(router.comparePath({ url: "/a/{x}/b/{y}" }, { url: "/a/{p}/b/{q}" }), 0);
+    assert.strictEqual(router.comparePath({ url: "/a" }, { url: "/a" }), 0);
+    assert.strictEqual(router.comparePath({ url: "/a" }, { url: "/a/b" }), 1);
+    assert.strictEqual(router.comparePath({ url: "/a/b" }, { url: "/a" }), -1);
+    // Multi-param route: literal segment sorts before second param regardless of param name
+    assert.strictEqual(router.comparePath({ url: "/users/{id}/profile" }, { url: "/users/{a}/{z}" }), -1);
+    assert.strictEqual(router.comparePath({ url: "/users/{a}/{z}" }, { url: "/users/{id}/profile" }), 1);
+  }
 }

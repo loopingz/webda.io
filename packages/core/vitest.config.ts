@@ -51,6 +51,7 @@ export default defineConfig({
       "src/index.spec.ts",
       "src/loggers/*.spec.ts",
       //"src/models/ownermodel.spec.ts",
+      "src/models/decorator.spec.ts",
       "src/models/ident.spec.ts",
       "src/models/user.spec.ts",
       "src/models/password.spec.ts",

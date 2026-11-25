@@ -40,6 +40,7 @@ import { useLog } from "@webda/workout";
 import { getOperationFeatureFlags, isFeatureEnabled, isOperationEnabled } from "../services/featureflags.js";
 import { useMetric } from "../metrics/metrics.js";
 import { Counter } from "prom-client";
+import { applyMask, getMaskedFields, MASKED_VALUE } from "../models/decorator.js";
 
 /**
  * Check if an operation can be executed with the current context
@@ -1010,10 +1011,10 @@ export function resolveDryRun(context: OperationContext, operationId: string): b
 }
 
 const SECRET_REGEX = /password|secret|token|credential|authorization/i;
-const SECRET_MASK = "********";
+const SECRET_MASK = MASKED_VALUE;
 
 /**
- * Mask sensitive values in an argument (passwords, tokens, SecretString, etc.)
+ * Mask sensitive values in an argument (passwords, tokens, SecretString, fields marked `@Masked`, etc.)
  * @param val - value to mask
  * @param seen - tracking set for circular reference protection
  * @returns masked value
@@ -1038,9 +1039,18 @@ export function maskValue(val: unknown, seen = new WeakSet<object>()): unknown {
   if (Array.isArray(val)) {
     return val.map(item => maskValue(item, seen));
   }
+  // Fields declared @Masked on the class of the value use their mask
+  const masked = getMaskedFields(val);
   // Object.fromEntries defines own properties: no key of the input is written through, so none reaches a prototype
   return Object.fromEntries(
-    Object.entries(val).map(([key, propVal]) => [key, SECRET_REGEX.test(key) ? SECRET_MASK : maskValue(propVal, seen)])
+    Object.entries(val).map(([key, propVal]) => [
+      key,
+      Object.hasOwn(masked, key)
+        ? applyMask(propVal, masked[key])
+        : SECRET_REGEX.test(key)
+          ? SECRET_MASK
+          : maskValue(propVal, seen)
+    ])
   );
 }
 

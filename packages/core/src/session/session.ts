@@ -298,8 +298,12 @@ export class Session {
         obj[property] = value;
         return true;
       },
+      deleteProperty: (obj: this, property: string) => {
+        this.changed = true;
+        return Reflect.deleteProperty(obj, property);
+      },
       get: (obj: this, property: string) => {
-        if (typeof obj[property] === "object") {
+        if (obj[property] !== null && typeof obj[property] === "object") {
           return new Proxy(obj[property], proxyHandler);
         }
         return obj[property];

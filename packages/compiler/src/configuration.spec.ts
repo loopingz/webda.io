@@ -396,4 +396,48 @@ class ConfigurationSchemaTest {
       { $ref: "#/definitions/DeployerType$Test$MyDeployer" }
     ]);
   }
+
+  @test
+  async generateConfigurationSchemasWarnsOnInvalidServiceParams() {
+    const { useWorkerOutput } = await import("@webda/workout");
+    const output = useWorkerOutput();
+    const logs: any[] = [];
+    const origLog = output.log.bind(output);
+    output.log = ((level: any, ...args: any[]) => {
+      logs.push([level, ...args]);
+    }) as any;
+    const folder = mkdtempSync(join(tmpdir(), "webda-svc-validate-"));
+    const configSchemaPath = join(folder, ".webda", "config.schema.json");
+    const deploymentSchemaPath = join(folder, ".webda", "deployment.schema.json");
+    const schema: any = {
+      type: "object",
+      required: ["type", "to"],
+      additionalProperties: false,
+      properties: {
+        type: { type: "string" },
+        to: { type: "string" }
+      }
+    };
+    const app: any = {
+      getModdas: () => ({ "Test/ValidatedSvc": {} }),
+      getDeployers: () => ({}),
+      getSchema: (type: string) => (type === "Test/ValidatedSvc" ? schema : undefined),
+      getModules: () => ({ beans: {}, models: {}, behaviors: {} }),
+      getConfiguration: () => ({
+        services: {
+          badSvc: { type: "ValidatedSvc", too: "wrong" },
+          noSchemaSvc: { type: "UnknownSvc" }
+        }
+      }),
+      completeNamespace: (name: string) => (name.includes("/") ? name : `Test/${name}`)
+    };
+    try {
+      generateConfigurationSchemas(app, configSchemaPath, deploymentSchemaPath, true);
+      assert.ok(logs.some(l => l[0] === "WARN" && String(l[1]).includes("Missing required parameter 'to'")));
+      assert.ok(logs.some(l => l[0] === "WARN" && String(l[1]).includes("Unknown parameter 'too'")));
+    } finally {
+      output.log = origLog;
+      rmSync(folder, { recursive: true, force: true });
+    }
+  }
 }

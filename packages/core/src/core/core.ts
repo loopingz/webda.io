@@ -569,7 +569,7 @@ export class Core implements ICore {
       this.log("TRACE", "Constructing service", service);
       const rawConfig = this.configuration[service];
       const type = rawConfig?.type;
-      if (type && this.application.getSchema(type)) {
+      if (this.application instanceof UnpackedApplication && type && this.application.getSchema(type)) {
         try {
           validateSchema(type, rawConfig);
         } catch (err: any) {

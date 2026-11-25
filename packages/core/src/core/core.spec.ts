@@ -597,6 +597,7 @@ class AdditionalCoreDirectoryCoverageTest extends WebdaInternalTest {
   async createServiceWarnsOnInvalidSchemaParameters() {
     const { registerSchema } = await import("../schemas/hooks.js");
     const { ServiceParameters } = await import("../services/serviceparameters.js");
+    const { Application } = await import("../application/application.js");
     const typeName = "Test/SchemaValidatedService";
     const schema = {
       type: "object",
@@ -610,8 +611,9 @@ class AdditionalCoreDirectoryCoverageTest extends WebdaInternalTest {
     registerSchema(typeName, schema);
     const { useCore } = await import("./hooks.js");
     const core = useCore() as any;
-    const origGetSchema = core.application.getSchema.bind(core.application);
-    core.application.getSchema = (id: string) => (id === typeName ? schema : origGetSchema(id));
+    const origApp = core.application;
+    const origGetSchema = origApp.getSchema.bind(origApp);
+    origApp.getSchema = (id: string) => (id === typeName ? schema : origGetSchema(id));
     const prevModda = core.moddas["badSvc"];
     const prevCfg = core.configuration["badSvc"];
     const logs: any[] = [];
@@ -627,14 +629,26 @@ class AdditionalCoreDirectoryCoverageTest extends WebdaInternalTest {
         }
       };
       core.configuration["badSvc"] = { type: typeName, too: "wrong" };
+      // Non-packaged (UnpackedApplication) should validate and warn
       core.createService("badSvc");
       assert.ok(
         logs.some(l => l[0] === "WARN" && String(l[1]).includes("Invalid configuration for service badSvc")),
-        "Expected WARN log for invalid service parameters"
+        "Expected WARN log for invalid service parameters in UnpackedApplication"
+      );
+
+      // Packaged (Application, not UnpackedApplication) should skip schema validation
+      logs.length = 0;
+      delete core.services["badSvc"];
+      core.application = Object.assign(Object.create(Application.prototype), origApp);
+      core.createService("badSvc");
+      assert.ok(
+        !logs.some(l => l[0] === "WARN" && String(l[1]).includes("Invalid configuration for service badSvc")),
+        "Did not expect WARN log for invalid service parameters in packaged Application"
       );
     } finally {
       core.log = origLog;
-      core.application.getSchema = origGetSchema;
+      core.application = origApp;
+      origApp.getSchema = origGetSchema;
       if (prevModda === undefined) delete core.moddas["badSvc"];
       else core.moddas["badSvc"] = prevModda;
       if (prevCfg === undefined) delete core.configuration["badSvc"];

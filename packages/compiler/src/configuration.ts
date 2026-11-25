@@ -198,7 +198,7 @@ function getServiceTypePattern(app: ConfigSchemaApplication, type: string): stri
  * @param app to validate configured services for
  */
 function validateConfiguredServices(app: ConfigSchemaApplication): void {
-  const services = app.getConfiguration?.().services;
+  const services = app.getConfiguration().services;
   if (!services) {
     return;
   }

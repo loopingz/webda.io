@@ -418,14 +418,21 @@ class ConfigurationSchemaTest {
         to: { type: "string" }
       }
     };
+    const noReqSchema: any = {
+      type: "object",
+      additionalProperties: false,
+      properties: { type: { type: "string" } }
+    };
     const app: any = {
-      getModdas: () => ({ "Test/ValidatedSvc": {} }),
+      getModdas: () => ({ "Test/ValidatedSvc": {}, "Test/NoReqSvc": {} }),
       getDeployers: () => ({}),
-      getSchema: (type: string) => (type === "Test/ValidatedSvc" ? schema : undefined),
+      getSchema: (type: string) =>
+        type === "Test/ValidatedSvc" ? schema : type === "Test/NoReqSvc" ? noReqSchema : undefined,
       getModules: () => ({ beans: {}, models: {}, behaviors: {} }),
       getConfiguration: () => ({
         services: {
           badSvc: { type: "ValidatedSvc", too: "wrong" },
+          "Test/NoReqSvc": {},
           noSchemaSvc: { type: "UnknownSvc" }
         }
       }),

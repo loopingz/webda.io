@@ -132,7 +132,8 @@ export class Core implements ICore {
     this.logger = new Logger(this.application.getWorkerOutput(), { class: "@webda/core" });
 
     // Load the configuration and migrate
-    this.applicationConfiguration = this.application.getConfiguration() || { services: {} };
+    this.applicationConfiguration =
+      this.application.getConfiguration() || ({ version: 4, services: {} } as Configuration);
     for (const [key, value] of Object.entries(this.applicationConfiguration.services || {})) {
       try {
         this.moddas[key] = this.application.getModda(value.type || key);

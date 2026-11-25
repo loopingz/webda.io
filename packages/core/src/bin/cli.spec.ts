@@ -1866,7 +1866,7 @@ class CliOperationEdgeCasesTest {
     const app = realpathSync(mkdtempSync(join(tmpdir(), "webda-cli-reg-op-")));
     const exit = vi.spyOn(process, "exit").mockImplementation((() => undefined) as any);
     const opId = "CliRegTest.Ping";
-    const init = vi.spyOn(Core.prototype, "init").mockImplementation(async function (this: Core) {
+    const init = vi.spyOn(Core.prototype, "init").mockImplementation(async function initWithOp(this: Core) {
       registerOperation(opId, {
         method: "ping",
         service: "CliRegTest",

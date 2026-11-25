@@ -343,7 +343,7 @@ class EventRepositoryMonitoringTest {
     const inner = {
       model: { name: "MockModel" },
       iterate() {
-        return (async function* () {
+        return (async function* gen() {
           try {
             yield { uuid: "1" } as any;
             yield { uuid: "2" } as any;

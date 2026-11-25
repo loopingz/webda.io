@@ -127,7 +127,7 @@ export class MemoryRepository<
     // subclass row. Only an instance of a class sets its own type.
     let next: InstanceType<T>;
     if (data instanceof this.model) {
-      next = data;
+      next = data as InstanceType<T>;
     } else {
       next = new (item.constructor as any)(data) as InstanceType<T>;
       if (typeof (next as any).load === "function") {

@@ -1209,6 +1209,7 @@ class StoreAggregationTest extends WebdaApplicationTest {
       pStore.persistenceTimeout = undefined;
       pStore.storage.set("k2b", '{"uuid":"k2b"}');
       await new Promise(resolve => setTimeout(resolve, 45));
+      await pStore.stop();
 
       // Encrypt and stop with active persistenceTimeout
       const pStoreEnc = new MemoryStore("pStoreEnc", {

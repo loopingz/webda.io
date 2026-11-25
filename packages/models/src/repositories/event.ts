@@ -141,8 +141,8 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
         yield step.value;
       }
     } finally {
-      if (!completed) {
-        await iterator.return?.().catch(() => {});
+      if (!completed && iterator.return) {
+        await iterator.return(undefined as any).catch(() => {});
       }
       this.safeOnQuery({
         operation: "iterate",

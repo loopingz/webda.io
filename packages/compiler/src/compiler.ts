@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { existsSync, globSync, mkdirSync, readFileSync, watch as watchFiles, type FSWatcher } from "node:fs";
+import { existsSync, globSync, mkdirSync, readFileSync, statSync, watch as watchFiles, type FSWatcher } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -153,9 +153,11 @@ export function getDependencyDigest(appRoot: string): string {
       continue;
     }
     hash.update(readFileSync(join(folder, "webda.module.json")));
+    // statSync follows symlinks: a sandbox or a linked install stages the same declarations as symlinks where
+    // another build has regular files, and the digest must not depend on how the dependency was laid out
     globSync("**/*.d.ts", { cwd: folder, withFileTypes: true, exclude: f => f.name === "node_modules" })
-      .filter(f => f.isFile())
       .map(f => join(f.parentPath, f.name))
+      .filter(f => statSync(f, { throwIfNoEntry: false })?.isFile() ?? false)
       .sort()
       .forEach(f => {
         hash.update(f.substring(folder.length));

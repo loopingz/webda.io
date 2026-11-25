@@ -64,6 +64,18 @@ class ThrottleTest {
       lockout: 1000
     });
     assert.strictEqual(lockedLegacy, false);
+    assert.strictEqual(legacyStore._attempts, 1);
+    // Subsequent attempt uses incrementAttribute fallback returning undefined
+    assert.strictEqual(
+      await countAttempt(legacyRef, "_attempts", "_lastAttemptAt", { failedBeforeDelay: 2, lockout: 1000 }),
+      false
+    );
+    assert.strictEqual(legacyStore._attempts, 2);
+    // Third attempt locks out after allowing failedBeforeDelay attempts post-expiry
+    assert.strictEqual(
+      await countAttempt(legacyRef, "_attempts", "_lastAttemptAt", { failedBeforeDelay: 2, lockout: 1000 }),
+      true
+    );
 
     // 5. Record never counted: the attribute is missing from the snapshot, default parameters apply
     const fresh: any = {};

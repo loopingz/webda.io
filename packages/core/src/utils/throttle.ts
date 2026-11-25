@@ -31,9 +31,14 @@ export async function countAttempt(
   const currentCount = snapshot?.[attrCount] ?? 0;
   const currentTs = snapshot?.[attrTs];
   const expired = currentCount >= failedBeforeDelay && (!currentTs || currentTs + lockout <= now);
+  if (expired) {
+    await runAsSystem(() => ref.setAttribute(attrCount, 1));
+    await runAsSystem(() => ref.setAttribute(attrTs, now));
+    return false;
+  }
   const updated = await runAsSystem(() => ref.incrementAttribute(attrCount));
   const attempts = (updated as any)?.[attrCount] ?? (await runAsSystem(() => ref.get()))?.[attrCount];
-  const locked = !expired && attempts - 1 >= failedBeforeDelay;
+  const locked = attempts - 1 >= failedBeforeDelay;
   if (!locked) {
     await runAsSystem(() => ref.setAttribute(attrTs, now));
   }

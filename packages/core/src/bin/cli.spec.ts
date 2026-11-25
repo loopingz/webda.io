@@ -1859,4 +1859,52 @@ class CliOperationEdgeCasesTest {
       rmSync(app, { recursive: true, force: true });
     }
   }
+
+  @test
+  async runCliExecutesRegisteredOperation() {
+    const { registerOperation } = await import("../core/operations.js");
+    const app = realpathSync(mkdtempSync(join(tmpdir(), "webda-cli-reg-op-")));
+    const exit = vi.spyOn(process, "exit").mockImplementation((() => undefined) as any);
+    const opId = "CliRegTest.Ping";
+    const init = vi.spyOn(Core.prototype, "init").mockImplementation(async function (this: Core) {
+      registerOperation(opId, {
+        method: "ping",
+        service: "CliRegTest",
+        permission: "public",
+        handler: async (ctx: any) => {
+          ctx.write({ pong: true });
+        }
+      } as any);
+      return this;
+    });
+    const stop = vi.spyOn(Core.prototype, "stop").mockResolvedValue(undefined as any);
+    const services = vi.spyOn(Core.prototype, "getServices").mockReturnValue({});
+    const getService = vi
+      .spyOn(Core.prototype, "getService")
+      .mockReturnValue({ ping: async (ctx: any) => ctx.write({ pong: true }) } as any);
+    try {
+      write(join(app, "package.json"), { name: "mini", version: "1.0.0", type: "module" });
+      write(join(app, "webda.config.json"), { version: 4, services: {} });
+      write(join(app, "webda.module.json"), webdaModule({}));
+      mkdirSync(join(app, ".webda"));
+      write(join(app, ".webda", "operations.json"), {
+        operations: { [opId]: { id: opId, input: "void", output: "void" } },
+        schemas: {}
+      });
+      await runCli({ appPath: app, argv: ["cliregtest", "ping", "--console-patch=false"] });
+      await runCli({ appPath: app, argv: ["cliregtest", "ping", "--dry-run", "--console-patch=false"] });
+      await new Promise<void>(resolve => setImmediate(resolve));
+      assert.deepStrictEqual(
+        exit.mock.calls.map(c => c[0]),
+        [0, 0]
+      );
+    } finally {
+      getService.mockRestore();
+      services.mockRestore();
+      stop.mockRestore();
+      init.mockRestore();
+      exit.mockRestore();
+      rmSync(app, { recursive: true, force: true });
+    }
+  }
 }

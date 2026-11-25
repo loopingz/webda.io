@@ -128,12 +128,12 @@ export class Core implements ICore {
    */
   constructor(application?: Application) {
     useInstanceStorage().core = this;
-    this.logger = new Logger(application.getWorkerOutput(), { class: "@webda/core" });
     this.application = application || new UnpackedApplication(".");
+    this.logger = new Logger(this.application.getWorkerOutput(), { class: "@webda/core" });
 
     // Load the configuration and migrate
-    this.applicationConfiguration = this.application.getConfiguration();
-    for (const [key, value] of Object.entries(this.applicationConfiguration.services)) {
+    this.applicationConfiguration = this.application.getConfiguration() || { services: {} };
+    for (const [key, value] of Object.entries(this.applicationConfiguration.services || {})) {
       try {
         this.moddas[key] = this.application.getModda(value.type || key);
       } catch (err) {

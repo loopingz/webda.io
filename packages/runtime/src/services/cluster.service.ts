@@ -407,39 +407,44 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
     // Dispatch the event
     if (message.type === "model") {
       const model = this.models[message.emitter];
-      const shouldAlert =
-        !this.models[message.emitter] &&
-        ((this.parameters.unsyncCodeAlert === undefined && this.hasCodeSyncAlert === false) ||
-          this.parameters.unsyncCodeAlert);
-      if (shouldAlert) {
-        this.hasCodeSyncAlert = true;
-        this.log("WARN", `Model not found ${message.emitter} - code is probably out of sync`);
+      if (!model) {
+        if (
+          (this.parameters.unsyncCodeAlert === undefined && this.hasCodeSyncAlert === false) ||
+          this.parameters.unsyncCodeAlert
+        ) {
+          this.hasCodeSyncAlert = true;
+          this.log("WARN", `Model not found ${message.emitter} - code is probably out of sync`);
+        }
         return;
       }
       model.emit(<any>message.event, data);
     } else if (message.type === "store") {
-      const shouldAlert =
-        !this.stores[message.emitter] &&
-        ((this.parameters.unsyncCodeAlert === undefined && this.hasCodeSyncAlert === false) ||
-          this.parameters.unsyncCodeAlert);
-      if (shouldAlert) {
-        this.hasCodeSyncAlert = true;
-        this.log("WARN", `Store not found ${message.emitter} - code is probably out of sync`);
+      const store = this.stores[message.emitter];
+      if (!store) {
+        if (
+          (this.parameters.unsyncCodeAlert === undefined && this.hasCodeSyncAlert === false) ||
+          this.parameters.unsyncCodeAlert
+        ) {
+          this.hasCodeSyncAlert = true;
+          this.log("WARN", `Store not found ${message.emitter} - code is probably out of sync`);
+        }
         return;
       }
       // Store will emit the event but manage the cache first
-      await this.stores[message.emitter]?.emit(<any>message.event, data);
+      await store.emit(<any>message.event, data);
     } else if (message.type === "service") {
-      const shouldAlert =
-        !this.services[message.emitter] &&
-        ((this.parameters.unsyncCodeAlert === undefined && this.hasCodeSyncAlert === false) ||
-          this.parameters.unsyncCodeAlert);
-      if (shouldAlert) {
-        this.hasCodeSyncAlert = true;
-        this.log("WARN", `Service not found ${message.emitter} - code is probably out of sync`);
+      const service = this.services[message.emitter];
+      if (!service) {
+        if (
+          (this.parameters.unsyncCodeAlert === undefined && this.hasCodeSyncAlert === false) ||
+          this.parameters.unsyncCodeAlert
+        ) {
+          this.hasCodeSyncAlert = true;
+          this.log("WARN", `Service not found ${message.emitter} - code is probably out of sync`);
+        }
         return;
       }
-      this.services[message.emitter].emit(<any>message.event, data);
+      service.emit(<any>message.event, data);
     } else if (message.type === "cluster") {
       if (message.event === "ClusterService.MemberRemoved" && message.data.emitterId === this.emitterId) {
         this.log("WARN", "Received a ClusterService.MemberRemoved for myself - sending a KeepAlive");

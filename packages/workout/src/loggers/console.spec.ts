@@ -216,5 +216,32 @@ describe("ConsoleLoggerTest", () => {
     ConsoleLogger.display(msg, ConsoleLogger.defaultFormat, stream);
     ConsoleLogger.display(msg, ConsoleLogger.defaultFormat, stream);
     assert.strictEqual(writes, 1);
+
+    // Synchronous EPIPE throw from stream.write also marks stream closed
+    const syncEpipeStream = new PassThrough();
+    let syncWrites = 0;
+    syncEpipeStream.write = (() => {
+      syncWrites++;
+      const err: NodeJS.ErrnoException = new Error("sync EPIPE");
+      err.code = "EPIPE";
+      throw err;
+    }) as any;
+    ConsoleLogger.display(msg, ConsoleLogger.defaultFormat, syncEpipeStream);
+    ConsoleLogger.display(msg, ConsoleLogger.defaultFormat, syncEpipeStream);
+    assert.strictEqual(syncWrites, 1);
+
+    // Non-EPIPE errors from either event or synchronous write are rethrown
+    const errStream = new PassThrough();
+    errStream.write = (() => {
+      const err: NodeJS.ErrnoException = new Error("sync EINVAL");
+      err.code = "EINVAL";
+      throw err;
+    }) as any;
+    assert.throws(() => ConsoleLogger.safeWrite(errStream, "x"), /sync EINVAL/);
+    assert.throws(() => {
+      const err: NodeJS.ErrnoException = new Error("async EINVAL");
+      err.code = "EINVAL";
+      errStream.emit("error", err);
+    }, /async EINVAL/);
   });
 });

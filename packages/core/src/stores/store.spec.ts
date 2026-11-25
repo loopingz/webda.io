@@ -1525,6 +1525,22 @@ class StoreSlowQueryTest extends WebdaApplicationTest {
       assert.strictEqual(existsSync(target), true);
       const files = readdirSync(join(dir, "nested", "sub"));
       assert.deepStrictEqual(files, ["data.ndjson"]);
+
+      // If rename fails (e.g. target is a directory), persist rejects and cleans up the tmp file
+      const dirTarget = join(dir, "nested", "as-dir");
+      const { mkdirSync } = await import("node:fs");
+      mkdirSync(dirTarget, { recursive: true });
+      const badStore = new MemoryStore(
+        "memPersistFail",
+        new MemoryStoreParameters().load({ persistence: { path: dirTarget, delay: 10000 } })
+      );
+      (badStore as any).storage.set("k1", JSON.stringify({ uuid: "k1" }));
+      await assert.rejects(() => badStore.persist());
+      const parentFiles = readdirSync(join(dir, "nested"));
+      assert.strictEqual(
+        parentFiles.some(f => f.endsWith(".tmp")),
+        false
+      );
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

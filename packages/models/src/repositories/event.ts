@@ -53,6 +53,10 @@ export class EventRepository<T extends ModelClass = any> extends AbstractReposit
 
   /**
    * Emit a post-write event without failing the already-committed operation if a listener throws.
+   *
+   * @param event - The event name to emit
+   * @param data - The event payload
+   * @returns Resolves once listeners settle
    */
   protected async emitAfter<K extends keyof InstanceType<T>[typeof WEBDA_EVENTS]>(
     event: K,

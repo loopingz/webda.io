@@ -612,4 +612,59 @@ class RelationsTest {
     const mapFalsy = new ModelRefCustomMap<TestSimpleModel, any>("test" as any, repo as any, false as any);
     assert.deepStrictEqual(mapFalsy.toJSON(), {});
   }
+
+  @test
+  async modelRefUpdateSingleAndCompositePK() {
+    const { registerSerializer } = await import("@webda/serialize");
+    const { Model } = await import("./model.model.js");
+    class ScalarModel extends UuidModel {
+      name!: string;
+      constructor(data?: any) {
+        super(data);
+        if (data?.name !== undefined) this.name = data.name;
+      }
+    }
+    registerSerializer(ScalarModel);
+    const strRepo = new MemoryRepository<typeof ScalarModel>(ScalarModel, ["uuid"]);
+    registerRepository(ScalarModel, strRepo);
+    await strRepo.create({ uuid: "abc", name: "old" } as any);
+    await strRepo.ref("abc").update({ name: "next" } as any);
+    const updatedStr = await strRepo.get("abc");
+    assert.strictEqual(updatedStr.name, "next");
+    assert.strictEqual((updatedStr as any)["0"], undefined);
+
+    class NumModel extends Model {
+      id!: number;
+      name!: string;
+      constructor(data?: any) {
+        super(data);
+        if (data?.id !== undefined) this.id = data.id;
+        if (data?.name !== undefined) this.name = data.name;
+      }
+    }
+    registerSerializer(NumModel);
+    const numRepo = new MemoryRepository<typeof NumModel>(NumModel, ["id"]);
+    registerRepository(NumModel, numRepo);
+    await numRepo.create({ id: 42, name: "old" } as any);
+    await numRepo.ref(42 as any).update({ name: "updated" } as any);
+    assert.strictEqual((await numRepo.get(42 as any)).name, "updated");
+
+    class CompModel extends Model {
+      tenant!: string;
+      id!: string;
+      name!: string;
+      constructor(data?: any) {
+        super(data);
+        if (data?.tenant !== undefined) this.tenant = data.tenant;
+        if (data?.id !== undefined) this.id = data.id;
+        if (data?.name !== undefined) this.name = data.name;
+      }
+    }
+    registerSerializer(CompModel);
+    const compRepo = new MemoryRepository<typeof CompModel>(CompModel, ["tenant", "id"]);
+    registerRepository(CompModel, compRepo);
+    await compRepo.create({ tenant: "t1", id: "i1", name: "old" } as any);
+    await compRepo.ref({ tenant: "t1", id: "i1" }).update({ name: "comp" } as any);
+    assert.strictEqual((await compRepo.get({ tenant: "t1", id: "i1" })).name, "comp");
+  }
 }

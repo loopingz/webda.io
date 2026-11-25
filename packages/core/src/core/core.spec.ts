@@ -592,4 +592,32 @@ class AdditionalCoreDirectoryCoverageTest extends WebdaInternalTest {
     await callOperation(callCtx, "BadSubject.Op");
     delete useInstanceStorage().operations["BadSubject.Op"];
   }
+
+  @test
+  async constructsCoreWithoutApplicationArgument() {
+    const { mkdtempSync, rmSync, writeFileSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const { Core } = await import("./core.js");
+    const { runWithInstanceStorage } = await import("./instancestorage.js");
+    const dir = mkdtempSync(join(tmpdir(), "webda-core-default-"));
+    const prevCwd = process.cwd();
+    writeFileSync(join(dir, "webda.config.json"), JSON.stringify({ version: 4, services: {} }));
+    writeFileSync(
+      join(dir, "webda.module.json"),
+      JSON.stringify({ moddas: {}, beans: {}, deployers: {}, models: {}, schemas: {} })
+    );
+    try {
+      process.chdir(dir);
+      await runWithInstanceStorage({} as any, async () => {
+        const c = new Core();
+        assert.ok((c as any).application);
+        const d = Core.deserialize({} as any);
+        assert.ok((d as any).application);
+      });
+    } finally {
+      process.chdir(prevCwd);
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
 }

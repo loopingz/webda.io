@@ -158,5 +158,29 @@ class ClusterServiceTest extends WebdaSimpleTest {
       "Test",
       { emitterId: "testor", plop: true }
     ]);
+
+    // Subsequent unknown model/service events with hasCodeSyncAlert=true or unsyncCodeAlert=false must not throw
+    this.service["hasCodeSyncAlert"] = true;
+    for (const type of ["model", "store", "service"] as const) {
+      await this.service["handleMessage"]({
+        emitterId: "testor",
+        type,
+        event: "",
+        emitter: "unknown",
+        time: Date.now(),
+        data: {}
+      });
+    }
+    this.service.getParameters().unsyncCodeAlert = false;
+    for (const type of ["model", "store", "service"] as const) {
+      await this.service["handleMessage"]({
+        emitterId: "testor",
+        type,
+        event: "",
+        emitter: "unknown",
+        time: Date.now(),
+        data: {}
+      });
+    }
   }
 }

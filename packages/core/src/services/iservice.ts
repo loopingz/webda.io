@@ -67,7 +67,12 @@ export abstract class AbstractService<
   constructor(name: string, params: T | JSONed<T>) {
     super();
     this.name = name;
-    this.parameters = (this.constructor as typeof AbstractService).createConfiguration?.(params) || params;
+    const ctor = this.constructor as typeof AbstractService & { Parameters?: new () => { load(p: any): T } };
+    this.parameters = ctor.createConfiguration
+      ? ctor.createConfiguration(params)
+      : ctor.Parameters
+        ? new ctor.Parameters().load(params)
+        : (params as T);
   }
 
   /**

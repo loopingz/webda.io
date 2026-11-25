@@ -20,6 +20,7 @@ export class VersionServiceParameters extends ServiceParameters {
  * @WebdaModda VersionService
  */
 export class VersionService<T extends VersionServiceParameters = VersionServiceParameters> extends Service<T> {
+  static Parameters = VersionServiceParameters;
   /**
    * Set defaults for version and url from the application's package.json
    * @returns this instance for chaining

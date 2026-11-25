@@ -115,18 +115,19 @@ export class ProxyParameters extends ServiceParameters {
   forwardCredentials: boolean;
 
   /**
-   * Normalize backend URL and set defaults
+   * Load parameters, normalize backend URL and set defaults
    * @param params - raw configuration values
+   * @returns this instance for chaining
    */
-  constructor(params?: any) {
-    super();
-    this.load(params);
+  load(params?: any): this {
+    super.load(params);
     // An encrypted backend is normalized when read, in getBackend
     if (typeof this.backend === "string" && this.backend.endsWith("/")) {
       this.backend = this.backend.substring(0, this.backend.length - 1);
     }
     this.proxyHeaders ??= true;
     this.forwardCredentials ??= false;
+    return this;
   }
 }
 
@@ -136,6 +137,7 @@ export class ProxyParameters extends ServiceParameters {
  * @WebdaModda
  */
 export class ProxyService<T extends ProxyParameters = ProxyParameters> extends Service<T> {
+  static Parameters = ProxyParameters;
   /**
    * Metrics
    */

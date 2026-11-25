@@ -1,4 +1,5 @@
 import { FileUtils, JSONUtils } from "@webda/utils";
+import { useWorkerOutput } from "@webda/workout";
 import { JSONSchema7 } from "json-schema";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative, sep, resolve, isAbsolute } from "node:path";
@@ -192,6 +193,41 @@ function getServiceTypePattern(app: ConfigSchemaApplication, type: string): stri
 }
 
 /**
+ * Validate configured services against their registered schemas and warn on issues
+ *
+ * @param app to validate configured services for
+ */
+function validateConfiguredServices(app: ConfigSchemaApplication): void {
+  const services = app.getConfiguration().services;
+  if (!services) {
+    return;
+  }
+  const output = useWorkerOutput();
+  for (const [serviceName, svcCfg] of Object.entries(services)) {
+    if (!svcCfg || typeof svcCfg !== "object") {
+      continue;
+    }
+    const type = app.completeNamespace(svcCfg.type || serviceName);
+    const schema = app.getSchema(type);
+    if (!schema) {
+      continue;
+    }
+    for (const req of schema.required || []) {
+      if (req !== "type" && !(req in svcCfg)) {
+        output.log("WARN", `Missing required parameter '${req}' for service ${serviceName} (${type})`);
+      }
+    }
+    if (schema.additionalProperties === false && schema.properties) {
+      for (const key of Object.keys(svcCfg)) {
+        if (!(key in schema.properties)) {
+          output.log("WARN", `Unknown parameter '${key}' for service ${serviceName} (${type})`);
+        }
+      }
+    }
+  }
+}
+
+/**
  * Generate the configuration and deployment schemas
  *
  * @param app to use for application metadata
@@ -332,6 +368,7 @@ export function generateConfigurationSchemas(
     mkdirSync(dirname(absFilename), { recursive: true });
   }
   FileUtils.save(res, absFilename);
+  validateConfiguredServices(app);
   // Build the deployment schema
   // Ensure builtin deployers are there
   const definitions = JSONUtils.duplicate(res.definitions);

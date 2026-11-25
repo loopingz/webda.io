@@ -298,4 +298,14 @@ class HttpContextTest {
     assert.strictEqual(redirectLocation, "https://localhost/");
     dummy.redirectServer.close();
   }
+
+  @test
+  getUniqueHeaderDoesNotMutateHeaders() {
+    const ctx = new HttpContext("test.webda.io", "GET", "/", "http", 80, {
+      "x-test": ["a", "b"]
+    });
+    assert.strictEqual(ctx.getUniqueHeader("x-test"), "b");
+    assert.strictEqual(ctx.getUniqueHeader("x-test"), "b");
+    assert.deepStrictEqual(ctx.getHeader("x-test"), ["a", "b"]);
+  }
 }

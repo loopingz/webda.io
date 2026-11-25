@@ -445,7 +445,7 @@ export class HttpContext {
   getUniqueHeader(name: string, def?: string): string {
     const header = this.getHeader(name, def);
     if (Array.isArray(header)) {
-      return header.pop() || def;
+      return header[header.length - 1] || def;
     }
     return header || def;
   }

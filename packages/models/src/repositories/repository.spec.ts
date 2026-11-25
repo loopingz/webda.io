@@ -665,4 +665,31 @@ export class CovRepositoryTest {
     (plainRepo as any).buildClassFilterIdentifiers = () => ["QueryDocument"];
     await assert.rejects(() => plainRepo.query(""), /Not found: 1/);
   }
+
+  @test
+  async updatePreservesNonPkFieldsOnStandardModel() {
+    class PlainItem extends UuidModel {
+      static Metadata = { Identifier: "Test/PlainItem", PrimaryKey: ["uuid"] };
+      name!: string;
+      count!: number;
+    }
+    const { registerSerializer } = await import("@webda/serialize");
+    registerSerializer(PlainItem);
+    const repo = new MemoryRepository<typeof PlainItem>(PlainItem, ["uuid"]);
+    const created = await repo.create({ uuid: "u-1", name: "init", count: 1 } as any);
+    assert.strictEqual(created.name, "init");
+
+    // Plain object update without custom constructor must keep non-PK fields
+    await repo.update({ uuid: "u-1", name: "next", count: 5 } as any);
+    const afterPlain = await repo.get("u-1");
+    assert.strictEqual(afterPlain.name, "next");
+    assert.strictEqual(afterPlain.count, 5);
+
+    // Instance update must also keep non-PK fields
+    const inst = new PlainItem().load({ uuid: "u-1", name: "inst", count: 9 });
+    await repo.update(inst);
+    const afterInst = await repo.get("u-1");
+    assert.strictEqual(afterInst.name, "inst");
+    assert.strictEqual(afterInst.count, 9);
+  }
 }

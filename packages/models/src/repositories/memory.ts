@@ -125,8 +125,18 @@ export class MemoryRepository<
     this.checkCondition(item, conditionField, condition);
     // Plain data (ModelRef.update) keeps the stored class: a write through a parent repository never re-types a
     // subclass row. Only an instance of a class sets its own type.
-    const clazz: any = data instanceof this.model ? (data as any).constructor : item.constructor;
-    this.storage.set(this.getPrimaryKey(data).toString(), this.serialize(new clazz(data) as InstanceType<T>));
+    let next: InstanceType<T>;
+    if (data instanceof this.model) {
+      next = data;
+    } else {
+      next = new (item.constructor as any)(data) as InstanceType<T>;
+      if (typeof (next as any).load === "function") {
+        (next as any).load(data);
+      } else {
+        Object.assign(next, data);
+      }
+    }
+    this.storage.set(this.getPrimaryKey(data).toString(), this.serialize(next));
   }
 
   /**

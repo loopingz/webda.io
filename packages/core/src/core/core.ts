@@ -20,7 +20,6 @@ import * as jsondiffpatch from "jsondiffpatch";
 import { ConfigurationService } from "../configurations/configuration.service.js";
 import { CryptoService, SecretString } from "../services/cryptoservice.service.js";
 import { createHmac, randomBytes } from "node:crypto";
-import { validateSchema } from "../schemas/hooks.js";
 
 /**
  * Per-process key to compare secrets in configuration diffs without exposing them
@@ -567,15 +566,6 @@ export class Core implements ICore {
     }
     try {
       this.log("TRACE", "Constructing service", service);
-      const rawConfig = this.configuration[service];
-      const type = rawConfig?.type;
-      if (this.application instanceof UnpackedApplication && type && this.application.getSchema(type)) {
-        try {
-          validateSchema(type, rawConfig);
-        } catch (err: any) {
-          this.log("WARN", `Invalid configuration for service ${service} (${type}): ${err.message}`);
-        }
-      }
       const params = serviceConstructor.createConfiguration
         ? serviceConstructor.createConfiguration(this.configuration[service])
         : this.configuration[service];

@@ -142,7 +142,11 @@ export class ModelRef<T extends Storable> {
     conditionField?: A,
     condition?: PropertyPathType<T, A>
   ): Promise<void> {
-    return this.getRepository().update({ ...data, ...this.getKey() } as Helpers<T>, conditionField, condition);
+    return this.getRepository().update(
+      { ...data, ...this.getRepository().getPrimaryKey(this.getKey(), true) } as Helpers<T>,
+      conditionField,
+      condition
+    );
   }
 
   /**

@@ -195,4 +195,65 @@ class ProxyTest extends WebdaTest {
     proxyService.getParameters().url = undefined;
     proxyService.resolve();
   }
+
+  @test
+  async proxyWSRejectsBoundaryBypassAndUnauthenticatedRequests() {
+    const proxyService = new ProxyService("proxyWsSec", {
+      url: "/proxy",
+      backend: "http://backend",
+      requireAuthentication: true
+    });
+    this.registerService(proxyService);
+    await proxyService.resolve().init();
+    const rawSpy = sinon.stub(proxyService, "rawProxyWS").resolves();
+    const core = this.webda as any;
+    const origGetContext = core.getContextFromRequest;
+    core.getContextFromRequest = async () => this.newContext();
+    try {
+      const makeSocket = () => {
+        let written = "";
+        let destroyed = false;
+        return {
+          write: (s: string) => {
+            written += s;
+          },
+          destroy: () => {
+            destroyed = true;
+          },
+          get written() {
+            return written;
+          },
+          get destroyed() {
+            return destroyed;
+          }
+        };
+      };
+
+      // Path boundary bypass attempts must not match /proxy
+      for (const badUrl of ["/proxy.evil.com/ws", "/proxy@evil.com/ws", "/proxy:9000/ws"]) {
+        const s = makeSocket();
+        await proxyService.proxyWS(
+          { url: badUrl, method: "GET", headers: { upgrade: "websocket" } } as any,
+          s as any,
+          Buffer.alloc(0)
+        );
+        assert.strictEqual(rawSpy.callCount, 0);
+        assert.strictEqual(s.destroyed, false);
+      }
+
+      // Unauthenticated WS upgrade when requireAuthentication is true must return 401 and destroy socket
+      const s401 = makeSocket();
+      await proxyService.proxyWS(
+        { url: "/proxy/ws", method: "GET", headers: { upgrade: "websocket" } } as any,
+        s401 as any,
+        Buffer.alloc(0)
+      );
+      assert.strictEqual(rawSpy.callCount, 0);
+      assert.ok(s401.written.includes("401 Unauthorized"));
+      assert.strictEqual(s401.destroyed, true);
+    } finally {
+      core.getContextFromRequest = origGetContext;
+      rawSpy.restore();
+    }
+  }
 }

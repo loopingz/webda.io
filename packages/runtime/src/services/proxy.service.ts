@@ -329,6 +329,10 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
     if (prefix === undefined || !req.url?.startsWith(prefix)) {
       return;
     }
+    const rest = req.url.substring(prefix.length);
+    if (!prefix.endsWith("/") && rest.length > 0 && !rest.startsWith("/") && !rest.startsWith("?")) {
+      return;
+    }
     if (req.method !== "GET" || !req.headers.upgrade) {
       socket.destroy();
       return;
@@ -341,7 +345,12 @@ export class ProxyService<T extends ProxyParameters = ProxyParameters> extends S
     // Proxy WS Only works with a WebdaServer from @webda/shell for now
     const webdaContext = await (<any>useCore()).getContextFromRequest(req);
     await webdaContext.init();
-    return this.rawProxyWS(webdaContext, `${this.getBackend(webdaContext)}${req.url.substring(prefix.length)}`, socket);
+    if (this.parameters.requireAuthentication && !webdaContext.getCurrentUserId()) {
+      socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
+      socket.destroy();
+      return;
+    }
+    return this.rawProxyWS(webdaContext, `${this.getBackend(webdaContext)}${rest}`, socket);
   }
 
   /**

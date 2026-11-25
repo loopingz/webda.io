@@ -1,11 +1,11 @@
 import { suite, test } from "@webda/test";
 import { getCommonJS, JSONUtils } from "@webda/utils";
 import * as assert from "assert";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import * as path from "path";
 import { Compiler } from "./index.js";
-import { getGeneratorVersions } from "./compiler.js";
+import { getDependencyDigest, getGeneratorVersions } from "./compiler.js";
 import { WebdaModule, WebdaProject } from "./definition.js";
 import { generateTypescriptLibrary, reportNamingViolations, writeModule } from "./module.js";
 import { generateOperations } from "./operations.js";
@@ -15,6 +15,40 @@ const { __dirname } = getCommonJS(import.meta.url);
 
 @suite
 class CompilerTest {
+  @test
+  dependencyDigestIgnoresSymlinkedLayout() {
+    const dir = mkdtempSync(path.join(tmpdir(), "webda-dependency-digest-"));
+    try {
+      const store = path.join(dir, "store");
+      mkdirSync(path.join(store, "lib"), { recursive: true });
+      writeFileSync(path.join(store, "package.json"), JSON.stringify({ name: "dep" }));
+      writeFileSync(path.join(store, "webda.module.json"), "{}");
+      writeFileSync(path.join(store, "lib", "a.d.ts"), "export declare const a: number;");
+      const app = (name: string, link: boolean) => {
+        const root = path.join(dir, name);
+        const dep = path.join(root, "node_modules", "dep");
+        mkdirSync(path.join(dep, "lib"), { recursive: true });
+        writeFileSync(path.join(root, "package.json"), JSON.stringify({ name, dependencies: { dep: "1.0.0" } }));
+        cpSync(path.join(store, "package.json"), path.join(dep, "package.json"));
+        cpSync(path.join(store, "webda.module.json"), path.join(dep, "webda.module.json"));
+        if (link) {
+          // A Bazel sandbox stages every input file as a symlink
+          symlinkSync(path.join(store, "lib", "a.d.ts"), path.join(dep, "lib", "a.d.ts"));
+        } else {
+          cpSync(path.join(store, "lib", "a.d.ts"), path.join(dep, "lib", "a.d.ts"));
+        }
+        return root;
+      };
+      const copied = getDependencyDigest(app("copied", false));
+      assert.strictEqual(getDependencyDigest(app("linked", true)), copied);
+      // The declarations still count: a changed one changes the digest
+      writeFileSync(path.join(store, "lib", "a.d.ts"), "export declare const a: string;");
+      assert.notStrictEqual(getDependencyDigest(path.join(dir, "linked")), copied);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
   @test
   async compileCore() {
     const workerOutput = new WorkerOutput();

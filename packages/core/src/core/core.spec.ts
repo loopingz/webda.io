@@ -614,6 +614,12 @@ class AdditionalCoreDirectoryCoverageTest extends WebdaInternalTest {
         assert.ok((c as any).application);
         const d = Core.deserialize({} as any);
         assert.ok((d as any).application);
+        const { useWorkerOutput } = await import("@webda/workout");
+        const e = new Core({
+          getWorkerOutput: () => useWorkerOutput(),
+          getConfiguration: () => ({ version: 4 })
+        } as any);
+        assert.ok((e as any).application);
       });
     } finally {
       process.chdir(prevCwd);

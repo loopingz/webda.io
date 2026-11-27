@@ -669,4 +669,51 @@ class ApplicationDefaultOutputTest {
     }
     assert.ok(JSON.stringify(memoryLogger.getLogs()).includes("visible service log"));
   }
+
+  @test
+  async usesStaticParametersFromServiceDefinition() {
+    const { ServiceParameters } = await import("../services/serviceparameters.js");
+    const { Service } = await import("../services/service.js");
+    const { installConfigurationFactories } = await import("./application.js");
+    class CustomParams extends ServiceParameters {
+      flag?: boolean;
+      load(params: any): this {
+        super.load(params);
+        this.flag ??= true;
+        return this;
+      }
+    }
+    class DirectSvc extends Service<CustomParams> {
+      static Parameters = CustomParams;
+    }
+    // 1. Direct instantiation without createConfiguration uses static Parameters
+    const direct = new DirectSvc("direct", {});
+    assert.ok(direct.getParameters() instanceof CustomParams);
+    assert.strictEqual(direct.getParameters().flag, true);
+    const { AbstractService } = await import("../services/iservice.js");
+    class PlainAbstractSvc extends AbstractService {}
+    const plain = new PlainAbstractSvc("plain", { a: 1 } as any);
+    assert.deepStrictEqual((plain as any).parameters, { a: 1 });
+
+    // 2. installConfigurationFactories defaults to target.Parameters
+    class FactorySvc extends Service<CustomParams> {
+      static Parameters = CustomParams;
+    }
+    installConfigurationFactories(FactorySvc);
+    const created = (FactorySvc as any).createConfiguration({});
+    assert.ok(created instanceof CustomParams);
+    assert.strictEqual(created.flag, true);
+
+    // 3. loadModule without Configuration in module.json uses static Parameters
+    class ModuleSvc extends Service<CustomParams> {
+      static Parameters = CustomParams;
+    }
+    const app: any = new Application({ version: 4, parameters: {}, services: {} });
+    app.importFile = async () => ModuleSvc;
+    await app.loadModule(
+      { beans: {}, moddas: { "Test/ModuleSvc": { Import: "mod:ModuleSvc" } }, models: {}, schemas: {} },
+      ""
+    );
+    assert.ok((ModuleSvc as any).createConfiguration({}) instanceof CustomParams);
+  }
 }

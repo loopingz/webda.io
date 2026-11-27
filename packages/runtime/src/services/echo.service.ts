@@ -27,7 +27,7 @@ export class EchoServiceParameters extends ServiceParameters {
  * ```javascript
  * "Version": {
  *  "type": "Webda/EchoService",
- *  "result": "${package.version}",
+ *  "result": "1.0.0",
  *  "url": "/version",
  *  "mime": "text/plain"
  * }
@@ -35,16 +35,8 @@ export class EchoServiceParameters extends ServiceParameters {
  * @WebdaModda
  */
 export class EchoService extends Service<EchoServiceParameters> {
-  /**
-   * Load parameters
-   *
-   * @param params - raw configuration values
-   * @ignore
-   */
-  loadParameters(params: any): ServiceParameters {
-    return new EchoServiceParameters().load(params);
-  }
-
+  /** Service parameters */
+  static Parameters = EchoServiceParameters;
   /** @ignore */
   @Route(".", ["GET"])
   async execute(ctx: WebContext): Promise<any> {

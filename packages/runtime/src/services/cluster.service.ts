@@ -102,6 +102,8 @@ export class ClusterServiceParameters extends ServiceParameters {
  * @WebdaModda
  */
 export class ClusterService<T extends ClusterServiceParameters = ClusterServiceParameters> extends Service<T> {
+  /** Service parameters */
+  static Parameters = ClusterServiceParameters;
   /**
    * Pub sub
    */
@@ -169,15 +171,6 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
    */
   getMembers() {
     return { ...this.members, [this.emitterId]: { lastSeen: Date.now(), ...this.nodeData } };
-  }
-
-  /**
-   * @override
-   */
-  loadParameters(params: any): ServiceParameters {
-    this.emitterId = getMachineId();
-    this.log("DEBUG", `Cluster emitterId ${this.emitterId}`);
-    return new ClusterServiceParameters(params);
   }
 
   /**
@@ -352,6 +345,11 @@ export class ClusterService<T extends ClusterServiceParameters = ClusterServiceP
    * @returns this instance for chaining
    */
   resolve(): this {
+    this.parameters.keepAlive ??= 30000;
+    this.parameters.ttl ??= this.parameters.keepAlive * 2;
+    this.parameters.pubsub ??= "PubSub";
+    this.emitterId = getMachineId();
+    this.log("DEBUG", `Cluster emitterId ${this.emitterId}`);
     super.resolve();
     const packageInfo = useApplication().getPackageDescription();
     // By default we will send the package name and version and any CLUSTER_* variables

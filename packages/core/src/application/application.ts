@@ -72,7 +72,7 @@ function defineOwnStatic(target: any, property: string, value: any, fallback: an
  */
 export function installConfigurationFactories(
   target: any,
-  configurationClass: new () => ServiceParameters = ServiceParameters,
+  configurationClass: new () => ServiceParameters = target?.Parameters || ServiceParameters,
   schema?: JSONSchema7
 ) {
   const filterParameters = (params: any = {}) => {
@@ -909,7 +909,9 @@ export class Application {
           const configurationPath = info[section][key].Configuration
             ? this.getModuleFilePath(parent, info[section][key].Configuration)
             : undefined;
-          const configurationClass = configurationPath ? await this.importFile(configurationPath) : ServiceParameters;
+          const configurationClass = configurationPath
+            ? await this.importFile(configurationPath)
+            : (this[section][key] as any).Parameters || ServiceParameters;
           if (!configurationClass) {
             this.log(
               "ERROR",

@@ -214,6 +214,17 @@ export class InvitationParameters extends ServiceParameters {
   url?: string;
 
   /**
+   * Load parameters, apply defaults and validate attribute naming constraints
+   * @param params - raw configuration values
+   * @returns this instance for chaining
+   */
+  load(params?: any): this {
+    super.load(params);
+    this.default();
+    return this;
+  }
+
+  /**
    * Apply defaults and validate attribute naming constraints
    */
   default() {
@@ -256,6 +267,8 @@ export class InvitationService<
   T extends InvitationParameters = InvitationParameters,
   E extends InvitationServiceEvents = InvitationServiceEvents
 > extends Service<T, E> {
+  /** Service parameters */
+  static Parameters = InvitationParameters;
   /**
    * Authentication service
    */
@@ -279,15 +292,6 @@ export class InvitationService<
    * CoreModel to manage invitation on
    */
   model: any;
-
-  /**
-   * Load and validate invitation service parameters
-   * @param params - raw partial configuration
-   * @returns initialized InvitationParameters instance
-   */
-  loadParameters(params: any) {
-    return <T>new InvitationParameters().load(params);
-  }
 
   /**
    * Register invitation routes and event listeners on the authentication service

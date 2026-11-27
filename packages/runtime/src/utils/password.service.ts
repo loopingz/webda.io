@@ -3,7 +3,6 @@ import {
   CryptoService,
   ENCRYPTION_FORMAT_V2,
   Service,
-  ServiceParameters,
   StringEncrypter,
   useApplication
 } from "@webda/core";
@@ -120,13 +119,6 @@ CryptoService.registerEncrypter("password", encrypter);
  * @WebdaModda
  */
 export class PasswordEncryptionService extends Service {
-  /**
-   * @override
-   */
-  loadParameters(params: any): ServiceParameters {
-    return new ServiceParameters().load(params);
-  }
-
   /**
    * Encrypt a string using AES-256-CTR with a password-derived key
    * @param data - plaintext to encrypt

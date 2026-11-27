@@ -1060,7 +1060,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
           resolve: async (_, args, context) => {
             this.log("INFO", "Create", name, context.getCurrentUserId());
             const data = restoreInputKeys(input, args[name]);
-            return (await this.callModelOperation(model, "modelCreate", context, data))?.result;
+            return (await this.callModelOperation(model, "modelCreate", context, data))!.result;
           }
         };
       }
@@ -1077,7 +1077,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
           extensions: { [RAW_ARGS]: [name] },
           resolve: async (_, args, context) => {
             const data = restoreInputKeys(input, args[name]);
-            return (await this.callModelOperation(model, "modelUpdate", context, data, args.uuid))?.result;
+            return (await this.callModelOperation(model, "modelUpdate", context, data, args.uuid))!.result;
           }
         };
       }
@@ -1368,7 +1368,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
    * @returns the operation id, or undefined when not registered
    */
   protected findModelOperation(model: any, method: "modelCreate" | "modelUpdate" | "modelDelete"): string | undefined {
-    const operations: Record<string, any> = useInstanceStorage().operations ?? {};
+    const operations: Record<string, any> = useInstanceStorage().operations!;
     return Object.keys(operations).find(
       name => operations[name].method === method && operations[name].context?.model === model
     );

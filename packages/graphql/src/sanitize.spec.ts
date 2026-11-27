@@ -912,24 +912,28 @@ class GraphQLSanitizeTest extends WebdaApplicationTest {
     assert.match(wrong.message, /^Product\.Update InvalidInput: \/code/);
     assert.strictEqual((await Product.ref(created.uuid).get()).code, 1);
     assert.strictEqual((await updateFromInput(Product, created.uuid, { price: 3 }, context)).price, 3);
-    // The same through the mutations, for a model without operation
-    const service: any = this.service;
-    const callModelOperation = service.callModelOperation;
-    service.callModelOperation = async () => undefined;
+    // Models without registered DomainService CRUD operations do not expose GraphQL CRUD mutations
+    const { useInstanceStorage } = await import("@webda/core");
+    const operations = useInstanceStorage().operations!;
+    const saved = {
+      create: operations["Product.Create"],
+      update: operations["Product.Update"],
+      delete: operations["Product.Delete"]
+    };
+    delete operations["Product.Create"];
+    delete operations["Product.Update"];
+    delete operations["Product.Delete"];
     try {
-      const made = (await this.gql(`mutation { createProduct(Product: { name: "Direct" }) { uuid } }`)).createProduct;
-      const update = `mutation ($uuid: String, $product: ProductInput) { updateProduct(uuid: $uuid, Product: $product) { price } }`;
-      const bad = await this.send("POST", "/graphql", {
-        query: update,
-        variables: { uuid: made.uuid, product: { price: 1000 } }
-      });
-      assert.strictEqual(bad.errors[0].extensions.code, "BAD_USER_INPUT");
-      assert.match(bad.errors[0].message, /^Product\.Update InvalidInput: \/price must be <= 100$/);
-      assert.strictEqual((await this.gql(update, { uuid: made.uuid, product: { price: 7 } })).updateProduct.price, 7);
-      await this.gql(`mutation ($uuid: String) { deleteProduct(uuid: $uuid) { success } }`, { uuid: made.uuid });
-      assert.strictEqual(await Product.ref(made.uuid).exists(), false);
+      this.service.generateSchema();
+      const mutationFields = (this.service as any).schema.getMutationType()?.getFields() ?? {};
+      assert.strictEqual(mutationFields.createProduct, undefined);
+      assert.strictEqual(mutationFields.updateProduct, undefined);
+      assert.strictEqual(mutationFields.deleteProduct, undefined);
     } finally {
-      service.callModelOperation = callModelOperation;
+      operations["Product.Create"] = saved.create;
+      operations["Product.Update"] = saved.update;
+      operations["Product.Delete"] = saved.delete;
+      this.service.generateSchema();
     }
     // Nothing to validate against: a class that is not a model, a model without schema
     validateModelInput(class NotAModel {}, "Create", { any: "thing" });

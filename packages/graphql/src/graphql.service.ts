@@ -72,13 +72,11 @@ import { GraphQLLong } from "./types/long.js";
 import { graphQLNames, restoreInputKeys, WEBDA_KEY } from "./names.js";
 import { RAW_ARGS, sanitizeFieldArguments } from "./sanitize.js";
 import {
-  createFromInput,
   enforceModelOperationPermission,
   isInputAttribute,
   loadForAction,
   modelOperationError,
-  operationError,
-  updateFromInput
+  operationError
 } from "./mutations.js";
 import {
   GRAPHQL_NAME,
@@ -1051,23 +1049,22 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
       this.namedTypes.set(name, { type: this.modelsMap[i], shape: `model ${i}` });
       this.namedTypes.set(`${name}Input`, { type: input, shape: `model input ${i}` });
       const actionsName = Object.keys(metadata.Actions);
-      if (!actionsName.includes("create")) {
+      if (!actionsName.includes("create") && this.findModelOperation(model, "modelCreate")) {
         mutations[`create${name}`] = {
           type: this.modelsMap[i],
           args: {
             [name]: { type: input }
           },
-          // Sanitized with the modes of the model, by the model operation or by createFromInput
+          // Sanitized with the modes of the model by the model operation
           extensions: { [RAW_ARGS]: [name] },
           resolve: async (_, args, context) => {
             this.log("INFO", "Create", name, context.getCurrentUserId());
             const data = restoreInputKeys(input, args[name]);
-            const called = await this.callModelOperation(model, "modelCreate", context, data);
-            return called ? called.result : createFromInput(model, data, context);
+            return (await this.callModelOperation(model, "modelCreate", context, data))?.result;
           }
         };
       }
-      if (!actionsName.includes("update")) {
+      if (!actionsName.includes("update") && this.findModelOperation(model, "modelUpdate")) {
         mutations[`update${name}`] = {
           type: this.modelsMap[i],
           args: {
@@ -1076,17 +1073,16 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
               type: GraphQLString
             }
           },
-          // Sanitized with the modes of the model, by the model operation or by updateFromInput
+          // Sanitized with the modes of the model by the model operation
           extensions: { [RAW_ARGS]: [name] },
           resolve: async (_, args, context) => {
             const data = restoreInputKeys(input, args[name]);
-            const called = await this.callModelOperation(model, "modelUpdate", context, data, args.uuid);
-            return called ? called.result : updateFromInput(model, args.uuid, data, context);
+            return (await this.callModelOperation(model, "modelUpdate", context, data, args.uuid))?.result;
           }
         };
       }
       // check for actions
-      if (!actionsName.includes("delete")) {
+      if (!actionsName.includes("delete") && this.findModelOperation(model, "modelDelete")) {
         mutations[`delete${name}`] = {
           type: new GraphQLObjectType({ name: `delete${name}`, fields: { success: { type: GraphQLBoolean } } }),
           args: {
@@ -1095,10 +1091,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
             }
           },
           resolve: async (_, args, context) => {
-            if (!(await this.callModelOperation(model, "modelDelete", context, undefined, args.uuid))) {
-              const object = await loadForAction(model, args.uuid, context, "delete");
-              await object.delete();
-            }
+            await this.callModelOperation(model, "modelDelete", context, undefined, args.uuid);
             return {
               success: true
             };
@@ -1369,11 +1362,23 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
   }
 
   /**
+   * Find the registered DomainService operation id for a model CRUD method, if any
+   * @param model - model class
+   * @param method - the DomainService method of the operation
+   * @returns the operation id, or undefined when not registered
+   */
+  protected findModelOperation(model: any, method: "modelCreate" | "modelUpdate" | "modelDelete"): string | undefined {
+    const operations: Record<string, any> = useInstanceStorage().operations ?? {};
+    return Object.keys(operations).find(
+      name => operations[name].method === method && operations[name].context?.model === model
+    );
+  }
+
+  /**
    * Run a model mutation as the operation a DomainService registered for it (`<Model>.Create`, `.Update`,
    * `.Delete`), so GraphQL does exactly what the other transports do: the same permission checks in the same order,
    * the input sanitized and validated against the model schema, the same events (audit) and transaction
    *
-   * A model no DomainService exposes has no such operation: the caller then applies the mutation itself.
    * @param model - model class
    * @param method - the DomainService method of the operation
    * @param context - the GraphQL request context
@@ -1391,9 +1396,7 @@ export class GraphQLService<T extends GraphQLParameters = GraphQLParameters> ext
     key?: unknown
   ): Promise<{ result: unknown } | undefined> {
     const operations: Record<string, any> = useInstanceStorage().operations!;
-    const id = Object.keys(operations).find(
-      name => operations[name].method === method && operations[name].context?.model === model
-    );
+    const id = this.findModelOperation(model, method);
     if (!id) {
       return undefined;
     }

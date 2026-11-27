@@ -1,5 +1,25 @@
 # Changelog
 
+## [4.0.0-rc.2](https://github.com/loopingz/webda.io/compare/sql-v4.0.0-rc.1...sql-v4.0.0-rc.2) (2026-11-27)
+
+
+### Bug Fixes
+
+* warn on store key collisions; Cosmos bulk delete/update ([#1095](https://github.com/loopingz/webda.io/issues/1095)) ([07c934b](https://github.com/loopingz/webda.io/commit/07c934ba117f35d4457ffa2c5dc310d4f75ad955))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-rc.2
+    * @webda/models bumped to 4.0.0-rc.2
+    * @webda/ql bumped to 4.0.0-rc.2
+    * @webda/sql-schema bumped to 4.0.0-rc.2
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-rc.2
+    * @webda/test bumped to 4.0.0-rc.2
+
 ## [4.0.0-rc.1](https://github.com/loopingz/webda.io/compare/sql-v4.0.0-beta.6...sql-v4.0.0-rc.1) (2026-11-14)
 
 

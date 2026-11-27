@@ -1,5 +1,14 @@
 # Changelog
 
+## [4.0.0-rc.2](https://github.com/loopingz/webda.io/compare/create-v4.0.0-rc.1...create-v4.0.0-rc.2) (2026-11-27)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @webda/test bumped to 4.0.0-rc.2
+
 ## [4.0.0-rc.1](https://github.com/loopingz/webda.io/compare/create-v4.0.0-beta.11...create-v4.0.0-rc.1) (2026-11-14)
 
 

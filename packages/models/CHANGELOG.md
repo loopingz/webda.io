@@ -1,5 +1,42 @@
 # Changelog
 
+## [4.0.0-rc.2](https://github.com/loopingz/webda.io/compare/models-v4.0.0-rc.1...models-v4.0.0-rc.2) (2026-11-27)
+
+
+### Bug Fixes
+
+* **models:** allow this.patch() on declared fields inside subclass methods ([f602289](https://github.com/loopingz/webda.io/commit/f602289138c82a4ce3b998f4a64d9a3be8786911))
+* **models:** call iterator.return() on early exit in EventRepository.iterate ([#1214](https://github.com/loopingz/webda.io/issues/1214)) ([fc39ddb](https://github.com/loopingz/webda.io/commit/fc39ddbb01d294def549c117f945ed7e37227a6e))
+* **models:** cast data to InstanceType&lt;T&gt; in MemoryRepository.update ([18b5678](https://github.com/loopingz/webda.io/commit/18b5678b785787455eae7e808d49ac97c72008e5))
+* **models:** detect duplicate unregistered model classes in useRepository ([fbbb4c2](https://github.com/loopingz/webda.io/commit/fbbb4c2e17dda6382ecc0203caa56f18486d0ca0))
+* **models:** emit the patched object in the Patched event ([#1132](https://github.com/loopingz/webda.io/issues/1132)) ([890d231](https://github.com/loopingz/webda.io/commit/890d231447f9994345b4f9e700dc80f326308a0a)), closes [#1112](https://github.com/loopingz/webda.io/issues/1112)
+* **models:** hydrate plain data in MemoryRepository.update ([#1200](https://github.com/loopingz/webda.io/issues/1200)) ([0a9b91e](https://github.com/loopingz/webda.io/commit/0a9b91ebcadd5743291ae4dfa5c72689224f571b))
+* **models:** name async generator in event.spec.ts for eslint func-names ([f177db4](https://github.com/loopingz/webda.io/commit/f177db4e3c12753db089ff7834040f777d68f4f2))
+* **models:** normalize primary key in ModelRef.update ([#1199](https://github.com/loopingz/webda.io/issues/1199)) ([f49708d](https://github.com/loopingz/webda.io/commit/f49708d7954a9f81d6bf2b08940e00ff7316b475))
+* **models:** pass undefined to iterator.return for TS2554 ([0bb5274](https://github.com/loopingz/webda.io/commit/0bb527444085923417ac4d46a8581a16998948c5))
+* **models:** remove unused SelfJSONed import ([6efdd20](https://github.com/loopingz/webda.io/commit/6efdd20a441222ac3f1f1ff00bcfb096811c64ee))
+* **models:** return all sorted results when ORDER BY has no LIMIT ([9d887ac](https://github.com/loopingz/webda.io/commit/9d887ac2d8a0e9ec0a4777fcd29d148cecbc404b))
+* **models:** warn on unregistered ancestor fallback instead of throwing on name collision ([641b7d1](https://github.com/loopingz/webda.io/commit/641b7d1d6ea04f15197b8ff0c2793c7dc526028e))
+
+
+### Performance Improvements
+
+* **models,fs:** optimize MemoryRepository queries and FileQueue message picking ([#1096](https://github.com/loopingz/webda.io/issues/1096)) ([8d7aee5](https://github.com/loopingz/webda.io/commit/8d7aee548741b63cb6b8bf4e45bdd6d7a1975fe8))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/serialize bumped to 4.0.0-rc.2
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-rc.2
+    * @webda/test bumped to 4.0.0-rc.2
+    * @webda/utils bumped to 4.0.0-rc.2
+  * peerDependencies
+    * @webda/ql bumped to 4.0.0-rc.2
+    * @webda/utils bumped to 4.0.0-rc.2
+
 ## [4.0.0-rc.1](https://github.com/loopingz/webda.io/compare/models-v4.0.0-beta.14...models-v4.0.0-rc.1) (2026-11-14)
 
 

@@ -105,6 +105,28 @@
   * dependencies
     * @webda/core bumped from ^3.15.1 to ^3.16.0
 
+## [4.0.0-rc.2](https://github.com/loopingz/webda.io/compare/async-v4.0.0-rc.1...async-v4.0.0-rc.2) (2026-11-27)
+
+
+### Bug Fixes
+
+* **async:** do not echo the caller session in launch responses ([dc2b5f7](https://github.com/loopingz/webda.io/commit/dc2b5f7c84d8dbcceb1433fec18dd5a3df7ce556))
+* **async:** persist ServiceRunner return values and resolve short service types in loadCapabilities ([402cd72](https://github.com/loopingz/webda.io/commit/402cd72cee54d18664c56283857564adcca19880))
+* **core:** resolve short service types when loading capabilities ([303a075](https://github.com/loopingz/webda.io/commit/303a0759527f269d3449d4b07581fcbe21df7fed))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-rc.2
+    * @webda/ql bumped to 4.0.0-rc.2
+    * @webda/utils bumped to 4.0.0-rc.2
+    * @webda/workout bumped to 4.0.0-rc.2
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-rc.2
+    * @webda/test bumped to 4.0.0-rc.2
+
 ## [4.0.0-rc.1](https://github.com/loopingz/webda.io/compare/async-v4.0.0-beta.14...async-v4.0.0-rc.1) (2026-11-14)
 
 

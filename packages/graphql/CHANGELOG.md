@@ -134,6 +134,28 @@
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-rc.2](https://github.com/loopingz/webda.io/compare/graphql-v4.0.0-rc.1...graphql-v4.0.0-rc.2) (2026-11-27)
+
+
+### Bug Fixes
+
+* **graphql:** gate model CRUD mutations on DomainService operations ([#1223](https://github.com/loopingz/webda.io/issues/1223)) ([537254f](https://github.com/loopingz/webda.io/commit/537254f67f70fe34a22d4855e4665689e4455fff))
+* **graphql:** remove uncovered optional chaining branches in CRUD mutations ([ac14566](https://github.com/loopingz/webda.io/commit/ac14566fdf625fecc6585f769ab2707923117734))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-rc.2
+    * @webda/ql bumped to 4.0.0-rc.2
+    * @webda/runtime bumped to 4.0.0-rc.2
+    * @webda/utils bumped to 4.0.0-rc.2
+    * @webda/workout bumped to 4.0.0-rc.2
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-rc.2
+    * @webda/test bumped to 4.0.0-rc.2
+
 ## [4.0.0-rc.1](https://github.com/loopingz/webda.io/compare/graphql-v4.0.0-beta.14...graphql-v4.0.0-rc.1) (2026-11-14)
 
 

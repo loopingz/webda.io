@@ -1,5 +1,24 @@
 # Changelog
 
+## [4.0.0-rc.2](https://github.com/loopingz/webda.io/compare/oauth-v4.0.0-rc.1...oauth-v4.0.0-rc.2) (2026-11-27)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-rc.2
+    * @webda/models bumped to 4.0.0-rc.2
+    * @webda/utils bumped to 4.0.0-rc.2
+    * @webda/workout bumped to 4.0.0-rc.2
+  * devDependencies
+    * @webda/auth bumped to 4.0.0-rc.2
+    * @webda/compiler bumped to 4.0.0-rc.2
+    * @webda/content-mapper bumped to 4.0.0-rc.2
+    * @webda/fs bumped to 4.0.0-rc.2
+    * @webda/mcp bumped to 4.0.0-rc.2
+    * @webda/test bumped to 4.0.0-rc.2
+
 ## [4.0.0-rc.1](https://github.com/loopingz/webda.io/compare/oauth-v4.0.0-beta.14...oauth-v4.0.0-rc.1) (2026-11-14)
 
 

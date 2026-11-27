@@ -3,6 +3,55 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [4.0.0-rc.2](https://github.com/loopingz/webda.io/compare/core-v4.0.0-rc.1...core-v4.0.0-rc.2) (2026-11-27)
+
+
+### Features
+
+* **core:** add operationNaming option (mixed/singular/plural) to DomainService ([efa3857](https://github.com/loopingz/webda.io/commit/efa3857c64ae97808b6b560e753d11c79855fa23))
+* **core:** let [@sanitize](https://github.com/sanitize) cover a free-form attribute; read the keyword next to a $ref ([#1087](https://github.com/loopingz/webda.io/issues/1087)) ([d82fc7b](https://github.com/loopingz/webda.io/commit/d82fc7b428b576e6f575e65fc9824b3f9fe05675))
+
+
+### Bug Fixes
+
+* **core,workout:** handle EPIPE in ConsoleLogger and persist MemoryStore atomically ([5d8d1bf](https://github.com/loopingz/webda.io/commit/5d8d1bfcf7262dd348464be6b6c7430eade23b18))
+* **core,workout:** route CLI operations through callOperation, enable InteractiveConsoleLogger, and export useLogLevel ([77204e4](https://github.com/loopingz/webda.io/commit/77204e4f16f7acc01845cccde828b6234487d451))
+* **core:** avoid mutating headers in HttpContext.getUniqueHeader ([#1204](https://github.com/loopingz/webda.io/issues/1204)) ([3bca4b8](https://github.com/loopingz/webda.io/commit/3bca4b86350ccbe56b8e7da44050f690a76904b9))
+* **core:** call an operation without parameters without arguments ([#1127](https://github.com/loopingz/webda.io/issues/1127)) ([fa864a2](https://github.com/loopingz/webda.io/commit/fa864a24de653790526d3e66b08a3af9f0805656)), closes [#1107](https://github.com/loopingz/webda.io/issues/1107)
+* **core:** do not package the machine-derived registry key ([b1df65b](https://github.com/loopingz/webda.io/commit/b1df65b97acc6af6b9397b47ab51769071b1a0af))
+* **core:** do not warn about an absent provider of a shared command ([#1141](https://github.com/loopingz/webda.io/issues/1141)) ([7d64040](https://github.com/loopingz/webda.io/commit/7d64040bb336e4de0536f2894a757d163ba78969)), closes [#1121](https://github.com/loopingz/webda.io/issues/1121)
+* **core:** guard services in computeServicesConfiguration ([8c260cb](https://github.com/loopingz/webda.io/commit/8c260cbcf92bbc1e0c8fde2a7e42d6b4a5d7737d))
+* **core:** handle null properties and deleteProperty in Session.getProxy ([#1206](https://github.com/loopingz/webda.io/issues/1206)) ([ba6f108](https://github.com/loopingz/webda.io/commit/ba6f108a08c105a081f234c2418283219def8d86))
+* **core:** include version in fallback Configuration ([1ae0cf9](https://github.com/loopingz/webda.io/commit/1ae0cf95dd2891c01d711faf968707931a664f1b))
+* **core:** initialize this.application before accessing workerOutput ([#1203](https://github.com/loopingz/webda.io/issues/1203)) ([143eaf0](https://github.com/loopingz/webda.io/commit/143eaf0be0d45e30f34c98fe37a1ad4f945e1002))
+* **core:** keep binary uploads out of JSON parsing and logs ([9497abf](https://github.com/loopingz/webda.io/commit/9497abfede61c10f45e684db7a9f8fb0f2790ef3)), closes [#1114](https://github.com/loopingz/webda.io/issues/1114)
+* **core:** make sinon optional in WebdaTest, fall back to webda.config.json, and sanitize log filenames ([fa2dea8](https://github.com/loopingz/webda.io/commit/fa2dea8712cca889e33da52f619255a21a5fbbe7))
+* **core:** merge a service command group with the operations of the same name ([#1138](https://github.com/loopingz/webda.io/issues/1138)) ([3c416d1](https://github.com/loopingz/webda.io/commit/3c416d175ff7bab2f4e74f1c9dffdaf7b8ad2d60)), closes [#1118](https://github.com/loopingz/webda.io/issues/1118)
+* **core:** name mock function in cli.spec.ts for eslint func-names ([ef0126a](https://github.com/loopingz/webda.io/commit/ef0126a39dfaec02601c511f900a70c5bbed6fd9))
+* **core:** normalize all path params and return 0 on equal paths in Router.comparePath ([#1213](https://github.com/loopingz/webda.io/issues/1213)) ([3512795](https://github.com/loopingz/webda.io/commit/35127959dc322e58dbded53fb6e554074bad2e93))
+* **core:** refuse unknown fields in the REST query body ([#1144](https://github.com/loopingz/webda.io/issues/1144)) ([1844dbf](https://github.com/loopingz/webda.io/commit/1844dbf508cd3711c74c4fd5e6bdd899103de683)), closes [#1124](https://github.com/loopingz/webda.io/issues/1124)
+* **core:** resolve short service types when loading capabilities ([303a075](https://github.com/loopingz/webda.io/commit/303a0759527f269d3449d4b07581fcbe21df7fed))
+* **fs:** stream FileBinary downloads when no url is configured ([#1133](https://github.com/loopingz/webda.io/issues/1133)) ([090343c](https://github.com/loopingz/webda.io/commit/090343c0cf0ff0499c50fbaba41f032753ba860e)), closes [#1113](https://github.com/loopingz/webda.io/issues/1113)
+* **otel:** name server spans after the route template ([#1140](https://github.com/loopingz/webda.io/issues/1140)) ([c8036a2](https://github.com/loopingz/webda.io/commit/c8036a292ced3739b1bf4c9727e1d6d8e265d942)), closes [#1120](https://github.com/loopingz/webda.io/issues/1120)
+* warn on store key collisions; Cosmos bulk delete/update ([#1095](https://github.com/loopingz/webda.io/issues/1095)) ([07c934b](https://github.com/loopingz/webda.io/commit/07c934ba117f35d4457ffa2c5dc310d4f75ad955))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/cache bumped to 4.0.0-rc.2
+    * @webda/models bumped to 4.0.0-rc.2
+    * @webda/ql bumped to 4.0.0-rc.2
+    * @webda/utils bumped to 4.0.0-rc.2
+    * @webda/workout bumped to 4.0.0-rc.2
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-rc.2
+    * @webda/content-mapper bumped to 4.0.0-rc.2
+    * @webda/test bumped to 4.0.0-rc.2
+  * peerDependencies
+    * @webda/test bumped to 4.0.0-rc.2
+
 ## [4.0.0-rc.1](https://github.com/loopingz/webda.io/compare/core-v4.0.0-beta.14...core-v4.0.0-rc.1) (2026-11-14)
 
 

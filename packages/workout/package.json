@@ -1,6 +1,6 @@
 {
   "name": "@webda/workout",
-  "version": "4.0.0-rc.1",
+  "version": "4.0.0-rc.2",
   "description": "Abstraction to logging and user interaction",
   "keywords": [
     "terminal",

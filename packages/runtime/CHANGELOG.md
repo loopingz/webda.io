@@ -72,6 +72,28 @@
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-rc.2](https://github.com/loopingz/webda.io/compare/runtime-v4.0.0-rc.1...runtime-v4.0.0-rc.2) (2026-11-27)
+
+
+### Bug Fixes
+
+* **runtime:** enforce path boundary and requireAuthentication in ProxyService.proxyWS ([#1211](https://github.com/loopingz/webda.io/issues/1211)) ([f2f47f1](https://github.com/loopingz/webda.io/commit/f2f47f17f1b259a51c1019e14829bf5a5c88711e))
+* **runtime:** return early on unknown model/store/service in ClusterService.handleMessage ([#1212](https://github.com/loopingz/webda.io/issues/1212)) ([93be70b](https://github.com/loopingz/webda.io/commit/93be70bc3b951b32c64b0282e02531d4c98c6aa9))
+* **runtime:** stop the proxy forwarding client credentials and hop-by-hop headers ([6a29830](https://github.com/loopingz/webda.io/commit/6a2983083b467f51c1a634d4c3e8d463e2616851))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-rc.2
+    * @webda/models bumped to 4.0.0-rc.2
+    * @webda/ql bumped to 4.0.0-rc.2
+    * @webda/workout bumped to 4.0.0-rc.2
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-rc.2
+    * @webda/test bumped to 4.0.0-rc.2
+
 ## [4.0.0-rc.1](https://github.com/loopingz/webda.io/compare/runtime-v4.0.0-beta.14...runtime-v4.0.0-rc.1) (2026-11-14)
 
 

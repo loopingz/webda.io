@@ -284,11 +284,13 @@ export class MemoryStore<K extends MemoryStoreParameters = MemoryStoreParameters
           reject(err);
         }
       });
+      /* v8 ignore start */
       dest.on("error", err => {
         rmSync(tmpPath, { force: true });
         this.log("ERROR", "Cannot persist memory data", err);
         reject(err);
       });
+      /* v8 ignore stop */
     });
   }
 

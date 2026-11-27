@@ -1,11 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
 // Models carry their metadata in `__meta` here, and the app has no service
-const { createFromInput, storage } = vi.hoisted(() => ({
-  createFromInput: vi.fn(),
+const { storage } = vi.hoisted(() => ({
   storage: { operations: {} as Record<string, any> | undefined, services: {} as Record<string, any> }
 }));
-vi.mock("./mutations.js", async importOriginal => ({ ...(await importOriginal<any>()), createFromInput }));
 
 vi.mock("@webda/core", async importOriginal => ({
   ...(await importOriginal<any>()),
@@ -193,6 +191,9 @@ describe("GraphQL named types", () => {
     (svc as any).parameters = { isIncluded: () => true, exposeMe: false };
     (svc as any).isExposable = () => true;
     (svc as any).emit = () => {};
+    storage.operations = {
+      "Account.Create": { method: "modelCreate", context: { model: classes["Test/Account"] } }
+    };
     svc.generateSchema();
     return svc;
   };
@@ -211,7 +212,9 @@ describe("GraphQL named types", () => {
     expect(Object.keys(account.getFields()).sort()).toEqual(["availableBalance", "org", "uuid"]);
     expect(Object.keys((account.getFields().org.type as GraphQLObjectType).getFields())).toEqual(["name", "sfinUrl"]);
     // A mutation with the GraphQL names stores the original keys, and the result reads them back
-    createFromInput.mockImplementation(async (_model: any, input: any) => input);
+    const callSpy = vi
+      .spyOn(svc, "callModelOperation")
+      .mockImplementation(async (_model: any, _method: any, _ctx: any, data: any) => ({ result: data }));
     const res: any = await graphql({
       schema: (svc as any).schema,
       source: `mutation { createAccount(Account: { availableBalance: "12.5", org: { name: "Bank", sfinUrl: "https://b" } })
@@ -219,7 +222,7 @@ describe("GraphQL named types", () => {
       contextValue: { getCurrentUserId: () => "user" }
     });
     expect(res.errors).toBeUndefined();
-    expect(createFromInput.mock.calls[0][1]).toEqual({
+    expect(callSpy.mock.calls[0][3]).toEqual({
       "available-balance": "12.5",
       org: { name: "Bank", "sfin-url": "https://b" }
     });

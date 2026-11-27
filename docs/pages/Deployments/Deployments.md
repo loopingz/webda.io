@@ -4,7 +4,7 @@ sidebar_position: 3
 
 # Deployments
 
-Webda allow you to deploy your code in many differents way
+Choose a deployment target, prepare the application configuration, and package the runtime files.
 
 Deploy to [Azure Container Apps or Functions](./Azure.md), [AWS](./AWS.md), [Docker](./Docker.md),
 [Kubernetes](./Kubernetes/Kubernetes.md), or [Knative and Cloud Run](./Knative.md).

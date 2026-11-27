@@ -1,9 +1,9 @@
-# Tutorial - Contact list
+# Tutorial - Contact List
 
 For the purpose of the tutorial, we will build a small contact list application.
 
 For a larger walkthrough (relations, services, REST, GraphQL and gRPC), see
-[Tutorial-BlogSystem](./Tutorial-BlogSystem/00-Overview.md).
+[Tutorial - Blog System](./Tutorial-BlogSystem/00-Overview.md).
 
 ## First steps
 

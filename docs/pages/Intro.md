@@ -6,7 +6,7 @@ Build TypeScript applications around your domain models. Webda provides services
 
 | I want to…                       | Start here                                                              |
 | -------------------------------- | ----------------------------------------------------------------------- |
-| Run my first application         | [Quick Start](./QuickStart/QuickStart.md)                               |
+| Run my first application         | [Quick Start](./QuickStart/QuickStart.mdx)                               |
 | Learn through a complete example | [Blog System Tutorial](./QuickStart/Tutorial-BlogSystem/00-Overview.md) |
 | Understand the architecture      | [Core concepts](./Concepts/Concepts.md)                                 |
 | Add application behavior         | [My First Service](./QuickStart/FirstService.md)                        |

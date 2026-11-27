@@ -4,10 +4,11 @@ sidebar_position: 1
 
 # Application
 
-An Application represent the known types and load webda configuration.
-It load the right files based on a predefined cachedModule definition
+An `Application` holds the known model and service types and loads the Webda configuration.
+A packaged application reads cached module metadata instead of scanning installed packages.
+The core runtime uses this configuration and type registry to create and start services.
 
-It also include some templating mechanism to allow dynamic object/string.
+Configuration templates allow values to be resolved dynamically.
 
 ## UnpackedApplication
 

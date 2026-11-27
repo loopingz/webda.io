@@ -87,4 +87,4 @@ The generated `test/app.spec.ts` loads the application from `lib/` with `WebdaAp
 
 ---
 
-(end of tutorial — return to the [QuickStart index](../QuickStart.md))
+(end of tutorial — return to the [QuickStart index](../QuickStart.mdx))

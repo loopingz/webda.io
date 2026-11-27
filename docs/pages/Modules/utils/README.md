@@ -1,6 +1,7 @@
 ---
 sidebar_label: "@webda/utils"
 ---
+
 # utils
 
 # @webda/utils
@@ -38,12 +39,12 @@ await throttler.wait();
 // At most 5 processItem() calls were running at any point in time
 
 // Duration — parse human-readable time strings
-const ms = new Duration("2m30s").toMs();  // → 150000
-const ms2 = new Duration("1h").toMs();    // → 3600000
-const label = Duration.format(90000);     // → "1m30s"
+const ms = new Duration("2m30s").toMs(); // → 150000
+const ms2 = new Duration("1h").toMs(); // → 3600000
+const label = Duration.format(90000); // → "1m30s"
 
 // FileUtils — load JSON, JSONC, or YAML transparently
-const config = FileUtils.load("./webda.config.jsonc");  // parses comments
+const config = FileUtils.load("./webda.config.jsonc"); // parses comments
 const data = JSONUtils.loadFile("./data.json");
 
 // JSONUtils.sortObject — copy with sorted keys
@@ -52,10 +53,16 @@ const sorted = JSONUtils.sortObject({ b: 2, a: 1 });
 
 // WaitFor — poll until a condition is met with backoff
 import { WaitFor, WaitLinearDelay } from "@webda/utils";
-await WaitFor(async () => {
-  const status = await checkDeploymentStatus();
-  return status === "COMPLETE";
-}, 150 /* retries */, "deployment", undefined, WaitLinearDelay(200));
+await WaitFor(
+  async () => {
+    const status = await checkDeploymentStatus();
+    return status === "COMPLETE";
+  },
+  150 /* retries */,
+  "deployment",
+  undefined,
+  WaitLinearDelay(200)
+);
 ```
 
 ### TypeScript utility types
@@ -89,7 +96,7 @@ The decorator factories `createClassDecorator`, `createPropertyDecorator` and
 Each `@webda/*` package calls `registerWebdaPackage(name, import.meta.url)` from its entry. The registry lives
 on `globalThis`, so every copy of every package shares it: loading the same package from a second path throws
 `<name> loaded twice: ...`, even when both copies have the same version. `getWebdaPackages()` lists the
-registered packages. See [Common Issues](../../CommonIssues/CommonIssues.md) to fix a duplicate install.
+registered packages. If a package is loaded twice, deduplicate the installation and check that required peer dependencies are declared directly.
 
 ## Reference
 

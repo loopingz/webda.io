@@ -137,6 +137,7 @@ export class ProxyParameters extends ServiceParameters {
  * @WebdaModda
  */
 export class ProxyService<T extends ProxyParameters = ProxyParameters> extends Service<T> {
+  /** Service parameters */
   static Parameters = ProxyParameters;
   /**
    * Metrics

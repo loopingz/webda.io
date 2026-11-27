@@ -35,6 +35,7 @@ export class EchoServiceParameters extends ServiceParameters {
  * @WebdaModda
  */
 export class EchoService extends Service<EchoServiceParameters> {
+  /** Service parameters */
   static Parameters = EchoServiceParameters;
   /** @ignore */
   @Route(".", ["GET"])

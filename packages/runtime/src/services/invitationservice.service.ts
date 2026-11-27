@@ -267,6 +267,7 @@ export class InvitationService<
   T extends InvitationParameters = InvitationParameters,
   E extends InvitationServiceEvents = InvitationServiceEvents
 > extends Service<T, E> {
+  /** Service parameters */
   static Parameters = InvitationParameters;
   /**
    * Authentication service

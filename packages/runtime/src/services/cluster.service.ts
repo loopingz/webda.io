@@ -102,6 +102,7 @@ export class ClusterServiceParameters extends ServiceParameters {
  * @WebdaModda
  */
 export class ClusterService<T extends ClusterServiceParameters = ClusterServiceParameters> extends Service<T> {
+  /** Service parameters */
   static Parameters = ClusterServiceParameters;
   /**
    * Pub sub

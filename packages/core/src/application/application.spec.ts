@@ -690,6 +690,10 @@ class ApplicationDefaultOutputTest {
     const direct = new DirectSvc("direct", {});
     assert.ok(direct.getParameters() instanceof CustomParams);
     assert.strictEqual(direct.getParameters().flag, true);
+    const { AbstractService } = await import("../services/iservice.js");
+    class PlainAbstractSvc extends AbstractService {}
+    const plain = new PlainAbstractSvc("plain", { a: 1 } as any);
+    assert.deepStrictEqual((plain as any).parameters, { a: 1 });
 
     // 2. installConfigurationFactories defaults to target.Parameters
     class FactorySvc extends Service<CustomParams> {

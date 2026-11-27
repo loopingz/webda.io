@@ -1,5 +1,31 @@
 # Changelog
 
+## [4.0.0-rc.2](https://github.com/loopingz/webda.io/compare/compiler-v4.0.0-rc.1...compiler-v4.0.0-rc.2) (2026-11-27)
+
+
+### Features
+
+* **lint:** add @webda/eslint-plugin and webdac lint command ([efcd26f](https://github.com/loopingz/webda.io/commit/efcd26fb8add43ea573704727ffa027f6d3a7137))
+
+
+### Bug Fixes
+
+* **compiler:** dependency digest follows symlinked declarations ([fda4bea](https://github.com/loopingz/webda.io/commit/fda4bea8835d7a92b66d1c25aee2514f9881c4a8)), closes [#1219](https://github.com/loopingz/webda.io/issues/1219)
+* **compiler:** rebuild when the configuration changes ([a40a8df](https://github.com/loopingz/webda.io/commit/a40a8df257cfbee022f0d6bb3d5c30dc7bebb7fa)), closes [#1116](https://github.com/loopingz/webda.io/issues/1116)
+* **compiler:** type configured services in the generated ServicesMap ([d617dbb](https://github.com/loopingz/webda.io/commit/d617dbb8e8b86f2fbc105f71204f46ffabe40504)), closes [#1117](https://github.com/loopingz/webda.io/issues/1117)
+* **lint,ci:** register @webda/eslint-plugin in release-please and fix Windows path/symlink tests ([320fc30](https://github.com/loopingz/webda.io/commit/320fc302cd181101b550fa8b7986266d7e681f41))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/content-mapper bumped to 4.0.0-rc.2
+    * @webda/utils bumped to 4.0.0-rc.2
+    * @webda/workout bumped to 4.0.0-rc.2
+  * devDependencies
+    * @webda/test bumped to 4.0.0-rc.2
+
 ## [4.0.0-rc.1](https://github.com/loopingz/webda.io/compare/compiler-v4.0.0-beta.14...compiler-v4.0.0-rc.1) (2026-11-14)
 
 

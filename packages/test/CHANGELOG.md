@@ -1,5 +1,20 @@
 # Changelog
 
+## [4.0.0-rc.2](https://github.com/loopingz/webda.io/compare/test-v4.0.0-rc.1...test-v4.0.0-rc.2) (2026-11-27)
+
+
+### Bug Fixes
+
+* **core:** make sinon optional in WebdaTest, fall back to webda.config.json, and sanitize log filenames ([fa2dea8](https://github.com/loopingz/webda.io/commit/fa2dea8712cca889e33da52f619255a21a5fbbe7))
+* **test:** preserve test method name on testExecutor for failure logs ([8b7d1a3](https://github.com/loopingz/webda.io/commit/8b7d1a3942b70a74ad28a6060163f69e85028377))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/workout bumped to 4.0.0-rc.2
+
 ## [4.0.0-rc.1](https://github.com/loopingz/webda.io/compare/test-v4.0.0-beta.9...test-v4.0.0-rc.1) (2026-11-14)
 
 

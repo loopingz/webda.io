@@ -144,6 +144,25 @@
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-rc.2](https://github.com/loopingz/webda.io/compare/hawk-v4.0.0-rc.1...hawk-v4.0.0-rc.2) (2026-11-27)
+
+
+### Bug Fixes
+
+* **core:** resolve short service types when loading capabilities ([303a075](https://github.com/loopingz/webda.io/commit/303a0759527f269d3449d4b07581fcbe21df7fed))
+* **hawk:** verify the payload hash and reject replays ([6dd8e69](https://github.com/loopingz/webda.io/commit/6dd8e69888115fe2aed0def5b40e0ff9397a58de))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/cache bumped to 4.0.0-rc.2
+    * @webda/core bumped to 4.0.0-rc.2
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-rc.2
+    * @webda/test bumped to 4.0.0-rc.2
+
 ## [4.0.0-rc.1](https://github.com/loopingz/webda.io/compare/hawk-v4.0.0-beta.14...hawk-v4.0.0-rc.1) (2026-11-14)
 
 

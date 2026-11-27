@@ -1,5 +1,20 @@
 # Changelog
 
+## [4.0.0-rc.2](https://github.com/loopingz/webda.io/compare/cache-v4.0.0-rc.1...cache-v4.0.0-rc.2) (2026-11-27)
+
+
+### Bug Fixes
+
+* **cache:** apply decorator ttl and type annotations as CacheAnnotation ([3202178](https://github.com/loopingz/webda.io/commit/3202178830d518cf6774e1e7184d666c117dbdea)), closes [#1109](https://github.com/loopingz/webda.io/issues/1109)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-rc.2
+    * @webda/test bumped to 4.0.0-rc.2
+
 ## [4.0.0-rc.1](https://github.com/loopingz/webda.io/compare/cache-v4.0.0-beta.14...cache-v4.0.0-rc.1) (2026-11-14)
 
 

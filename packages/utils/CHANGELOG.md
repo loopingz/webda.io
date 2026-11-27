@@ -1,5 +1,23 @@
 # Changelog
 
+## [4.0.0-rc.2](https://github.com/loopingz/webda.io/compare/utils-v4.0.0-rc.1...utils-v4.0.0-rc.2) (2026-11-27)
+
+
+### Bug Fixes
+
+* **utils,mcp:** resolve the browser entry and declare @webda/utils at runtime ([#1086](https://github.com/loopingz/webda.io/issues/1086)) ([8d10d46](https://github.com/loopingz/webda.io/commit/8d10d46900d0d709a1164520555574d50c3b03c6))
+* **utils:** resolve WaitFor when callback returns true ([7fc5bf7](https://github.com/loopingz/webda.io/commit/7fc5bf7768f8adfb103590afb00f5075e98cdbe4))
+* **utils:** support spaces and reject invalid tokens in Duration ([b924323](https://github.com/loopingz/webda.io/commit/b924323ddf1a84267ccdc17d5ff4d4d7a679237c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/workout bumped to 4.0.0-rc.2
+  * devDependencies
+    * @webda/test bumped to 4.0.0-rc.2
+
 ## [4.0.0-rc.1](https://github.com/loopingz/webda.io/compare/utils-v4.0.0-beta.13...utils-v4.0.0-rc.1) (2026-11-14)
 
 

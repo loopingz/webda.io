@@ -81,6 +81,24 @@
   * devDependencies
     * @webda/shell bumped from ^3.10.1 to ^3.11.0
 
+## [4.0.0-rc.2](https://github.com/loopingz/webda.io/compare/otel-v4.0.0-rc.1...otel-v4.0.0-rc.2) (2026-11-27)
+
+
+### Bug Fixes
+
+* **otel:** name server spans after the route template ([#1140](https://github.com/loopingz/webda.io/issues/1140)) ([c8036a2](https://github.com/loopingz/webda.io/commit/c8036a292ced3739b1bf4c9727e1d6d8e265d942)), closes [#1120](https://github.com/loopingz/webda.io/issues/1120)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-rc.2
+    * @webda/workout bumped to 4.0.0-rc.2
+  * devDependencies
+    * @webda/compiler bumped to 4.0.0-rc.2
+    * @webda/test bumped to 4.0.0-rc.2
+
 ## [4.0.0-rc.1](https://github.com/loopingz/webda.io/compare/otel-v4.0.0-beta.14...otel-v4.0.0-rc.1) (2026-11-14)
 
 

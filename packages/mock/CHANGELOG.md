@@ -1,5 +1,24 @@
 # Changelog
 
+## [4.0.0-rc.2](https://github.com/loopingz/webda.io/compare/mock-v4.0.0-rc.1...mock-v4.0.0-rc.2) (2026-11-27)
+
+
+### Bug Fixes
+
+* **mock:** fill relation fields and skip internal fields ([6bbff2f](https://github.com/loopingz/webda.io/commit/6bbff2f5edff12a592afedcebfff0b43da90fd64)), closes [#1122](https://github.com/loopingz/webda.io/issues/1122)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/models bumped to 4.0.0-rc.2
+  * devDependencies
+    * @webda/core bumped to 4.0.0-rc.2
+    * @webda/test bumped to 4.0.0-rc.2
+  * peerDependencies
+    * @webda/core bumped to 4.0.0-rc.2
+
 ## [4.0.0-rc.1](https://github.com/loopingz/webda.io/compare/mock-v4.0.0-beta.14...mock-v4.0.0-rc.1) (2026-11-14)
 
 

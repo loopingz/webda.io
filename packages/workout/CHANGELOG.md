@@ -24,6 +24,17 @@
   * devDependencies
     * @webda/tsc-esm bumped from ^1.2.0 to ^1.3.0
 
+## [4.0.0-rc.2](https://github.com/loopingz/webda.io/compare/workout-v4.0.0-rc.1...workout-v4.0.0-rc.2) (2026-11-27)
+
+
+### Bug Fixes
+
+* **core,workout:** handle EPIPE in ConsoleLogger and persist MemoryStore atomically ([5d8d1bf](https://github.com/loopingz/webda.io/commit/5d8d1bfcf7262dd348464be6b6c7430eade23b18))
+* **core,workout:** route CLI operations through callOperation, enable InteractiveConsoleLogger, and export useLogLevel ([77204e4](https://github.com/loopingz/webda.io/commit/77204e4f16f7acc01845cccde828b6234487d451))
+* **workout:** add missing JSDoc [@param](https://github.com/param) logStream on InteractiveConsoleLogger ([f0d31ed](https://github.com/loopingz/webda.io/commit/f0d31ed774e4aaba56c1a482ccbf91135759536f))
+* **workout:** add missing JSDoc [@param](https://github.com/param) tags on ConsoleLogger.safeWrite ([bb02a49](https://github.com/loopingz/webda.io/commit/bb02a4987322c16fec8cbfb69717bd7a5bd919ec))
+* **workout:** reset SimpleProgress start/stop timestamps on restart ([8004a5f](https://github.com/loopingz/webda.io/commit/8004a5f4d98afdc4f33aa8e3512489b92514c827))
+
 ## [4.0.0-rc.1](https://github.com/loopingz/webda.io/compare/workout-v4.0.0-beta.7...workout-v4.0.0-rc.1) (2026-11-14)
 
 

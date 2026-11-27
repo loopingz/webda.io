@@ -1,5 +1,32 @@
 # Changelog
 
+## [4.0.0-rc.2](https://github.com/loopingz/webda.io/compare/fs-v4.0.0-rc.1...fs-v4.0.0-rc.2) (2026-11-27)
+
+
+### Bug Fixes
+
+* **fs:** create the FileStore and FileQueue folders recursively ([#1139](https://github.com/loopingz/webda.io/issues/1139)) ([6c417c2](https://github.com/loopingz/webda.io/commit/6c417c2bbeb3b501fe21210ff3046764e4a15944)), closes [#1119](https://github.com/loopingz/webda.io/issues/1119)
+* **fs:** stream FileBinary downloads when no url is configured ([#1133](https://github.com/loopingz/webda.io/issues/1133)) ([090343c](https://github.com/loopingz/webda.io/commit/090343c0cf0ff0499c50fbaba41f032753ba860e)), closes [#1113](https://github.com/loopingz/webda.io/issues/1113)
+
+
+### Performance Improvements
+
+* **models,fs:** optimize MemoryRepository queries and FileQueue message picking ([#1096](https://github.com/loopingz/webda.io/issues/1096)) ([8d7aee5](https://github.com/loopingz/webda.io/commit/8d7aee548741b63cb6b8bf4e45bdd6d7a1975fe8))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @webda/core bumped to 4.0.0-rc.2
+    * @webda/ql bumped to 4.0.0-rc.2
+    * @webda/utils bumped to 4.0.0-rc.2
+    * @webda/workout bumped to 4.0.0-rc.2
+  * devDependencies
+    * @webda/bench bumped to 4.0.0-rc.2
+    * @webda/compiler bumped to 4.0.0-rc.2
+    * @webda/test bumped to 4.0.0-rc.2
+
 ## [4.0.0-rc.1](https://github.com/loopingz/webda.io/compare/fs-v4.0.0-beta.14...fs-v4.0.0-rc.1) (2026-11-14)
 
 

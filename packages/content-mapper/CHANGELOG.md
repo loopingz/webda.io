@@ -1,5 +1,19 @@
 # Changelog
 
+## [4.0.0-rc.2](https://github.com/loopingz/webda.io/compare/content-mapper-v4.0.0-rc.1...content-mapper-v4.0.0-rc.2) (2026-11-27)
+
+
+### Features
+
+* **core:** let [@sanitize](https://github.com/sanitize) cover a free-form attribute; read the keyword next to a $ref ([#1087](https://github.com/loopingz/webda.io/issues/1087)) ([d82fc7b](https://github.com/loopingz/webda.io/commit/d82fc7b428b576e6f575e65fc9824b3f9fe05675))
+
+
+### Bug Fixes
+
+* **content-mapper:** fail emitProject on non-warning generator diagnostics ([7005085](https://github.com/loopingz/webda.io/commit/7005085b6bbe3cbe1b4b8c22b8721c9ad7ffb45e))
+* **content-mapper:** preserve | undefined on optional property accessors ([6a537b4](https://github.com/loopingz/webda.io/commit/6a537b4c7c7a2432fd64bf41ee921ca3667bdc5e))
+* **content-mapper:** resolve node_modules inherited ServiceParameters without .d suffix ([3d3e90d](https://github.com/loopingz/webda.io/commit/3d3e90da098e460af44bf94dbd6b42c25ab71759))
+
 ## [4.0.0-rc.1](https://github.com/loopingz/webda.io/compare/content-mapper-v4.0.0-beta.11...content-mapper-v4.0.0-rc.1) (2026-11-14)
 
 

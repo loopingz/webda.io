@@ -1,7 +1,6 @@
 # Application
 
-The default application is designed to only read its own configuration and start the services it needs.
+The application guide is now part of Learn → Concepts.
 
-## UnpackedApplication
-
-This class is used during development it will search for `webda.module.json` and reassemble them.
+Continue to [Application](../Concepts/Application.md) for configuration loading, module discovery,
+`UnpackedApplication`, and `TestApplication`.

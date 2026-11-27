@@ -159,7 +159,7 @@ export class Core implements ICore {
    */
   protected computeServicesConfiguration() {
     this.configuration = {};
-    for (const [key, value] of Object.entries(this.applicationConfiguration.services)) {
+    for (const [key, value] of Object.entries(this.applicationConfiguration.services || {})) {
       this.configuration[key] = Object.freeze(
         (this.moddas[key]?.filterParameters || (p => p))({
           ...this.applicationConfiguration.parameters,

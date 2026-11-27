@@ -169,6 +169,12 @@ The checks run on **operations sent by clients**, through the shared helpers exp
 
 Server code is trusted: calling the model API directly (`Post.ref(uuid).get()`, `Post.create(...)`, `Post.query(...)`, `useRepository(Post)`) does **not** check permissions. Call `checkModelPermission` yourself when server code acts on behalf of a client.
 
+### Nested routes and parent models
+
+Across all transports (REST nested routes like `/companies/{pid.0}/users`, GraphQL, gRPC, and MCP), operations on an existing child model (`get`, `query`, `update`, `patch`, `delete`, model actions, and behavior actions) are gated by the **child model's own `canAct`**, not by the parent's `get` permission. This allows users to access specific child records without having read access to the parent model itself.
+
+Only **`create`** checks the parent (`canAct(context, "get", parent)` via `checkModelParent`) so callers cannot attach new children to an unreadable or missing parent. If reading or modifying a child should also depend on the parent's permissions, check the parent explicitly inside the child model's `canAct`.
+
 ## Action names
 
 | Action string            | Triggered by                                                                        |

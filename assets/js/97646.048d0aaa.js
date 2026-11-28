@@ -1,1 +1,0 @@
-"use strict";(Array.isArray(globalThis.webpackChunk_webda_docs)?globalThis.webpackChunk_webda_docs:globalThis.webpackChunk_webda_docs=[]).push([[97646],{97646(a,e,s){s.d(e,{createWardleyServices:()=>b.J});var b=s(58734);s(32026)}}]);
